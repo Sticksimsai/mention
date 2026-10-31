@@ -2,8 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cocogoose Pro — site typeface. Headers use 400/700, paragraphs run thin (200).
-   NOTE: trial files — license via zetafonts.com before commercial release. */
+/* Stairs'n'Slabs — pixel display face for headers/wordmark.
+   Cocogoose Pro Thin — running text (trial files: license via zetafonts.com). */
+@font-face {
+  font-family: "StairsNSlabs";
+  src: url("/fonts/stairsnslabs.ttf") format("truetype");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Ultralight-trial.ttf") format("truetype");
@@ -54,7 +59,15 @@
 body {
   @apply bg-ink text-fg font-body antialiased;
   font-weight: 200; /* Cocogoose Thin for running text */
+  font-size: 13px;
   letter-spacing: 0.01em;
+}
+
+/* pixel display face stays crisp */
+.font-display {
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
 /* anything bolded steps up to the Regular cut */

@@ -42,7 +42,7 @@ export default function ProfilePage() {
           <a href={`https://x.com/${p.username}`} target="_blank" rel="noreferrer" className="hover:text-volt">@{p.username} 𝕏</a>
           {" "}· {p.followers} followers · {p.tribes} communities
         </p>
-        {p.bio && <p className="mt-2 text-[15px]">{p.bio}</p>}
+        {p.bio && <p className="mt-2 text-[13px]">{p.bio}</p>}
         {p.ownedTribes.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {p.ownedTribes.map((t) => (

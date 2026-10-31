@@ -93,7 +93,7 @@ function NavItem({ href, icon, children }: { href: string; icon: React.ReactNode
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-[15px] transition-colors ${
+      className={`flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-[13px] transition-colors ${
         active ? "bg-surface font-semibold text-volt" : "text-fg hover:bg-surface"
       }`}
     >

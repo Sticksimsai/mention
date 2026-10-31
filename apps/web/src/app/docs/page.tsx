@@ -124,7 +124,7 @@ function Doc({ id, title, children }: { id: string; title: string; children: Rea
   return (
     <section id={id} className="scroll-mt-28">
       <h2 className="mb-3 font-display text-lg font-medium text-volt">{title}</h2>
-      <div className="space-y-3 text-[15px] leading-relaxed text-fg/90">{children}</div>
+      <div className="space-y-3 text-[13px] leading-relaxed text-fg/90">{children}</div>
     </section>
   );
 }

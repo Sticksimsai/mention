@@ -121,7 +121,7 @@ export function PostCard({ post }: { post: PostView }) {
             {post.pinned && <span className="text-[11px] text-volt">pinned</span>}
           </div>
 
-          <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed">{post.content}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed">{post.content}</p>
 
           {post.mediaUrl && (
             // eslint-disable-next-line @next/next/no-img-element

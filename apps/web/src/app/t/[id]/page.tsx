@@ -88,7 +88,7 @@ export default function TribePage() {
           <a href={`/u/${tribe.owner.username}`} className="text-volt hover:underline">@{tribe.owner.username}</a>
           {tribe.launchedViaTribes && " · launched on Mention"}
         </p>
-        {tribe.details && <p className="mt-2 text-[15px] leading-relaxed">{tribe.details}</p>}
+        {tribe.details && <p className="mt-2 text-[13px] leading-relaxed">{tribe.details}</p>}
         <p className="mt-2 font-mono text-xs text-muted">
           CA{" "}
           <button onClick={() => navigator.clipboard?.writeText(tribe.ca)} className="hover:text-volt" title="Copy">

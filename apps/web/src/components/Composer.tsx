@@ -41,7 +41,7 @@ export function Composer({ communityId }: { communityId: string }) {
         placeholder="Say it here, it lands on X too"
         rows={2}
         maxLength={280}
-        className="w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted"
+        className="w-full resize-none bg-transparent text-[13px] outline-none placeholder:text-muted"
       />
       <div className="mt-2 flex items-center justify-between">
         <label className="flex items-center gap-2 text-xs text-muted">
