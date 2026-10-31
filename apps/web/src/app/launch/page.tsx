@@ -16,7 +16,7 @@ export default function LaunchPage() {
   return (
     <Shell>
       <div className="border-b hairline px-5 py-4">
-        <h1 className="font-display text-base font-medium">Launch</h1>
+        <h1 className="font-display text-base font-medium">Launchpad</h1>
         <p className="text-xs text-muted">
           Mint a token, mint a tribe. One launch creates both — feed, chart and X mirroring included.
         </p>

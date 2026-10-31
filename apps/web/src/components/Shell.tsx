@@ -29,9 +29,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
           <nav className="flex flex-col gap-0.5">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
-            <NavItem href="/tribes" icon={<FlameIcon />}>Tribes</NavItem>
-            <NavItem href="/top" icon={<TrophyIcon />}>Top tokens</NavItem>
-            <NavItem href="/launch" icon={<RocketIcon />}>Launch</NavItem>
+            <NavItem href="/tribes" icon={<FlameIcon />}>Explore</NavItem>
+            <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
+            <NavItem href="/launch" icon={<RocketIcon />}>Launchpad</NavItem>
             {me && <NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem>}
             {me && <NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem>}
             {me?.role === "admin" && <NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}
@@ -116,7 +116,7 @@ function TrendingRail() {
 
   return (
     <div className="rounded-2xl border hairline bg-surface p-4">
-      <h2 className="mb-3 font-display text-sm font-medium">Trending tribes</h2>
+      <h2 className="mb-3 font-display text-sm font-medium">Trending</h2>
       {list.length === 0 && (
         <p className="text-sm text-muted">No tribes yet. Launch the first one.</p>
       )}

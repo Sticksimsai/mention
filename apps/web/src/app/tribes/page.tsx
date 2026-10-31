@@ -24,7 +24,7 @@ export default function TribesPage() {
   return (
     <Shell>
       <div className="sticky top-0 z-10 border-b hairline bg-ink/80 px-5 pt-4 backdrop-blur">
-        <h1 className="font-display text-base font-medium">Tribes</h1>
+        <h1 className="font-display text-base font-medium">Explore</h1>
         <div className="mt-3 flex gap-6 text-sm">
           {SORTS.map((s) => (
             <button

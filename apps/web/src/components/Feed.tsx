@@ -9,15 +9,21 @@ import { useMe } from "@/lib/hooks";
 
 interface FeedPage { items: PostView[]; nextCursor: string | null }
 
-export function Feed({ communityId, author }: { communityId?: string; author?: string }) {
+export function Feed({ communityId, author, scope }: {
+  communityId?: string;
+  author?: string;
+  /** "joined" = only the viewer's tribes (needs auth) */
+  scope?: "joined";
+}) {
   const { me } = useMe();
   const params = new URLSearchParams();
   if (communityId) params.set("communityId", communityId);
   if (author) params.set("author", author);
   if (me) params.set("viewerId", me.id);
+  if (scope === "joined" && me) params.set("scope", "joined");
 
   const feed = useInfiniteQuery({
-    queryKey: ["feed", communityId ?? "global", author ?? "", me?.id ?? ""],
+    queryKey: ["feed", communityId ?? "global", author ?? "", scope ?? "all", me?.id ?? ""],
     queryFn: ({ pageParam }) => {
       const p = new URLSearchParams(params);
       if (pageParam) p.set("cursor", pageParam);
@@ -25,7 +31,7 @@ export function Feed({ communityId, author }: { communityId?: string; author?: s
     },
     initialPageParam: "",
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    refetchInterval: communityId || author ? 20_000 : 12_000,
+    refetchInterval: communityId || author ? 20_000 : 8_000,
   });
 
   const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
@@ -34,8 +40,14 @@ export function Feed({ communityId, author }: { communityId?: string; author?: s
   if (items.length === 0) {
     return (
       <div className="px-6 py-16 text-center text-muted">
-        <p className="mb-1 font-medium text-fg">Nothing here yet</p>
-        <p className="text-sm">Posts made here and matching tweets from X both land in this feed.</p>
+        <p className="mb-1 font-medium text-fg">
+          {scope === "joined" ? "Your tribes are quiet" : "Nothing here yet"}
+        </p>
+        <p className="text-sm">
+          {scope === "joined"
+            ? "Join a tribe and its posts — on-site and from X — show up here."
+            : "Posts made here and matching tweets from X both land in this feed."}
+        </p>
       </div>
     );
   }

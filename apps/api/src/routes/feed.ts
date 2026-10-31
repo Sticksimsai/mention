@@ -4,7 +4,7 @@
 import { Hono } from "hono";
 import type { PostView } from "@tribes/shared";
 import {
-  posts, xPosts, xPostCommunities, communities, users,
+  posts, xPosts, xPostCommunities, communities, users, communityMembers,
   postLikes, postReposts, xPostLikes, xPostReposts,
   eq, and, desc, lt, inArray, sql,
 } from "@tribes/db";
@@ -46,6 +46,8 @@ function xToView(x: any, communityId: string, comm: any): PostView {
 async function fetchMerged(opts: {
   communityId?: string;
   authorUsername?: string;
+  /** limit to these communities (the viewer's joined tribes) */
+  communityIds?: string[];
   before?: Date;
 }): Promise<PostView[]> {
   const before = opts.before ?? new Date(Date.now() + 60_000);
@@ -53,6 +55,7 @@ async function fetchMerged(opts: {
   // native
   const nativeWhere = [eq(posts.hidden, false), lt(posts.createdAt, before)];
   if (opts.communityId) nativeWhere.push(eq(posts.communityId, opts.communityId));
+  if (opts.communityIds) nativeWhere.push(inArray(posts.communityId, opts.communityIds));
   let nativeQ = db.select({ p: posts, u: users, c: communities })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
@@ -64,6 +67,7 @@ async function fetchMerged(opts: {
   const xWhere = [eq(xPosts.hidden, false), lt(xPosts.tweetCreatedAt, before)];
   if (opts.authorUsername) xWhere.push(eq(xPosts.authorUsername, opts.authorUsername));
   if (opts.communityId) xWhere.push(eq(xPostCommunities.communityId, opts.communityId));
+  if (opts.communityIds) xWhere.push(inArray(xPostCommunities.communityId, opts.communityIds));
   const xQ = db.select({ x: xPosts, link: xPostCommunities, c: communities })
     .from(xPosts)
     .innerJoin(xPostCommunities, eq(xPostCommunities.xPostId, xPosts.id))
@@ -106,16 +110,26 @@ feedRoute.get("/", async (c) => {
   const cursor = c.req.query("cursor");
   const before = cursor ? new Date(cursor) : undefined;
   const viewerId = c.req.query("viewerId") || null; // optional, set by web after /me
+  const scope = c.req.query("scope") || "all"; // all | joined (needs viewerId)
 
   // only cache the anonymous first page of global/community feeds
-  const cacheable = !before && !author && !viewerId;
+  const cacheable = !before && !author && !viewerId && scope === "all";
   const cacheKey = `feed:${communityId ?? "global"}`;
   if (cacheable) {
     const hit = await redis.get(cacheKey).catch(() => null);
     if (hit) return c.json(JSON.parse(hit));
   }
 
-  let items = await fetchMerged({ communityId, authorUsername: author, before });
+  // "joined": only the viewer's tribes
+  let communityIds: string[] | undefined;
+  if (scope === "joined" && viewerId) {
+    const memberships = await db.select({ id: communityMembers.communityId })
+      .from(communityMembers).where(eq(communityMembers.userId, viewerId));
+    communityIds = memberships.map((m) => m.id);
+    if (communityIds.length === 0) return c.json({ items: [], nextCursor: null });
+  }
+
+  let items = await fetchMerged({ communityId, authorUsername: author, communityIds, before });
   items = await decorate(items, viewerId);
   const out = {
     items,
