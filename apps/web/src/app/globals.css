@@ -8,31 +8,43 @@
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Ultralight-trial.ttf") format("truetype");
   font-weight: 100; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Thin-trial.ttf") format("truetype");
   font-weight: 200; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Light-trial.ttf") format("truetype");
   font-weight: 300; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Semilight-trial.ttf") format("truetype");
   font-weight: 350; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Regular-trial.ttf") format("truetype");
   font-weight: 400 600; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 @font-face {
   font-family: "Cocogoose";
   src: url("/fonts/Cocogoose-Pro-Bold-trial.ttf") format("truetype");
   font-weight: 700; font-style: normal; font-display: swap;
+  /* trial cuts watermark numerals — digits fall back to system until licensed */
+  unicode-range: U+0000-002F, U+003A-10FFFF;
 }
 
 :root {
