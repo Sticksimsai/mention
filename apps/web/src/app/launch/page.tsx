@@ -1,5 +1,7 @@
 "use client";
 
+// Launch: the only way a tribe is born. Mint on pump.fun through Tribes —
+// the token, the community, the chart and the X mirroring all go live at once.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
@@ -10,35 +12,24 @@ import { useMe } from "@/lib/hooks";
 export default function LaunchPage() {
   const { authenticated, login } = useMe();
   const router = useRouter();
-  const [mode, setMode] = useState<"launch" | "link">("launch");
 
   return (
     <Shell>
       <div className="border-b hairline px-5 py-4">
         <h1 className="font-display text-base font-medium">Launch</h1>
-        <p className="text-xs text-muted">Every token minted here gets its own tribe, mirrored with X from day one.</p>
-        <div className="mt-3 flex gap-6 text-sm">
-          <button onClick={() => setMode("launch")}
-            className={`border-b-2 pb-2 ${mode === "launch" ? "border-ember" : "border-transparent text-muted"}`}>
-            Mint a new token
-          </button>
-          <button onClick={() => setMode("link")}
-            className={`border-b-2 pb-2 ${mode === "link" ? "border-ember" : "border-transparent text-muted"}`}>
-            Link an existing CA
-          </button>
-        </div>
+        <p className="text-xs text-muted">
+          Mint a token, mint a tribe. One launch creates both — feed, chart and X mirroring included.
+        </p>
       </div>
 
       {!authenticated ? (
-        <div className="px-5 py-12 text-center">
-          <button onClick={login} className="rounded-full bg-ember px-6 py-2.5 font-semibold text-ink">
+        <div className="px-5 py-14 text-center">
+          <button onClick={login} className="rounded-2xl bg-volt px-6 py-3 font-bold text-ink hover:bg-volt-deep">
             Sign in with X to launch
           </button>
         </div>
-      ) : mode === "launch" ? (
-        <LaunchForm onDone={(communityId) => router.push(`/t/${communityId}`)} />
       ) : (
-        <LinkForm onDone={(communityId) => router.push(`/t/${communityId}`)} />
+        <LaunchForm onDone={(communityId) => router.push(`/t/${communityId}`)} />
       )}
     </Shell>
   );
@@ -53,7 +44,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full rounded-xl bg-surface px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-ember";
+const inputCls = "w-full rounded-xl border hairline bg-surface px-4 py-3 text-sm outline-none transition focus:border-volt/60";
 
 function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
   const [f, setF] = useState({
@@ -98,57 +89,21 @@ function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
         <Field label="Dev buy (SOL, optional)"><input className={inputCls} value={f.devBuySol} onChange={set("devBuySol")} inputMode="decimal" /></Field>
       </div>
 
-      <div className="rounded-xl bg-surface p-4 text-xs leading-relaxed text-muted">
-        Launches go live on pump.fun. Creator fees on all trading volume are collected by the
-        platform and split with you — your share pays out to the wallet above. Your tribe opens
-        instantly with the chart, CA and X mirroring wired in.
+      <div className="rounded-2xl border border-volt/25 bg-volt/5 p-4 text-xs leading-relaxed text-muted">
+        <span className="text-volt">How launches work:</span> your token goes live on pump.fun
+        instantly. Creator fees on all trading volume are collected by the platform and split
+        with you — your share pays out to the wallet above. Your tribe opens the moment the
+        mint lands, with the chart, CA and X mirroring already wired in.
       </div>
 
       <button
         onClick={() => launch.mutate()}
         disabled={launch.isPending || !f.name || !f.ticker || !f.imageUrl || !f.creatorWallet}
-        className="w-full rounded-xl bg-ember py-3 font-semibold text-ink hover:bg-ember-deep disabled:opacity-40"
+        className="w-full rounded-2xl bg-volt py-3.5 font-bold text-ink shadow-[0_0_24px_rgba(155,240,0,0.2)] transition hover:bg-volt-deep disabled:opacity-40 disabled:shadow-none"
       >
         {launch.isPending ? "Launching…" : "Launch token + tribe"}
       </button>
       {launch.isError && <p className="text-xs text-down">{(launch.error as Error).message}</p>}
-    </div>
-  );
-}
-
-function LinkForm({ onDone }: { onDone: (communityId: string) => void }) {
-  const [f, setF] = useState({ name: "", ticker: "", ca: "", details: "" });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setF((p) => ({ ...p, [k]: e.target.value }));
-
-  const create = useMutation({
-    mutationFn: () => api<{ id: string }>("/v1/communities", {
-      method: "POST",
-      body: { name: f.name, ticker: f.ticker, ca: f.ca, details: f.details },
-    }),
-    onSuccess: (d) => onDone(d.id),
-  });
-
-  return (
-    <div className="space-y-4 px-5 py-6">
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Tribe name"><input className={inputCls} value={f.name} onChange={set("name")} /></Field>
-        <Field label="Ticker"><input className={inputCls} value={f.ticker} onChange={set("ticker")} /></Field>
-      </div>
-      <Field label="Contract address (CA)">
-        <input className={`${inputCls} font-mono`} value={f.ca} onChange={set("ca")} placeholder="Already-launched Solana mint" />
-      </Field>
-      <Field label="About">
-        <textarea className={inputCls} rows={3} value={f.details} onChange={set("details")} />
-      </Field>
-      <button
-        onClick={() => create.mutate()}
-        disabled={create.isPending || !f.name || !f.ticker || !f.ca}
-        className="w-full rounded-xl bg-ember py-3 font-semibold text-ink hover:bg-ember-deep disabled:opacity-40"
-      >
-        {create.isPending ? "Creating…" : "Create tribe"}
-      </button>
-      {create.isError && <p className="text-xs text-down">{(create.error as Error).message}</p>}
     </div>
   );
 }

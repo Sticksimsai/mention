@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
       {!authenticated ? (
         <div className="px-5 py-12 text-center">
-          <button onClick={login} className="rounded-full bg-ember px-6 py-2.5 font-semibold text-ink">Sign in with X</button>
+          <button onClick={login} className="rounded-full bg-volt px-6 py-2.5 font-semibold text-ink">Sign in with X</button>
         </div>
       ) : (
         <div className="space-y-6 px-5 py-6">
@@ -44,7 +44,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => connect.mutate()}
                 disabled={connect.isPending}
-                className="mt-4 rounded-full bg-ember px-5 py-2 text-sm font-semibold text-ink hover:bg-ember-deep"
+                className="mt-4 rounded-full bg-volt px-5 py-2 text-sm font-semibold text-ink hover:bg-volt-deep"
               >
                 Connect X for posting
               </button>
@@ -55,7 +55,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={me.xWriteEnabled}
                     onChange={(e) => toggle.mutate(e.target.checked)}
-                    className="accent-ember"
+                    className="accent-volt"
                   />
                   Mirror my posts to X
                 </label>

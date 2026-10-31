@@ -32,7 +32,7 @@ export function TokenPulse({ ca, compact = false }: { ca: string; compact?: bool
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-ink/70 px-4 py-3 backdrop-blur">
       <span className="flex items-center gap-2">
-        <span className="pulse-dot h-2 w-2 rounded-full bg-ember" />
+        <span className="pulse-dot h-2 w-2 rounded-full bg-volt" />
         <span className="font-mono text-lg font-semibold">{fmtUsd(data?.marketCap)}</span>
         <span className="text-xs text-muted">mcap</span>
       </span>
@@ -46,7 +46,7 @@ export function TokenPulse({ ca, compact = false }: { ca: string; compact?: bool
       )}
       <button
         onClick={() => navigator.clipboard?.writeText(ca)}
-        className="font-mono text-xs text-muted hover:text-ember"
+        className="font-mono text-xs text-muted hover:text-volt"
         title="Copy contract address"
       >
         {shortCa(ca)} ⧉

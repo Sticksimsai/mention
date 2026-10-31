@@ -7,7 +7,8 @@ fully mirrored with X in both directions.
   SocialData and appear in the tribe's feed.
 - **Site → X**: posts made on Tribes are published to the author's real X
   account (official X API, user-granted `tweet.write`).
-- **Launchpad**: tokens launch on pump.fun through the platform wallet, so
+- **Launchpad**: launching is the only way a tribe is created — tokens launch
+  on pump.fun through the platform wallet, so
   creator fees on all trading volume accrue to the platform (split with the
   launcher). In-app trades add a platform fee on top.
 

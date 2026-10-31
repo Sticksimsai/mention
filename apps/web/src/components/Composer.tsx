@@ -26,7 +26,7 @@ export function Composer({ communityId }: { communityId: string }) {
   if (!authenticated) {
     return (
       <div className="border-b hairline px-5 py-4">
-        <button onClick={login} className="text-sm text-ember hover:underline">
+        <button onClick={login} className="text-sm text-volt hover:underline">
           Sign in with X to post
         </button>
       </div>
@@ -50,7 +50,7 @@ export function Composer({ communityId }: { communityId: string }) {
             checked={toX && (me?.xWriteConnected ?? false)}
             disabled={!me?.xWriteConnected}
             onChange={(e) => setToX(e.target.checked)}
-            className="accent-ember"
+            className="accent-volt"
           />
           {me?.xWriteConnected ? "Also post to my X" : "Connect X in settings to cross-post"}
         </label>
@@ -59,7 +59,7 @@ export function Composer({ communityId }: { communityId: string }) {
           <button
             onClick={() => post.mutate()}
             disabled={!content.trim() || post.isPending}
-            className="rounded-full bg-ember px-4 py-1.5 text-sm font-semibold text-ink hover:bg-ember-deep disabled:opacity-40"
+            className="rounded-full bg-volt px-4 py-1.5 text-sm font-semibold text-ink hover:bg-volt-deep disabled:opacity-40"
           >
             Post
           </button>

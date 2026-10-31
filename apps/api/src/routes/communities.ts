@@ -67,6 +67,8 @@ communitiesRoute.get("/:id", async (c) => {
 communitiesRoute.post("/", requireAuth, rateLimit("community-create", 3, 3600),
   zValidator("json", createCommunitySchema), async (c) => {
     requireNotBanned(c);
+    requireStaff(c); // tribes are created by launching a token (/v1/launch);
+                     // manual creation is a staff-only escape hatch
     const u = c.get("user");
     const body = c.req.valid("json");
 

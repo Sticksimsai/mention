@@ -30,7 +30,7 @@ export default function TribesPage() {
             <button
               key={s.id}
               onClick={() => setSort(s.id)}
-              className={`border-b-2 pb-2 ${sort === s.id ? "border-ember text-fg" : "border-transparent text-muted hover:text-fg"}`}
+              className={`border-b-2 pb-2 ${sort === s.id ? "border-volt text-fg" : "border-transparent text-muted hover:text-fg"}`}
             >
               {s.label}
             </button>
@@ -42,7 +42,7 @@ export default function TribesPage() {
       {data?.length === 0 && (
         <div className="px-5 py-16 text-center">
           <p className="font-medium">No tribes yet</p>
-          <Link href="/launch" className="text-sm text-ember hover:underline">Launch the first token →</Link>
+          <Link href="/launch" className="text-sm text-volt hover:underline">Launch the first token →</Link>
         </div>
       )}
       <ul>
@@ -53,7 +53,7 @@ export default function TribesPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.pfpUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-raised font-display text-sm text-ember">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-raised font-display text-sm text-volt">
                   ${t.ticker.slice(0, 3)}
                 </div>
               )}

@@ -25,7 +25,7 @@ export default function TribePage() {
   });
   const { data: membership } = useQuery({
     queryKey: ["membership", id, me?.id],
-    queryFn: () => api<{ isMember: boolean }>(`/v1/communities/${id}/membership`),
+    queryFn: () => api<{ isMvolt: boolean }>(`/v1/communities/${id}/membership`),
     enabled: Boolean(me),
   });
 
@@ -42,7 +42,7 @@ export default function TribePage() {
     return <Shell><p className="px-5 py-8 text-sm text-muted">Loading…</p></Shell>;
   }
 
-  const isMember = membership?.isMember ?? false;
+  const isMvolt = membership?.isMvolt ?? false;
 
   return (
     <Shell>
@@ -64,40 +64,40 @@ export default function TribePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={tribe.pfpUrl} alt="" className="h-20 w-20 rounded-2xl border-4 border-ink object-cover" />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-ink bg-raised font-display text-ember">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-ink bg-raised font-display text-volt">
                 ${tribe.ticker.slice(0, 4)}
               </div>
             )}
           </div>
           <button
-            onClick={() => (authenticated ? joinLeave.mutate(!isMember) : login())}
+            onClick={() => (authenticated ? joinLeave.mutate(!isMvolt) : login())}
             disabled={joinLeave.isPending}
             className={`mt-3 rounded-full px-5 py-2 text-sm font-semibold ${
-              isMember
+              isMvolt
                 ? "border hairline text-fg hover:border-down hover:text-down"
-                : "bg-ember text-ink hover:bg-ember-deep"
+                : "bg-volt text-ink hover:bg-volt-deep"
             }`}
           >
-            {isMember ? "Joined" : "Join the tribe"}
+            {isMvolt ? "Joined" : "Join the tribe"}
           </button>
         </div>
 
         <h1 className="mt-3 font-display text-xl font-medium">{tribe.name}</h1>
         <p className="text-sm text-muted">
           ${tribe.ticker} · {tribe.membersCount} members · led by{" "}
-          <a href={`/u/${tribe.owner.username}`} className="text-ember hover:underline">@{tribe.owner.username}</a>
+          <a href={`/u/${tribe.owner.username}`} className="text-volt hover:underline">@{tribe.owner.username}</a>
           {tribe.launchedViaTribes && " · launched on Tribes"}
         </p>
         {tribe.details && <p className="mt-2 text-[15px] leading-relaxed">{tribe.details}</p>}
         <p className="mt-2 font-mono text-xs text-muted">
           CA{" "}
-          <button onClick={() => navigator.clipboard?.writeText(tribe.ca)} className="hover:text-ember" title="Copy">
+          <button onClick={() => navigator.clipboard?.writeText(tribe.ca)} className="hover:text-volt" title="Copy">
             {shortCa(tribe.ca)} ⧉
           </button>
-          {tribe.website && <> · <a className="hover:text-ember" href={tribe.website} target="_blank" rel="noreferrer">website</a></>}
-          {tribe.telegram && <> · <a className="hover:text-ember" href={tribe.telegram} target="_blank" rel="noreferrer">telegram</a></>}
+          {tribe.website && <> · <a className="hover:text-volt" href={tribe.website} target="_blank" rel="noreferrer">website</a></>}
+          {tribe.telegram && <> · <a className="hover:text-volt" href={tribe.telegram} target="_blank" rel="noreferrer">telegram</a></>}
           {" · "}
-          <a className="hover:text-ember" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a>
+          <a className="hover:text-volt" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a>
         </p>
 
         <div className="mt-4 flex gap-6 text-sm">
@@ -105,7 +105,7 @@ export default function TribePage() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`border-b-2 pb-2 capitalize ${tab === t ? "border-ember text-fg" : "border-transparent text-muted hover:text-fg"}`}
+              className={`border-b-2 pb-2 capitalize ${tab === t ? "border-volt text-fg" : "border-transparent text-muted hover:text-fg"}`}
             >
               {t}
             </button>
@@ -115,7 +115,7 @@ export default function TribePage() {
 
       {tab === "feed" && (
         <>
-          {isMember && <Composer communityId={tribe.id} />}
+          {isMvolt && <Composer communityId={tribe.id} />}
           <Feed communityId={tribe.id} />
         </>
       )}
@@ -134,7 +134,7 @@ function ChartTab({ ca }: { ca: string }) {
     return (
       <p className="px-5 py-10 text-center text-sm text-muted">
         Chart appears once the token has an indexed pair. Early bonding-curve trading lives on{" "}
-        <a className="text-ember hover:underline" href={`https://pump.fun/coin/${ca}`} target="_blank" rel="noreferrer">pump.fun</a>.
+        <a className="text-volt hover:underline" href={`https://pump.fun/coin/${ca}`} target="_blank" rel="noreferrer">pump.fun</a>.
       </p>
     );
   }
@@ -206,11 +206,11 @@ function TradeTab({ ca, ticker }: { ca: string; ticker: string }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
-          className="mt-1 w-full rounded-xl bg-raised px-4 py-3 font-mono outline-none focus:ring-1 focus:ring-ember"
+          className="mt-1 w-full rounded-xl bg-raised px-4 py-3 font-mono outline-none focus:ring-1 focus:ring-volt"
         />
         <button
           onClick={trade}
-          className="mt-4 w-full rounded-xl bg-ember py-3 font-semibold text-ink hover:bg-ember-deep"
+          className="mt-4 w-full rounded-xl bg-volt py-3 font-semibold text-ink hover:bg-volt-deep"
         >
           {side === "buy" ? `Buy $${ticker}` : `Sell $${ticker}`}
         </button>

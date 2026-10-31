@@ -16,6 +16,7 @@ import { xRoute } from "./routes/x.js";
 import { launchRoute } from "./routes/launch.js";
 import { tradeRoute } from "./routes/trade.js";
 import { adminRoute } from "./routes/admin.js";
+import { searchRoute } from "./routes/search.js";
 
 const app = new Hono();
 
@@ -50,6 +51,7 @@ app.route("/v1/x", xRoute);
 app.route("/v1/launch", launchRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/admin", adminRoute);
+app.route("/v1/search", searchRoute);
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) return err.getResponse();

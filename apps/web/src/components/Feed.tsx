@@ -47,7 +47,7 @@ export function Feed({ communityId, author }: { communityId?: string; author?: s
         <button
           onClick={() => feed.fetchNextPage()}
           disabled={feed.isFetchingNextPage}
-          className="w-full border-t hairline py-4 text-sm text-ember hover:bg-surface disabled:opacity-50"
+          className="w-full border-t hairline py-4 text-sm text-volt hover:bg-surface disabled:opacity-50"
         >
           {feed.isFetchingNextPage ? "Loading…" : "Show more"}
         </button>
@@ -88,7 +88,7 @@ export function PostCard({ post }: { post: PostView }) {
             <span className="text-muted">@{post.author.username}</span>
             <span className="text-muted">· {formatDistanceToNowStrict(new Date(post.createdAt))}</span>
             {post.communityName && (
-              <Link href={`/t/${post.communityId}`} className="text-ember hover:underline">
+              <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">
                 ${post.communityTicker}
               </Link>
             )}
@@ -106,7 +106,7 @@ export function PostCard({ post }: { post: PostView }) {
                 on 𝕏 ↗
               </a>
             )}
-            {post.pinned && <span className="text-[11px] text-ember">pinned</span>}
+            {post.pinned && <span className="text-[11px] text-volt">pinned</span>}
           </div>
 
           <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed">{post.content}</p>
@@ -119,7 +119,7 @@ export function PostCard({ post }: { post: PostView }) {
           <div className="mt-3 flex items-center gap-8 text-sm text-muted">
             <button
               onClick={() => engage(post.likedByMe, "like", "unlike")}
-              className={`hover:text-ember ${post.likedByMe ? "text-ember" : ""}`}
+              className={`hover:text-volt ${post.likedByMe ? "text-volt" : ""}`}
             >
               ♥ {post.likes}
             </button>

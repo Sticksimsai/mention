@@ -28,8 +28,8 @@ export default function AdminPage() {
   );
 }
 
-const inputCls = "rounded-xl bg-raised px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ember";
-const btnCls = "rounded-full bg-ember px-4 py-1.5 text-sm font-semibold text-ink hover:bg-ember-deep disabled:opacity-40";
+const inputCls = "rounded-xl bg-raised px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-volt";
+const btnCls = "rounded-full bg-volt px-4 py-1.5 text-sm font-semibold text-ink hover:bg-volt-deep disabled:opacity-40";
 
 function Bans() {
   const [username, setUsername] = useState("");
@@ -71,7 +71,7 @@ function Staff() {
         {data?.map((s) => (
           <li key={s.username} className="flex items-center gap-2">
             <span>@{s.username}</span>
-            <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] text-ember">{s.role}</span>
+            <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] text-volt">{s.role}</span>
           </li>
         ))}
       </ul>

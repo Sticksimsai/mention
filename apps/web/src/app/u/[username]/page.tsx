@@ -39,7 +39,7 @@ export default function ProfilePage() {
         </div>
         <h1 className="mt-2 font-display text-lg font-medium">{p.displayName}</h1>
         <p className="text-sm text-muted">
-          <a href={`https://x.com/${p.username}`} target="_blank" rel="noreferrer" className="hover:text-ember">@{p.username} 𝕏</a>
+          <a href={`https://x.com/${p.username}`} target="_blank" rel="noreferrer" className="hover:text-volt">@{p.username} 𝕏</a>
           {" "}· {p.followers} followers · {p.tribes} tribes
         </p>
         {p.bio && <p className="mt-2 text-[15px]">{p.bio}</p>}
@@ -47,7 +47,7 @@ export default function ProfilePage() {
           <div className="mt-3 flex flex-wrap gap-2">
             {p.ownedTribes.map((t) => (
               <Link key={t.id} href={`/t/${t.id}`}
-                className="rounded-full bg-surface px-3 py-1 text-xs text-ember hover:bg-raised">
+                className="rounded-full bg-surface px-3 py-1 text-xs text-volt hover:bg-raised">
                 leads ${t.ticker}
               </Link>
             ))}

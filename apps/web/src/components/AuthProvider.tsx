@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         appId={appId}
         config={{
           loginMethods: ["twitter"],
-          appearance: { theme: "dark", accentColor: "#FFA03C" },
+          appearance: { theme: "dark", accentColor: "#9BF000" },
         }}
       >
         <PrivyBridge>{children}</PrivyBridge>
