@@ -1,6 +1,6 @@
 // Token market data: DexScreener first, pump.fun fallback (pre-migration
 // tokens aren't on DexScreener yet). Shared by the API route and the worker.
-import type { TokenStats } from "@tribes/shared";
+import type { TokenStats } from "@mention/shared";
 
 export async function fetchTokenStats(ca: string): Promise<TokenStats> {
   const base: TokenStats = {

@@ -1,5 +1,5 @@
 {
-  "name": "@tribes/web",
+  "name": "@mention/web",
   "version": "2.0.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
   "dependencies": {
     "@privy-io/react-auth": "^2.4.3",
     "@tanstack/react-query": "^5.64.1",
-    "@tribes/shared": "workspace:*",
+    "@mention/shared": "workspace:*",
     "date-fns": "^4.1.0",
     "next": "^14.2.23",
     "react": "^18.3.1",

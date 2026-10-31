@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
-import { siteAnnouncements, eq } from "@tribes/db";
+import { siteAnnouncements, eq } from "@mention/db";
 import { env } from "./env.js";
 import { db } from "./lib/db.js";
 import { redis } from "./lib/redis.js";
@@ -60,5 +60,5 @@ app.onError((err, c) => {
 });
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  console.log(`tribes api listening on :${info.port}`);
+  console.log(`mention api listening on :${info.port}`);
 });

@@ -16,15 +16,15 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.4.2
         version: 0.4.3(hono@4.13.14)(zod@3.25.76)
+      '@mention/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@mention/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@solana/web3.js':
         specifier: ^1.98.0
         version: 1.99.0(bufferutil@4.1.0)(encoding@0.1.14)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      '@tribes/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@tribes/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       bullmq:
         specifier: ^5.34.8
         version: 5.81.5
@@ -53,15 +53,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@mention/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@privy-io/react-auth':
         specifier: ^2.4.3
         version: 2.25.0(@solana/kit@5.5.1(bufferutil@4.1.0)(typescript@5.9.3))(@solana/web3.js@1.99.0(bufferutil@4.1.0)(encoding@0.1.14)(typescript@5.9.3))(@types/react@18.3.31)(bs58@6.0.0)(bufferutil@4.1.0)(ioredis@5.11.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@18.3.1))(zod@3.25.76)
       '@tanstack/react-query':
         specifier: ^5.64.1
         version: 5.105.0(@types/react@18.3.31)(react@18.3.1)
-      '@tribes/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
@@ -99,10 +99,10 @@ importers:
 
   apps/worker:
     dependencies:
-      '@tribes/db':
+      '@mention/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@tribes/shared':
+      '@mention/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       bullmq:

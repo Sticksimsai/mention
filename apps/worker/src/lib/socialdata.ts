@@ -2,7 +2,7 @@
 // Every call records item counts in socialdata_usage (1 item ≈ $0.0002) and
 // is short-circuited when the global daily cap is reached. The cap is a
 // kill-switch against runaway spend, not a precise quota.
-import { socialdataUsage, sql } from "@tribes/db";
+import { socialdataUsage, sql } from "@mention/db";
 import { db, redis } from "./context.js";
 import { env } from "../env.js";
 

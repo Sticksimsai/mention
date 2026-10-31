@@ -1,13 +1,13 @@
-# Tribes v2
+# Mention
 
-A Solana launchpad where every token mints its own community — an X-style feed,
+Mention — social trading on Solana. Every token mints its own community — an X-style feed,
 fully mirrored with X in both directions.
 
-- **X → site**: tweets mentioning a tribe's `$TICKER` or CA are pulled in via
-  SocialData and appear in the tribe's feed.
-- **Site → X**: posts made on Tribes are published to the author's real X
+- **X → site**: tweets mentioning a community's `$TICKER` or CA are pulled in via
+  SocialData and appear in the community's feed.
+- **Site → X**: posts made on Mention are published to the author's real X
   account (official X API, user-granted `tweet.write`).
-- **Launchpad**: launching is the only way a tribe is created — tokens launch
+- **Launchpad**: launching is the only way a community is created — tokens launch
   on pump.fun through the platform wallet, so
   creator fees on all trading volume accrue to the platform (split with the
   launcher). In-app trades add a platform fee on top.
@@ -30,7 +30,7 @@ apps/
             X OAuth write-back, launchpad, trading, admin)
   worker/   BullMQ workers + scheduler (tweet sync, X write-back,
             token stats warming, trending)
-  web/      Next.js app (feed, tribe pages w/ live mcap + chart + trade,
+  web/      Next.js app (feed, community pages w/ live mcap + chart + trade,
             launch flow, settings, admin)
 packages/
   db/       Drizzle schema + migrations (Postgres)
@@ -101,7 +101,7 @@ worker's rate limiter (30/min) caps the burn rate. Generate
 
 ### Launchpad (pump.fun via PumpPortal)
 - `PUMPPORTAL_API_KEY` — Lightning wallet from pumpportal.fun. **This wallet
-  is the on-chain creator of every token launched through Tribes**, which is
+  is the on-chain creator of every token launched through Mention**, which is
   what routes pump.fun creator fees to the platform. Keep it funded with a
   little SOL for creation fees + dev buys.
 - `PLATFORM_FEE_WALLET` — receives in-app trade fees.

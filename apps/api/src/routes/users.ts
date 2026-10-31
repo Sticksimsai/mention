@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema } from "@tribes/shared";
+import { updateProfileSchema } from "@mention/shared";
 import {
   users, follows, communities, communityMembers, xConnections,
   eq, and, count,
-} from "@tribes/db";
+} from "@mention/db";
 import { db } from "../lib/db.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 

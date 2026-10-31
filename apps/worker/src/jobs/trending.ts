@@ -1,6 +1,6 @@
 // Recompute trending tribes: engagement in the last 24h (native posts,
 // likes, mirrored tweet activity, new members), ranked and cached in Redis.
-import { sql } from "@tribes/db";
+import { sql } from "@mention/db";
 import { db, redis } from "../lib/context.js";
 
 export async function trendingJob(): Promise<void> {

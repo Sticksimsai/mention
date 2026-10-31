@@ -3,7 +3,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import Link from "next/link";
-import type { PostView } from "@tribes/shared";
+import type { PostView } from "@mention/shared";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
@@ -12,7 +12,7 @@ interface FeedPage { items: PostView[]; nextCursor: string | null }
 export function Feed({ communityId, author, scope }: {
   communityId?: string;
   author?: string;
-  /** "joined" = only the viewer's tribes (needs auth) */
+  /** "joined" = only the viewer's communities (needs auth) */
   scope?: "joined";
 }) {
   const { me } = useMe();
@@ -41,11 +41,11 @@ export function Feed({ communityId, author, scope }: {
     return (
       <div className="px-6 py-16 text-center text-muted">
         <p className="mb-1 font-medium text-fg">
-          {scope === "joined" ? "Your tribes are quiet" : "Nothing here yet"}
+          {scope === "joined" ? "Your communities are quiet" : "Nothing here yet"}
         </p>
         <p className="text-sm">
           {scope === "joined"
-            ? "Join a tribe and its posts — on-site and from X — show up here."
+            ? "Join a community and its posts — on-site and from X — show up here."
             : "Posts made here and matching tweets from X both land in this feed."}
         </p>
       </div>

@@ -2,12 +2,12 @@
 // Global feed is Redis-cached (5s) — this is the hottest path and the main
 // fix for v1's "every pageview hammers Postgres" overload.
 import { Hono } from "hono";
-import type { PostView } from "@tribes/shared";
+import type { PostView } from "@mention/shared";
 import {
   posts, xPosts, xPostCommunities, communities, users, communityMembers,
   postLikes, postReposts, xPostLikes, xPostReposts,
   eq, and, desc, lt, inArray, sql,
-} from "@tribes/db";
+} from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
 

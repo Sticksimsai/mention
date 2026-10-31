@@ -2,7 +2,7 @@
 // official X API (OAuth2 user context, tweet.write). Handles token refresh.
 // Jobs retry with exponential backoff (configured at enqueue time in the API).
 import { createDecipheriv, createCipheriv, randomBytes } from "node:crypto";
-import { posts, xConnections, users, eq } from "@tribes/db";
+import { posts, xConnections, users, eq } from "@mention/db";
 import { db } from "../lib/context.js";
 import { env } from "../env.js";
 

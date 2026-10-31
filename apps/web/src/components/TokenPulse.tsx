@@ -3,7 +3,7 @@
 // Live market-cap pulse — the signature element. Full mode sits inside the
 // tribe header banner; compact mode rides along in lists.
 import { useQuery } from "@tanstack/react-query";
-import type { TokenStats } from "@tribes/shared";
+import type { TokenStats } from "@mention/shared";
 import { api, fmtUsd, shortCa } from "@/lib/api";
 
 export function TokenPulse({ ca, compact = false }: { ca: string; compact?: boolean }) {

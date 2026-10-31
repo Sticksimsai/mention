@@ -1,11 +1,11 @@
 "use client";
 
-// Tribe page — header banner with the live mcap pulse, join, bio with token
-// info + CA, embedded chart, trade box, and the tribe's merged feed.
+// Community page — header banner with the live mcap pulse, join, bio with
+// token info + CA, embedded chart, trade box, and the merged feed.
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CommunityView, TokenStats } from "@tribes/shared";
+import type { CommunityView, TokenStats } from "@mention/shared";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
 import { Composer } from "@/components/Composer";
@@ -25,7 +25,7 @@ export default function TribePage() {
   });
   const { data: membership } = useQuery({
     queryKey: ["membership", id, me?.id],
-    queryFn: () => api<{ isMvolt: boolean }>(`/v1/communities/${id}/membership`),
+    queryFn: () => api<{ isMember: boolean }>(`/v1/communities/${id}/membership`),
     enabled: Boolean(me),
   });
 
@@ -42,7 +42,7 @@ export default function TribePage() {
     return <Shell><p className="px-5 py-8 text-sm text-muted">Loading…</p></Shell>;
   }
 
-  const isMvolt = membership?.isMvolt ?? false;
+  const isMember = membership?.isMember ?? false;
 
   return (
     <Shell>
@@ -70,15 +70,15 @@ export default function TribePage() {
             )}
           </div>
           <button
-            onClick={() => (authenticated ? joinLeave.mutate(!isMvolt) : login())}
+            onClick={() => (authenticated ? joinLeave.mutate(!isMember) : login())}
             disabled={joinLeave.isPending}
             className={`mt-3 rounded-full px-5 py-2 text-sm font-semibold ${
-              isMvolt
+              isMember
                 ? "border hairline text-fg hover:border-down hover:text-down"
                 : "bg-volt text-ink hover:bg-volt-deep"
             }`}
           >
-            {isMvolt ? "Joined" : "Join the tribe"}
+            {isMember ? "Joined" : "Join"}
           </button>
         </div>
 
@@ -86,7 +86,7 @@ export default function TribePage() {
         <p className="text-sm text-muted">
           ${tribe.ticker} · {tribe.membersCount} members · led by{" "}
           <a href={`/u/${tribe.owner.username}`} className="text-volt hover:underline">@{tribe.owner.username}</a>
-          {tribe.launchedViaTribes && " · launched on Tribes"}
+          {tribe.launchedViaTribes && " · launched on Mention"}
         </p>
         {tribe.details && <p className="mt-2 text-[15px] leading-relaxed">{tribe.details}</p>}
         <p className="mt-2 font-mono text-xs text-muted">
@@ -115,7 +115,7 @@ export default function TribePage() {
 
       {tab === "feed" && (
         <>
-          {isMvolt && <Composer communityId={tribe.id} />}
+          {isMember && <Composer communityId={tribe.id} />}
           <Feed communityId={tribe.id} />
         </>
       )}

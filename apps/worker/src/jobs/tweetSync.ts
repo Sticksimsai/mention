@@ -9,7 +9,7 @@
 //   dormant — 10+ empty runs                    → every 2 h
 import {
   communities, xPosts, xPostCommunities, xSyncState, eq, sql,
-} from "@tribes/db";
+} from "@mention/db";
 import { db, redis } from "../lib/context.js";
 import { fetchUserTweets, SdCappedError } from "../lib/socialdata.js";
 

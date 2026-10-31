@@ -1,6 +1,6 @@
 import { Redis } from "ioredis";
 import { Queue } from "bullmq";
-import { QUEUES } from "@tribes/shared";
+import { QUEUES } from "@mention/shared";
 import { env } from "../env.js";
 
 export const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });

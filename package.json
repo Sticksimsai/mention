@@ -1,5 +1,5 @@
 {
-  "name": "tribes",
+  "name": "mention",
   "private": true,
   "version": "2.0.0",
   "packageManager": "pnpm@10.28.0",
@@ -7,9 +7,9 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "db:generate": "pnpm --filter @tribes/db generate",
-    "db:migrate": "pnpm --filter @tribes/db migrate",
-    "db:push": "pnpm --filter @tribes/db push"
+    "db:generate": "pnpm --filter @mention/db generate",
+    "db:migrate": "pnpm --filter @mention/db migrate",
+    "db:push": "pnpm --filter @mention/db push"
   },
   "engines": {
     "node": ">=20"

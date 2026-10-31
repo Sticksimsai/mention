@@ -10,7 +10,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { randomBytes, createHash } from "node:crypto";
-import { xConnections, eq } from "@tribes/db";
+import { xConnections, eq } from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
 import { encrypt } from "../lib/crypto.js";

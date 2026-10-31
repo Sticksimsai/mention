@@ -4,7 +4,7 @@ import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
-import { users, staffRoles, bannedUsers, eq } from "@tribes/db";
+import { users, staffRoles, bannedUsers, eq } from "@mention/db";
 import { verifyPrivyToken } from "./privy.js";
 
 export interface AuthedUser {

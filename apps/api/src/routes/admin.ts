@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import {
   users, staffRoles, bannedUsers, siteAnnouncements, communities,
   modAuditLog, socialdataUsage, eq, desc,
-} from "@tribes/db";
+} from "@mention/db";
 import { db } from "../lib/db.js";
 import { requireAuth, requireStaff } from "../auth/middleware.js";
 

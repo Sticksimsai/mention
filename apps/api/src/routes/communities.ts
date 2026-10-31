@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { createCommunitySchema, updateCommunitySchema, type CommunityView } from "@tribes/shared";
+import { createCommunitySchema, updateCommunitySchema, type CommunityView } from "@mention/shared";
 import {
   communities, communityMembers, users, transferRequests,
   eq, and, desc, sql,
-} from "@tribes/db";
+} from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis, queues } from "../lib/redis.js";
 import { requireAuth, requireNotBanned, requireStaff, rateLimit } from "../auth/middleware.js";

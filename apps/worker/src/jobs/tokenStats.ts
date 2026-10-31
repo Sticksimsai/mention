@@ -1,7 +1,7 @@
 // Keep token stats warm for all approved tribes so community pages never
 // block on a cold DexScreener call.
-import type { TokenStats } from "@tribes/shared";
-import { communities, eq } from "@tribes/db";
+import type { TokenStats } from "@mention/shared";
+import { communities, eq } from "@mention/db";
 import { db, redis } from "../lib/context.js";
 
 async function fetchStats(ca: string): Promise<TokenStats> {

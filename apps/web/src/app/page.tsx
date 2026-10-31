@@ -1,7 +1,7 @@
 "use client";
 
-// Home: the live "For you" stream — every tribe's posts and their matching
-// tweets from X, merged into one timeline. "Joined" narrows it to your tribes.
+// Home: the live "For you" stream — every community's posts and their matching
+// tweets from X, merged into one timeline. "Joined" narrows it to your communities.
 import { useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";

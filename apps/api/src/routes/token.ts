@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { TokenStats } from "@tribes/shared";
-import { communities, eq } from "@tribes/db";
+import type { TokenStats } from "@mention/shared";
+import { communities, eq } from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis, cached } from "../lib/redis.js";
 import { fetchTokenStats } from "../lib/tokenStats.js";

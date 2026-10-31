@@ -11,7 +11,7 @@ import {
   Connection, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction,
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { tradeSchema } from "@tribes/shared";
+import { tradeSchema } from "@mention/shared";
 import { env } from "../env.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 import { cached } from "../lib/redis.js";

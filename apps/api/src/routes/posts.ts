@@ -3,13 +3,13 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { createPostSchema, createReplySchema } from "@tribes/shared";
+import { createPostSchema, createReplySchema } from "@mention/shared";
 import {
   posts, postLikes, postReposts, postReplies,
   xPosts, xPostLikes, xPostReposts, xPostReplies,
   communities, communityMembers, xConnections, users,
   eq, and, sql, desc,
-} from "@tribes/db";
+} from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis, queues } from "../lib/redis.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
@@ -42,7 +42,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   if (!u.role) {
     const [m] = await db.select().from(communityMembers)
       .where(and(eq(communityMembers.communityId, comm.id), eq(communityMembers.userId, u.id)));
-    if (!m) throw new HTTPException(403, { message: "join the tribe to post" });
+    if (!m) throw new HTTPException(403, { message: "join the community to post" });
 
     // per-tribe cooldown
     if (comm.postCooldownSecs > 0) {
@@ -50,7 +50,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
         .where(and(eq(posts.communityId, comm.id), eq(posts.authorId, u.id)))
         .orderBy(desc(posts.createdAt)).limit(1);
       if (last && Date.now() - last.createdAt.getTime() < comm.postCooldownSecs * 1000) {
-        throw new HTTPException(429, { message: "cooldown active in this tribe" });
+        throw new HTTPException(429, { message: "cooldown active in this community" });
       }
     }
   }

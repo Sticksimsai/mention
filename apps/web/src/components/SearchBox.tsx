@@ -46,7 +46,7 @@ export function SearchBox() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          placeholder="Search tribes, tickers, people"
+          placeholder="Search communities, tickers, people"
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
         />
       </div>

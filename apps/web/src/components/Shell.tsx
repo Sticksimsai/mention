@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import type { CommunityView } from "@tribes/shared";
+import type { CommunityView } from "@mention/shared";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 import { TokenPulse } from "./TokenPulse";
@@ -24,12 +24,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="" className="h-9 w-9 rounded-xl" />
-            <span className="font-display text-lg font-bold tracking-tight text-volt">tribes</span>
+            <span className="font-display text-lg font-bold tracking-tight text-volt">mention</span>
           </Link>
 
           <nav className="flex flex-col gap-0.5">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
-            <NavItem href="/tribes" icon={<FlameIcon />}>Explore</NavItem>
+            <NavItem href="/explore" icon={<FlameIcon />}>Explore</NavItem>
             <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launchpad</NavItem>
             {me && <NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem>}
@@ -118,7 +118,7 @@ function TrendingRail() {
     <div className="rounded-2xl border hairline bg-surface p-4">
       <h2 className="mb-3 font-display text-sm font-medium">Trending</h2>
       {list.length === 0 && (
-        <p className="text-sm text-muted">No tribes yet. Launch the first one.</p>
+        <p className="text-sm text-muted">Quiet so far. Launch the first token.</p>
       )}
       <ul className="space-y-0.5">
         {list.map((t) => (

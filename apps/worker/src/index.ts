@@ -7,8 +7,8 @@
 //  • Run N instances of this service on Railway to scale horizontally —
 //    BullMQ distributes jobs across them automatically.
 import { Worker, Queue } from "bullmq";
-import { QUEUES, type TweetSyncJob, type XWritebackJob, type TokenStatsJob } from "@tribes/shared";
-import { users, xSyncState, communityMembers, eq, sql } from "@tribes/db";
+import { QUEUES, type TweetSyncJob, type XWritebackJob, type TokenStatsJob } from "@mention/shared";
+import { users, xSyncState, communityMembers, eq, sql } from "@mention/db";
 import { db, queueConnection } from "./lib/context.js";
 import { tweetSyncJob } from "./jobs/tweetSync.js";
 import { xWritebackJob } from "./jobs/xWriteback.js";
@@ -103,4 +103,4 @@ registerSchedules().catch((err) => {
   process.exit(1);
 });
 
-console.log("tribes worker running");
+console.log("mention worker running");

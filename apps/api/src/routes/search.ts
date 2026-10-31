@@ -1,6 +1,6 @@
 // Site search: tribes by name/ticker/CA, users by handle/name. Public.
 import { Hono } from "hono";
-import { communities, users, eq, and, or, ilike } from "@tribes/db";
+import { communities, users, eq, and, or, ilike } from "@mention/db";
 import { db } from "../lib/db.js";
 
 export const searchRoute = new Hono();

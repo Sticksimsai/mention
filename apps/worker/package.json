@@ -1,5 +1,5 @@
 {
-  "name": "@tribes/worker",
+  "name": "@mention/worker",
   "version": "2.0.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tribes/db": "workspace:*",
-    "@tribes/shared": "workspace:*",
+    "@mention/db": "workspace:*",
+    "@mention/shared": "workspace:*",
     "bullmq": "^5.34.8",
     "ioredis": "^5.4.2",
     "tsx": "^4.19.2"

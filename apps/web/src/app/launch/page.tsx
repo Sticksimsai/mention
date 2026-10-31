@@ -1,6 +1,6 @@
 "use client";
 
-// Launch: the only way a tribe is born. Mint on pump.fun through Tribes —
+// Launchpad: the only way a community is born. Mint on pump.fun through Mention —
 // the token, the community, the chart and the X mirroring all go live at once.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,7 @@ export default function LaunchPage() {
       <div className="border-b hairline px-5 py-4">
         <h1 className="font-display text-base font-medium">Launchpad</h1>
         <p className="text-xs text-muted">
-          Mint a token, mint a tribe. One launch creates both — feed, chart and X mirroring included.
+          Mint a token, mint its community. One launch creates both — feed, chart and X mirroring included.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
         <Field label="Ticker"><input className={inputCls} value={f.ticker} onChange={set("ticker")} placeholder="NIGHT" /></Field>
       </div>
       <Field label="Description">
-        <textarea className={inputCls} rows={3} value={f.description} onChange={set("description")} placeholder="What is this tribe about?" />
+        <textarea className={inputCls} rows={3} value={f.description} onChange={set("description")} placeholder="What is this one about?" />
       </Field>
       <Field label="Token image URL"><input className={inputCls} value={f.imageUrl} onChange={set("imageUrl")} placeholder="https://…" /></Field>
       <div className="grid grid-cols-2 gap-4">
@@ -92,7 +92,7 @@ function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
       <div className="rounded-2xl border border-volt/25 bg-volt/5 p-4 text-xs leading-relaxed text-muted">
         <span className="text-volt">How launches work:</span> your token goes live on pump.fun
         instantly. Creator fees on all trading volume are collected by the platform and split
-        with you — your share pays out to the wallet above. Your tribe opens the moment the
+        with you — your share pays out to the wallet above. Your community opens the moment the
         mint lands, with the chart, CA and X mirroring already wired in.
       </div>
 
@@ -101,7 +101,7 @@ function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
         disabled={launch.isPending || !f.name || !f.ticker || !f.imageUrl || !f.creatorWallet}
         className="w-full rounded-2xl bg-volt py-3.5 font-bold text-ink shadow-[0_0_24px_rgba(155,240,0,0.2)] transition hover:bg-volt-deep disabled:opacity-40 disabled:shadow-none"
       >
-        {launch.isPending ? "Launching…" : "Launch token + tribe"}
+        {launch.isPending ? "Launching…" : "Launch token + community"}
       </button>
       {launch.isError && <p className="text-xs text-down">{(launch.error as Error).message}</p>}
     </div>

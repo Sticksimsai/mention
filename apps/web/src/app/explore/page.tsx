@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { CommunityView } from "@tribes/shared";
+import type { CommunityView } from "@mention/shared";
 import { Shell } from "@/components/Shell";
 import { TokenPulse } from "@/components/TokenPulse";
 import { api } from "@/lib/api";
@@ -14,7 +14,7 @@ const SORTS = [
   { id: "members", label: "Largest" },
 ] as const;
 
-export default function TribesPage() {
+export default function ExplorePage() {
   const [sort, setSort] = useState<string>("trending");
   const { data, isLoading } = useQuery({
     queryKey: ["communities", sort],
@@ -41,7 +41,7 @@ export default function TribesPage() {
       {isLoading && <p className="px-5 py-8 text-sm text-muted">Loading…</p>}
       {data?.length === 0 && (
         <div className="px-5 py-16 text-center">
-          <p className="font-medium">No tribes yet</p>
+          <p className="font-medium">No communities yet</p>
           <Link href="/launch" className="text-sm text-volt hover:underline">Launch the first token →</Link>
         </div>
       )}

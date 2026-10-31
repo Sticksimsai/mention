@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tribes",
-  description: "Launch a token, mint a tribe. Every coin is a community — mirrored with X, live with the chart.",
+  title: "Mention",
+  description: "Social trading on Solana. Launch a token, mint its community — posts mirror between here and X, with the chart live in the room.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
