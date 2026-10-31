@@ -1,12 +1,13 @@
 // AES-256-GCM for OAuth tokens at rest. Key: 32-byte hex (TOKEN_ENCRYPTION_KEY).
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { env } from "../env.js";
 
 function key(): Buffer {
-  if (!env.TOKEN_ENCRYPTION_KEY) throw new Error("TOKEN_ENCRYPTION_KEY not set");
-  const k = Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex");
-  if (k.length !== 32) throw new Error("TOKEN_ENCRYPTION_KEY must be 32 bytes hex");
-  return k;
+  if (!env.TOKEN_ENCRYPTION_KEY || env.TOKEN_ENCRYPTION_KEY.length < 16) {
+    throw new Error("TOKEN_ENCRYPTION_KEY not set (any secret of 16+ chars)");
+  }
+  // derive a 32-byte key from whatever secret is provided
+  return createHash("sha256").update(env.TOKEN_ENCRYPTION_KEY).digest();
 }
 
 export function encrypt(plaintext: string): string {

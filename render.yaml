@@ -1,0 +1,96 @@
+# Render Blueprint — deploys the full Mention stack in one go.
+# Render → New → Blueprint → pick this repo. You'll be prompted for the
+# Privy keys (sync: false vars); everything else wires itself.
+#
+# NOTE: service URLs below assume the names mention-api / mention-web are
+# free on onrender.com. If Render suffixes them, update NEXT_PUBLIC_API_URL,
+# WEB_ORIGIN and API_PUBLIC_URL to the real URLs and redeploy.
+
+services:
+  # ───────────── API ─────────────
+  - type: web
+    name: mention-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    preDeployCommand: pnpm --filter @mention/db migrate
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: mention-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: mention-redis, property: connectionString }
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: WEB_ORIGIN
+        value: https://mention-web.onrender.com
+      - key: API_PUBLIC_URL
+        value: https://mention-api.onrender.com
+      - key: X_REDIRECT_URI
+        value: https://mention-api.onrender.com/v1/x/callback
+      - key: X_CLIENT_ID
+        sync: false
+      - key: X_CLIENT_SECRET
+        sync: false
+      - key: SOLANA_RPC_URL
+        value: https://api.mainnet-beta.solana.com
+      - key: PLATFORM_FEE_WALLET
+        sync: false
+      - key: PLATFORM_TRADE_FEE_BPS
+        value: "100"
+      - key: PLATFORM_CREATOR_FEE_SHARE_BPS
+        value: "5000"
+      - key: PUMPPORTAL_API_KEY
+        sync: false
+
+  # ───────────── Worker ─────────────
+  - type: worker
+    name: mention-worker
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./apps/worker/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: mention-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: mention-redis, property: connectionString }
+      - key: SOCIALDATA_API_KEY
+        sync: false
+      - key: SOCIALDATA_DAILY_CAP
+        value: "50000"
+      - key: X_CLIENT_ID
+        sync: false
+      - key: X_CLIENT_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        fromService: { type: web, name: mention-api, envVarKey: TOKEN_ENCRYPTION_KEY }
+
+  # ───────────── Web ─────────────
+  - type: web
+    name: mention-web
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://mention-api.onrender.com
+      - key: NEXT_PUBLIC_PRIVY_APP_ID
+        sync: false
+
+  # ───────────── Redis (Key Value) ─────────────
+  - type: keyvalue
+    name: mention-redis
+    plan: starter
+    ipAllowList: []   # internal connections only
+
+databases:
+  - name: mention-db
+    plan: basic-256mb
+    postgresMajorVersion: "16"

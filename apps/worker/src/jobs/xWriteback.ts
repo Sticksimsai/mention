@@ -1,15 +1,16 @@
 // Site→X mirror: post one Tribes post to the author's X account via the
 // official X API (OAuth2 user context, tweet.write). Handles token refresh.
 // Jobs retry with exponential backoff (configured at enqueue time in the API).
-import { createDecipheriv, createCipheriv, randomBytes } from "node:crypto";
+import { createDecipheriv, createCipheriv, createHash, randomBytes } from "node:crypto";
 import { posts, xConnections, users, eq } from "@mention/db";
 import { db } from "../lib/context.js";
 import { env } from "../env.js";
 
 function key(): Buffer {
-  const k = Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex");
-  if (k.length !== 32) throw new Error("TOKEN_ENCRYPTION_KEY must be 32 bytes hex");
-  return k;
+  if (!env.TOKEN_ENCRYPTION_KEY || env.TOKEN_ENCRYPTION_KEY.length < 16) {
+    throw new Error("TOKEN_ENCRYPTION_KEY not set (any secret of 16+ chars)");
+  }
+  return createHash("sha256").update(env.TOKEN_ENCRYPTION_KEY).digest();
 }
 function decrypt(payload: string): string {
   const [iv, tag, ct] = payload.split(".");
