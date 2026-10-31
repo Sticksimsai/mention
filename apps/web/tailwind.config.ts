@@ -17,8 +17,8 @@ export default {
         down: "#EF4444",
       },
       fontFamily: {
-        display: ["Unbounded", "system-ui", "sans-serif"],
-        body: ["Inter", "system-ui", "sans-serif"],
+        display: ["Cocogoose", "system-ui", "sans-serif"],
+        body: ["Cocogoose", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
     },

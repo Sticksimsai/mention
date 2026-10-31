@@ -30,6 +30,9 @@ export const GearIcon = () => (
 export const ShieldIcon = () => (
   <svg {...base}><path d="M12 3 5 6v5c0 5 3 8.4 7 10 4-1.6 7-5 7-10V6l-7-3Z" /></svg>
 );
+export const BookIcon = () => (
+  <svg {...base}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z" /><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" /></svg>
+);
 export const SearchIcon = () => (
   <svg {...base} width={16} height={16}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
 );

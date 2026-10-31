@@ -10,7 +10,7 @@ import { TokenPulse } from "./TokenPulse";
 import { SearchBox } from "./SearchBox";
 import { TopTokensRail } from "./TopTokens";
 import {
-  HomeIcon, FlameIcon, RocketIcon, TrophyIcon, UserIcon, GearIcon, ShieldIcon,
+  HomeIcon, FlameIcon, RocketIcon, TrophyIcon, UserIcon, GearIcon, ShieldIcon, BookIcon,
 } from "./icons";
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -32,6 +32,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <NavItem href="/explore" icon={<FlameIcon />}>Explore</NavItem>
             <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launchpad</NavItem>
+            <NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem>
             {me && <NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem>}
             {me && <NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem>}
             {me?.role === "admin" && <NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}

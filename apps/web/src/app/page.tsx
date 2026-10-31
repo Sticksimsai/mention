@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
+import { TrendingCards } from "@/components/TrendingCards";
 import { useMe } from "@/lib/hooks";
 
 export default function Home() {
@@ -35,6 +36,7 @@ export default function Home() {
           </button>
         </div>
       </div>
+      <TrendingCards />
       {tab === "foryou" ? <Feed /> : <Feed scope="joined" />}
     </Shell>
   );
