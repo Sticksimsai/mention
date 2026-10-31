@@ -1,0 +1,17 @@
+{
+  "name": "tribes",
+  "private": true,
+  "version": "2.0.0",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @tribes/db generate",
+    "db:migrate": "pnpm --filter @tribes/db migrate",
+    "db:push": "pnpm --filter @tribes/db push"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

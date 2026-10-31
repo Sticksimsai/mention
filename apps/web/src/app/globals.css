@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink text-fg font-body antialiased;
+}
+
+::selection {
+  background: rgba(255, 160, 60, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.hairline {
+  @apply border-line;
+}
+
+/* live mcap pulse on tribe headers */
+@keyframes pulse-ember {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.pulse-dot {
+  animation: pulse-ember 2.4s ease-in-out infinite;
+}
