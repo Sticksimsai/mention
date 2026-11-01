@@ -34,7 +34,7 @@ const connection={
  },
 };
 const env={PUMP_LOOKUP_TABLE:web3.Keypair.generate().publicKey.toBase58()};
-const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'@mention/shared':shared,'./money.js':{connection},'../env.js':{env},'@pump-fun/pump-sdk':{...sdk,OnlinePumpSdk:Online}});
+const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'@mention/shared':shared,'./money.js':{connection},'../env.js':{env},'./pump-sdk.js':{...sdk,OnlinePumpSdk:Online}});
 (async()=>{
  for(const quoteAsset of ['SOL','SPCX','QQQX','SPYX'])for(const devBuyBps of [0,200]){
   amount=shared.devBuyUnits(BigInt(global.tokenTotalSupply.toString()),devBuyBps);

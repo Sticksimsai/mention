@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { ComputeBudgetProgram, Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { OnlinePumpSdk, PUMP_SDK, getBuySolAmountFromTokenAmount, quoteAta } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getBuySolAmountFromTokenAmount, quoteAta } from "./pump-sdk.js";
 import { LAUNCH_PAIRS, devBuyUnits, launchOptionsSchema } from "@mention/shared";
 import { connection } from "./money.js";
 import { env } from "../env.js";
