@@ -9,6 +9,7 @@ import { useMe } from "@/lib/hooks";
 import { TokenPulse } from "./TokenPulse";
 import { SearchBox } from "./SearchBox";
 import { TopTokensRail } from "./TopTokens";
+import { BrandLogo } from "./BrandLogo";
 import {
   HomeIcon, FlameIcon, RocketIcon, TrophyIcon, UserIcon, GearIcon, ShieldIcon, BookIcon,
 } from "./icons";
@@ -21,11 +22,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* ── left nav ── */}
       <header className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between border-r hairline px-4 py-5 md:flex">
         <div>
-          <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="h-9 w-9 rounded-xl" />
-            <span className="font-display text-lg font-bold tracking-tight text-volt">mention</span>
-          </Link>
+          <div className="mb-6">
+            <BrandLogo />
+          </div>
 
           <nav className="flex flex-col gap-0.5">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
@@ -75,7 +74,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ── main column ── */}
-      <main className="min-h-screen w-full max-w-2xl border-r hairline">{children}</main>
+      <main className="min-h-screen w-full max-w-2xl border-r hairline">
+        <div className="border-b hairline py-2 md:hidden">
+          <BrandLogo compact />
+        </div>
+        {children}
+      </main>
 
       {/* ── right rail: search · top 10 · trending ── */}
       <aside className="sticky top-0 hidden h-screen w-[340px] shrink-0 space-y-4 overflow-y-auto px-5 py-5 lg:block">
