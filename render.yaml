@@ -2,9 +2,8 @@
 # Render → New → Blueprint → pick this repo. You'll be prompted for the
 # Privy keys (sync: false vars); everything else wires itself.
 #
-# NOTE: service URLs below assume the names mention-api / mention-web are
-# free on onrender.com. If Render suffixes them, update NEXT_PUBLIC_API_URL,
-# WEB_ORIGIN and API_PUBLIC_URL to the real URLs and redeploy.
+# Domains: getmentions.xyz (web) + api.getmentions.xyz (api) — set as custom
+# domains on the two services; DNS: A @ -> 216.24.57.1, CNAME api -> mention-api.onrender.com
 
 services:
   # ───────────── API ─────────────
@@ -28,11 +27,11 @@ services:
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
       - key: WEB_ORIGIN
-        value: https://mention-web.onrender.com
+        value: https://getmentions.xyz
       - key: API_PUBLIC_URL
-        value: https://mention-api.onrender.com
+        value: https://api.getmentions.xyz
       - key: X_REDIRECT_URI
-        value: https://mention-api.onrender.com/v1/x/callback
+        value: https://api.getmentions.xyz/v1/x/callback
       - key: X_CLIENT_ID
         sync: false
       - key: X_CLIENT_SECRET
@@ -80,7 +79,7 @@ services:
     dockerContext: .
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://mention-api.onrender.com
+        value: https://api.getmentions.xyz
       - key: NEXT_PUBLIC_PRIVY_APP_ID
         sync: false
 

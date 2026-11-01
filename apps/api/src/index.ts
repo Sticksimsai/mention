@@ -21,8 +21,16 @@ import { searchRoute } from "./routes/search.js";
 const app = new Hono();
 
 app.use("*", logger());
+const webOrigins = [env.WEB_ORIGIN];
+try {
+  const u = new URL(env.WEB_ORIGIN);
+  webOrigins.push(u.hostname.startsWith("www.")
+    ? `${u.protocol}//${u.hostname.slice(4)}`
+    : `${u.protocol}//www.${u.hostname}`);
+} catch { /* keep single origin */ }
+
 app.use("*", cors({
-  origin: [env.WEB_ORIGIN],
+  origin: webOrigins,
   allowHeaders: ["Authorization", "Content-Type"],
   maxAge: 86400,
 }));
