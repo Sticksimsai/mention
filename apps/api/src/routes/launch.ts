@@ -1,4 +1,4 @@
-// Integrated launchpad: launch a pump.fun token through Tribes.
+// Integrated launchpad: launch a pump.fun token through Mention.
 //
 // Revenue model ("the tax"):
 //  • The token is created with the PLATFORM wallet as the pump.fun creator,
@@ -10,14 +10,16 @@
 //    wallet, or run a periodic payout job from the collected balance.
 //  • On top of that, in-app trades carry PLATFORM_TRADE_FEE_BPS (see trade.ts).
 //
-// Implementation uses PumpPortal:
-//  • Metadata upload → pump.fun IPFS
-//  • Creation via PumpPortal Lightning API (server-side wallet = creator)
-//    https://pumpportal.fun/api/trade?api-key=...
+// Custody model — SELF-CUSTODIED. No third party ever holds keys:
+//  • Metadata upload → pump.fun's own IPFS endpoint.
+//  • PumpPortal's LOCAL endpoint is used purely as an unsigned-transaction
+//    builder (no API key, no custody).
+//  • The tx is signed HERE with the platform keypair from
+//    PLATFORM_WALLET_SECRET and sent through our own RPC.
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { Keypair } from "@solana/web3.js";
+import { Connection, Keypair, VersionedTransaction } from "@solana/web3.js";
 import { launchTokenSchema } from "@mention/shared";
 import { communities, communityMembers, eq } from "@mention/db";
 import { db } from "../lib/db.js";
@@ -27,14 +29,40 @@ import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js"
 
 export const launchRoute = new Hono();
 
+const connection = new Connection(env.SOLANA_RPC_URL, "confirmed");
+
+/** Parse PLATFORM_WALLET_SECRET: JSON byte array or base58 string. */
+function platformKeypair(): Keypair {
+  const raw = env.PLATFORM_WALLET_SECRET.trim();
+  if (raw.startsWith("[")) {
+    return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
+  }
+  return Keypair.fromSecretKey(base58Decode(raw));
+}
+
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58Decode(s: string): Uint8Array {
+  let n = 0n;
+  for (const ch of s) {
+    const i = B58.indexOf(ch);
+    if (i < 0) throw new Error("invalid base58 in PLATFORM_WALLET_SECRET");
+    n = n * 58n + BigInt(i);
+  }
+  const bytes: number[] = [];
+  while (n > 0n) { bytes.unshift(Number(n & 0xffn)); n >>= 8n; }
+  for (const ch of s) { if (ch === "1") bytes.unshift(0); else break; }
+  return Uint8Array.from(bytes);
+}
+
 launchRoute.post("/", requireAuth, rateLimit("launch", 2, 3600),
   zValidator("json", launchTokenSchema), async (c) => {
     requireNotBanned(c);
-    if (!env.PUMPPORTAL_API_KEY) {
-      throw new HTTPException(503, { message: "launchpad not configured (PUMPPORTAL_API_KEY)" });
+    if (!env.PLATFORM_WALLET_SECRET) {
+      throw new HTTPException(503, { message: "launchpad not configured (PLATFORM_WALLET_SECRET)" });
     }
     const u = c.get("user");
     const body = c.req.valid("json");
+    const platform = platformKeypair();
 
     // 1) upload metadata to pump.fun IPFS
     const imgRes = await fetch(body.imageUrl, { signal: AbortSignal.timeout(10_000) });
@@ -55,36 +83,48 @@ launchRoute.post("/", requireAuth, rateLimit("launch", 2, 3600),
     if (!ipfsRes.ok) throw new HTTPException(502, { message: "metadata upload failed" });
     const ipfs: any = await ipfsRes.json();
 
-    // 2) create via PumpPortal Lightning (platform wallet signs = creator)
+    // 2) build the unsigned create tx (local endpoint — keyless, non-custodial)
     const mintKeypair = Keypair.generate();
-    const createRes = await fetch(`https://pumpportal.fun/api/trade?api-key=${env.PUMPPORTAL_API_KEY}`, {
+    const buildRes = await fetch("https://pumpportal.fun/api/trade-local", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        publicKey: platform.publicKey.toBase58(),
         action: "create",
         tokenMetadata: {
           name: body.name,
           symbol: body.ticker.toUpperCase(),
           uri: ipfs.metadataUri,
         },
-        mint: Buffer.from(mintKeypair.secretKey).toString("base64"),
+        mint: mintKeypair.publicKey.toBase58(),
         denominatedInSol: "true",
-        amount: body.devBuySol, // initial platform-side dev buy (can be 0)
+        amount: body.devBuySol, // platform-funded dev buy (can be 0)
         slippage: 10,
         priorityFee: 0.0005,
         pool: "pump",
       }),
     });
-    const created: any = await createRes.json();
-    if (!createRes.ok || created?.errors?.length) {
-      throw new HTTPException(502, { message: `launch failed: ${JSON.stringify(created?.errors ?? createRes.status)}` });
+    if (!buildRes.ok) {
+      throw new HTTPException(502, { message: `launch build failed: ${await buildRes.text().then((t) => t.slice(0, 200))}` });
+    }
+
+    // 3) sign with OUR keys and send through OUR rpc
+    const tx = VersionedTransaction.deserialize(new Uint8Array(await buildRes.arrayBuffer()));
+    tx.sign([platform, mintKeypair]);
+    let signature: string;
+    try {
+      signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+      const bh = await connection.getLatestBlockhash("confirmed");
+      await connection.confirmTransaction({ signature, ...bh }, "confirmed");
+    } catch (err: any) {
+      throw new HTTPException(502, { message: `launch tx failed: ${String(err?.message ?? err).slice(0, 200)}` });
     }
 
     const ca = mintKeypair.publicKey.toBase58();
 
-    // 3) auto-create the tribe for this token
-    const [comm] = await db.transaction(async (tx) => {
-      const [row] = await tx.insert(communities).values({
+    // 4) auto-create the community for this token
+    const [comm] = await db.transaction(async (tx2) => {
+      const [row] = await tx2.insert(communities).values({
         name: body.name,
         ticker: body.ticker.toUpperCase(),
         ca,
@@ -96,7 +136,7 @@ launchRoute.post("/", requireAuth, rateLimit("launch", 2, 3600),
         creatorWallet: body.creatorWallet,
         platformFeeShareBps: env.PLATFORM_CREATOR_FEE_SHARE_BPS,
       }).returning();
-      await tx.insert(communityMembers).values({ communityId: row.id, userId: u.id });
+      await tx2.insert(communityMembers).values({ communityId: row.id, userId: u.id });
       return [row];
     });
 
@@ -105,7 +145,7 @@ launchRoute.post("/", requireAuth, rateLimit("launch", 2, 3600),
 
     return c.json({
       ca,
-      signature: created.signature ?? null,
+      signature,
       communityId: comm.id,
       pumpUrl: `https://pump.fun/coin/${ca}`,
     }, 201);

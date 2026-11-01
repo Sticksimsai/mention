@@ -100,10 +100,12 @@ worker's rate limiter (30/min) caps the burn rate. Generate
 `TOKEN_ENCRYPTION_KEY` with `openssl rand -hex 32`.
 
 ### Launchpad (pump.fun via PumpPortal)
-- `PUMPPORTAL_API_KEY` — Lightning wallet from pumpportal.fun. **This wallet
-  is the on-chain creator of every token launched through Mention**, which is
-  what routes pump.fun creator fees to the platform. Keep it funded with a
-  little SOL for creation fees + dev buys.
+- `PLATFORM_WALLET_SECRET` — a **self-custodied** Solana keypair (base58 or
+  JSON byte array). It signs every launch server-side and is the on-chain
+  pump.fun creator, which is what routes creator fees to the platform. No
+  third party holds keys: PumpPortal's keyless local endpoint only builds the
+  unsigned transaction. Keep the wallet funded with a little SOL for creation
+  fees + dev buys, and sweep earnings out regularly.
 - `PLATFORM_FEE_WALLET` — receives in-app trade fees.
 - `PLATFORM_TRADE_FEE_BPS` — in-app trade fee (100 = 1%).
 - `PLATFORM_CREATOR_FEE_SHARE_BPS` — the platform's share of creator fees;

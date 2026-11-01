@@ -45,7 +45,7 @@ services:
         value: "100"
       - key: PLATFORM_CREATOR_FEE_SHARE_BPS
         value: "5000"
-      - key: PUMPPORTAL_API_KEY
+      - key: PLATFORM_WALLET_SECRET
         sync: false
 
   # ───────────── Worker ─────────────
