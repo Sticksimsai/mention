@@ -15,11 +15,11 @@ export function BrandLogo({ compact = false }: { compact?: boolean }) {
           alt=""
           width={512}
           height={512}
-          className={compact ? "h-20 w-20 object-contain" : "h-32 w-32 object-contain"}
+          className={compact ? "h-14 w-14 object-contain" : "h-20 w-20 object-contain"}
           decoding="async"
         />
       </picture>
-      <span className={`font-display font-normal leading-none text-white ${compact ? "text-lg" : "text-2xl"}`}>
+      <span className={`font-body font-bold lowercase leading-none tracking-tight text-white ${compact ? "text-sm" : "text-lg"}`}>
         mention
       </span>
     </Link>
