@@ -18,15 +18,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { ready, authenticated, login, logout, me } = useMe();
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl">
+    <div className="mx-auto flex min-h-screen w-full max-w-[1280px]">
       {/* ── left nav ── */}
-      <header className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between border-r hairline px-4 py-5 md:flex">
+      <header className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col justify-between overflow-y-auto border-r hairline px-4 py-6 md:flex xl:w-60">
         <div>
-          <div className="mb-6">
+          <div className="mb-7">
             <BrandLogo />
           </div>
 
-          <nav className="flex flex-col gap-0.5">
+          <nav aria-label="Main navigation" className="flex flex-col gap-1">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
             <NavItem href="/explore" icon={<FlameIcon />}>Explore</NavItem>
             <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
@@ -39,7 +39,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
           <Link
             href="/launch"
-            className="mt-5 block rounded-2xl bg-volt px-5 py-3 text-center text-sm font-bold text-ink shadow-[0_0_24px_rgba(155,240,0,0.25)] transition hover:bg-volt-deep hover:shadow-[0_0_32px_rgba(155,240,0,0.35)]"
+            className="mt-6 flex min-h-11 items-center justify-center rounded-xl bg-volt px-4 py-3 text-center text-sm font-semibold text-ink transition-colors hover:bg-volt-deep"
           >
             Launch a token
           </Link>
@@ -65,7 +65,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={login}
-              className="w-full rounded-2xl border hairline px-5 py-3 text-sm font-semibold transition hover:border-volt/50 hover:text-volt"
+              className="mt-6 min-h-11 w-full rounded-xl border hairline bg-surface/50 px-4 py-3 text-sm font-semibold transition-colors hover:border-volt/50 hover:text-volt"
             >
               Sign in with X
             </button>
@@ -74,7 +74,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ── main column ── */}
-      <main className="min-h-screen w-full max-w-2xl border-r hairline">
+      <main className="min-h-screen min-w-0 flex-1 border-r hairline">
         <div className="border-b hairline py-2 md:hidden">
           <BrandLogo compact />
         </div>
@@ -82,7 +82,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ── right rail: search · top 10 · trending ── */}
-      <aside className="sticky top-0 hidden h-screen w-[340px] shrink-0 space-y-4 overflow-y-auto px-5 py-5 lg:block">
+      <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">
         <SearchBox />
         <TopTokensRail />
         <TrendingRail />
@@ -97,11 +97,12 @@ function NavItem({ href, icon, children }: { href: string; icon: React.ReactNode
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-[13px] transition-colors ${
-        active ? "bg-surface font-semibold text-volt" : "text-fg hover:bg-surface"
+      aria-current={active ? "page" : undefined}
+      className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+        active ? "border-volt/15 bg-volt/[0.07] text-volt" : "border-transparent text-muted hover:bg-surface hover:text-fg"
       }`}
     >
-      <span className={active ? "text-volt" : "text-muted"}>{icon}</span>
+      <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center">{icon}</span>
       {children}
     </Link>
   );
@@ -121,9 +122,9 @@ function TrendingRail() {
 
   return (
     <div className="rounded-2xl border hairline bg-surface p-4">
-      <h2 className="mb-3 font-display text-sm font-medium">Trending</h2>
+      <h2 className="mb-3 font-display text-xs font-normal">Trending</h2>
       {list.length === 0 && (
-        <p className="text-sm text-muted">Quiet so far. Launch the first token.</p>
+        <p className="text-[13px] leading-6 text-muted">New communities will appear here.</p>
       )}
       <ul className="space-y-0.5">
         {list.map((t) => (

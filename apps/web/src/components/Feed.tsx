@@ -39,15 +39,20 @@ export function Feed({ communityId, author, scope }: {
   if (feed.isLoading) return <FeedSkeleton />;
   if (items.length === 0) {
     return (
-      <div className="px-6 py-16 text-center text-muted">
-        <p className="mb-1 font-medium text-fg">
+      <div className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center text-muted">
+        <p className="mb-2 text-base font-semibold text-fg">
           {scope === "joined" ? "Your communities are quiet" : "Nothing here yet"}
         </p>
-        <p className="text-sm">
+        <p className="text-sm leading-6">
           {scope === "joined"
             ? "Join a community and its posts — on-site and from X — show up here."
             : "Posts made here and matching tweets from X both land in this feed."}
         </p>
+        {!communityId && !author && (
+          <Link href="/explore" className="mt-6 rounded-xl border hairline bg-surface px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-volt/40 hover:text-volt">
+            Explore communities
+          </Link>
+        )}
       </div>
     );
   }
@@ -121,7 +126,7 @@ export function PostCard({ post }: { post: PostView }) {
             {post.pinned && <span className="text-[11px] text-volt">pinned</span>}
           </div>
 
-          <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed">{post.content}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed">{post.content}</p>
 
           {post.mediaUrl && (
             // eslint-disable-next-line @next/next/no-img-element

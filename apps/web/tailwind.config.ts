@@ -18,7 +18,7 @@ export default {
       },
       fontFamily: {
         display: ["StairsNSlabs", "Cocogoose", "system-ui", "sans-serif"],
-        body: ["Cocogoose", "system-ui", "sans-serif"],
+        body: ["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
     },

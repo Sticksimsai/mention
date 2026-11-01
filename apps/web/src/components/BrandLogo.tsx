@@ -19,7 +19,7 @@ export function BrandLogo({ compact = false }: { compact?: boolean }) {
           decoding="async"
         />
       </picture>
-      <span className={`font-body font-bold lowercase leading-none tracking-tight text-white ${compact ? "text-sm" : "text-lg"}`}>
+      <span className={`font-[Cocogoose] font-bold lowercase leading-none tracking-tight text-white ${compact ? "text-sm" : "text-lg"}`}>
         mention
       </span>
     </Link>

@@ -40,14 +40,15 @@ export function SearchBox() {
 
   return (
     <div ref={boxRef} className="relative">
-      <div className="flex items-center gap-2 rounded-full border hairline bg-surface px-4 py-2.5 focus-within:border-volt/60">
+      <div className="flex items-center gap-2.5 rounded-xl border hairline bg-surface h-11 px-3.5 focus-within:border-volt/60 transition-colors">
         <span className="text-muted"><SearchIcon /></span>
         <input
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          placeholder="Search communities, tickers, people"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+          aria-label="Search communities, tickers, and people"
+          placeholder="Search Mention"
+          className="min-w-0 w-full bg-transparent text-[13px] outline-none placeholder:text-muted"
         />
       </div>
 

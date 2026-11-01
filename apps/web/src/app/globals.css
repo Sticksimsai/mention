@@ -58,9 +58,10 @@
 
 body {
   @apply bg-ink text-fg font-body antialiased;
-  font-weight: 200; /* Cocogoose Thin for running text */
-  font-size: 13px;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
 }
 
 /* pixel display face stays crisp */
@@ -70,9 +71,14 @@ body {
   font-smooth: never;
 }
 
-/* anything bolded steps up to the Regular cut */
-b, strong, .font-medium { font-weight: 400; }
-.font-semibold, .font-bold { font-weight: 700; }
+b, strong { font-weight: 600; }
+
+a:focus-visible, button:focus-visible {
+  outline: 2px solid #9BF000;
+  outline-offset: 3px;
+}
+
+button, input { font: inherit; }
 
 ::selection {
   background: rgba(155, 240, 0, 0.3);

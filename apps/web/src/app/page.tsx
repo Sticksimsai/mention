@@ -15,22 +15,22 @@ export default function Home() {
   return (
     <Shell>
       <div className="sticky top-0 z-10 border-b hairline bg-ink/85 backdrop-blur">
-        <div className="flex items-center justify-between px-5 pt-4">
-          <h1 className="font-display text-base font-medium">Home</h1>
-          <span className="flex items-center gap-1.5 text-[11px] text-muted">
+        <div className="flex items-center justify-between px-6 pt-6">
+          <h1 className="font-display text-sm font-normal">Home</h1>
+          <span className="flex items-center gap-2 rounded-full border hairline px-2.5 py-1 text-[11px] text-muted">
             <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-volt" /> live
           </span>
         </div>
-        <div className="mt-2 flex gap-7 px-5 text-sm">
+        <div className="mt-5 flex gap-6 px-6 text-sm">
           <button
             onClick={() => setTab("foryou")}
-            className={`border-b-2 pb-2.5 ${tab === "foryou" ? "border-volt font-semibold text-fg" : "border-transparent text-muted hover:text-fg"}`}
+            className={`border-b-2 px-1 pb-3 ${tab === "foryou" ? "border-volt font-semibold text-fg" : "border-transparent text-muted hover:text-fg"}`}
           >
             For you
           </button>
           <button
             onClick={() => (authenticated ? setTab("joined") : login())}
-            className={`border-b-2 pb-2.5 ${tab === "joined" ? "border-volt font-semibold text-fg" : "border-transparent text-muted hover:text-fg"}`}
+            className={`border-b-2 px-1 pb-3 ${tab === "joined" ? "border-volt font-semibold text-fg" : "border-transparent text-muted hover:text-fg"}`}
           >
             Joined
           </button>

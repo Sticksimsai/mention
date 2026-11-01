@@ -41,7 +41,7 @@ export function TopTokensRail() {
   return (
     <div className="rounded-2xl border hairline bg-surface p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="font-display text-sm font-medium">Top 10</h2>
+        <h2 className="font-display text-xs font-normal">Top 10</h2>
         <span className="flex items-center gap-1.5 text-[11px] text-muted">
           <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-volt" /> live mcap
         </span>
