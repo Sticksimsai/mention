@@ -16,7 +16,7 @@ import {
   HomeIcon, FlameIcon, RocketIcon, TrophyIcon, UserIcon, GearIcon, ShieldIcon, BookIcon,
 } from "./icons";
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
   const { me } = useMe();
 
   return (
@@ -24,7 +24,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* ── left nav ── */}
       <header className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col justify-between overflow-y-auto border-r hairline px-4 py-6 md:flex xl:w-60">
         <div>
-          <div className="mb-7">
+          <div className="mb-5 ml-3">
             <BrandLogo />
           </div>
 
@@ -60,12 +60,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ── right rail: search · top 10 · trending ── */}
-      <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">
+      {!wide && <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">
         <SearchBox />
         {me && <WalletCard />}
         <TopTokensRail />
         <TrendingRail />
-      </aside>
+      </aside>}
     </div>
   );
 }

@@ -103,3 +103,25 @@ button, input { font: inherit; }
 .pulse-dot {
   animation: pulse-volt 2.4s ease-in-out infinite;
 }
+
+/* Docs: readable content, a sticky contents rail, and illustrative motion. */
+.docs-layout { display: grid; gap: 28px; padding: 24px 20px; }
+.docs-section { scroll-margin-top: 90px; }
+.docs-toc { position: sticky; top: 0; z-index: 10; display: flex; gap: 4px; overflow-x: auto; padding: 10px 0; background: #121212f5; backdrop-filter: blur(12px); align-self: start; }
+.docs-toc a { display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: 9px 12px; border-radius: 8px; color: #99A18F; font-size: 12px; transition: background .2s, color .2s; }
+.docs-toc a:hover, .docs-toc a.is-active { background: #9bf0000d; color: #9bf000; }
+.docs-card { border: 1px solid #2B2E28; border-radius: 12px; padding: 20px; background: #191B18; transition: border-color .2s, transform .2s; }
+.docs-card:hover { border-color: #9bf00040; transform: translateY(-2px); }
+.docs-demo { overflow: hidden; border: 1px solid #343c2c; border-radius: 16px; background: radial-gradient(ellipse at top left,#9bf0000a,transparent 65%),#171915; }
+.docs-scene { animation: docs-enter .45s ease-out both; }
+.docs-orbit { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 112px; height: 112px; border: 1px solid #9bf00030; border-radius: 24px; background: #9bf00008; }
+.docs-orbit-dot { position: absolute; width: 7px; height: 7px; right: -4px; top: 25%; border-radius: 50%; background: #9bf000; box-shadow: 0 0 16px #9bf00060; }
+.docs-flow { display: flex; align-items: center; gap: 20px; border: 1px solid #2b2e28; border-radius: 12px; padding: 24px; background: #171915; }
+.docs-flow > span:first-child { font-size: 26px; }
+.docs-flow-track { position: relative; flex: 1; height: 1px; background: #39452c; overflow: hidden; }
+.docs-flow-track i { display: block; width: 24px; height: 1px; background: #9bf000; animation: docs-transfer 3s linear infinite alternate; }
+@keyframes docs-transfer { from { transform: translateX(-24px); } to { transform: translateX(500px); } }
+@keyframes docs-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media(min-width: 640px) { .docs-layout { padding: 28px 32px; } }
+@media(min-width: 1280px) { .docs-layout { grid-template-columns: minmax(0,1fr) 160px; gap: 36px; } .docs-toc { grid-column: 2; grid-row: 1; flex-direction: column; top: 24px; } .docs-layout > div { grid-column: 1; grid-row: 1; } }
+@media(prefers-reduced-motion: reduce) { .docs-scene,.docs-flow-track i { animation: none; } .docs-card:hover { transform: none; } }

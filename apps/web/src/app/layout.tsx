@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mention",
+  title: "Mentions",
   description: "Social trading on Solana. Launch a token, mint its community — posts mirror between here and X, with the chart live in the room.",
 };
 

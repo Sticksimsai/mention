@@ -86,7 +86,7 @@ export default function TribePage() {
         <p className="text-sm text-muted">
           ${tribe.ticker} · {tribe.membersCount} members · led by{" "}
           <a href={`/u/${tribe.owner.username}`} className="text-volt hover:underline">@{tribe.owner.username}</a>
-          {tribe.launchedViaTribes && " · launched on Mention"}
+          {tribe.launchedViaTribes && " · launched on Mentions"}
         </p>
         {tribe.details && <p className="mt-2 text-[13px] leading-relaxed">{tribe.details}</p>}
         <p className="mt-2 font-mono text-xs text-muted">

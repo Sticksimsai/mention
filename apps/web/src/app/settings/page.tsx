@@ -37,7 +37,7 @@ export default function SettingsPage() {
           <section className="rounded-2xl bg-surface p-5">
             <h2 className="font-medium">Post to X</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted">
-              Mirror your Mention posts to your X account. Signing in proves who you are;
+              Mirror your Mentions posts to your X account. Signing in proves who you are;
               this separate step grants posting permission, and you can turn it off any time.
             </p>
             {!me?.xWriteConnected ? (

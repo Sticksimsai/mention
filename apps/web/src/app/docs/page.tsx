@@ -1,171 +1,99 @@
 "use client";
 
-// Docs — how Mention works, written for the person about to launch or trade.
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 
-const sections = [
-  { id: "overview", label: "Overview" },
-  { id: "launch", label: "Launching" },
-  { id: "mirroring", label: "X mirroring" },
-  { id: "trading", label: "Trading" },
-  { id: "fees", label: "Fees" },
-  { id: "rules", label: "Rules & roles" },
+const sections = ["Overview", "Launching", "X mirroring", "Trading", "Fees", "Rules & roles"];
+const ids = ["overview", "launch", "mirroring", "trading", "fees", "rules"];
+const journey = [
+  { title: "Bring your identity", label: "Sign in", icon: "𝕏", detail: "Sign in with X. Your photo and handle become your identity on Mentions.", tag: "01 / YOUR ACCOUNT" },
+  { title: "Find your people", label: "Join", icon: "@", detail: "Explore token communities. Join the conversations you want to follow.", tag: "02 / YOUR COMMUNITIES" },
+  { title: "Keep the conversation moving", label: "Post", icon: "↗", detail: "Post in the community feed. Enable X posting separately to share a post on both platforms.", tag: "03 / YOUR VOICE" },
+  { title: "Explore the token", label: "Trade", icon: "⇄", detail: "Open the community’s Trade tab, review the details, and approve the transaction in your wallet.", tag: "04 / YOUR WALLET" },
 ];
 
 export default function DocsPage() {
-  return (
-    <Shell>
-      <div className="sticky top-0 z-10 border-b hairline bg-ink/85 backdrop-blur">
-        <div className="px-5 pt-4">
-          <h1 className="font-display text-base font-medium">Docs</h1>
-        </div>
-        <div className="flex gap-5 overflow-x-auto px-5 pt-2 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {sections.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="shrink-0 border-b-2 border-transparent pb-2.5 text-muted hover:text-fg">
-              {s.label}
-            </a>
-          ))}
-        </div>
+  const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [active, setActive] = useState("overview");
+  useEffect(() => {
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    setPlaying(!motion.matches);
+    const update = () => setPlaying(!motion.matches);
+    motion.addEventListener("change", update);
+    return () => motion.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(() => setStep(s => (s+1)%journey.length), 5000);
+    return () => clearInterval(timer);
+  }, [playing]);
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top-b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.id);
+    }, { rootMargin: "-100px 0px -55% 0px" });
+    ids.forEach(id => { const el=document.getElementById(id); if(el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+  return <Shell wide>
+    <div className="border-b hairline px-5 py-5 sm:px-8"><span className="font-display text-sm">Docs</span><span className="ml-3 text-xs text-muted">The Mentions field guide</span></div>
+    <div className="docs-layout">
+      <nav aria-label="On this page" className="docs-toc">
+        <p className="mb-3 hidden text-[10px] uppercase tracking-[.18em] text-muted xl:block">On this page</p>
+        {sections.map((label,i)=><a key={ids[i]} href={`#${ids[i]}`} aria-current={active===ids[i]?"location":undefined} className={active===ids[i]?"is-active":""}><span className="font-mono text-[10px] opacity-50">0{i+1}</span>{label}</a>)}
+      </nav>
+      <div className="min-w-0 space-y-12 pb-12">
+        <section id="overview" className="docs-section">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[.2em] text-volt">A little context. A lot of possibility.</p>
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Your community.<br/><span className="text-muted">In the conversation.</span></h1>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-muted">Mentions brings token communities, social feeds, and Solana trading into one place. Start with your X identity. Find your people. Build from there.</p>
+          <div className="mt-6 flex flex-wrap gap-3"><Link className="rounded-lg bg-volt px-4 py-2.5 text-sm font-semibold text-ink hover:bg-volt-deep" href="/explore">Explore communities ↗</Link><Link className="rounded-lg border hairline px-4 py-2.5 text-sm hover:bg-surface" href="/launch">Launch a token</Link></div>
+          <div className="docs-demo mt-8">
+            <div className="flex items-center justify-between gap-3 border-b hairline px-5 py-3"><span className="text-xs text-muted">How it works</span><button onClick={()=>setPlaying(p=>!p)} aria-pressed={playing} className="text-xs text-volt">{playing?"Pause animation":"Play animation"}</button></div>
+            <div className="grid grid-cols-4 border-b hairline" role="tablist" aria-label="Walkthrough steps">{journey.map((s,i)=><button role="tab" id={`step-${i}`} aria-selected={step===i} aria-controls="walkthrough" key={s.label} onKeyDown={e=>{ if(e.key==="ArrowRight" || e.key==="ArrowLeft") { e.preventDefault(); const next=(i+(e.key==="ArrowRight"?1:3))%4; setStep(next); setPlaying(false); document.getElementById(`step-${next}`)?.focus(); } }} onClick={()=>{setStep(i);setPlaying(false);}} className={`border-b-2 px-1 py-3 text-xs transition-colors ${step===i?"border-volt bg-volt/5 text-volt":"border-transparent text-muted hover:text-fg"}`}>{s.label}</button>)}</div>
+            <div id="walkthrough" role="tabpanel" aria-labelledby={`step-${step}`} className="min-h-[250px] p-5 sm:p-7">
+              <div key={step} className="docs-scene flex flex-col gap-6 sm:flex-row sm:items-center">
+                <div aria-hidden="true" className="docs-orbit"><span className="docs-orbit-dot"/><span className="font-display text-4xl text-volt">{journey[step].icon}</span></div>
+                <div className="flex-1"><p className="mb-3 font-mono text-[10px] tracking-widest text-volt">{journey[step].tag}</p><h2 className="text-xl font-semibold tracking-tight">{journey[step].title}</h2><p className="mt-3 text-sm leading-6 text-muted">{journey[step].detail}</p></div>
+              </div>
+            </div>
+            <div className="flex gap-1 px-5 pb-4" aria-hidden="true">{journey.map((_,i)=><span key={i} className={`h-1 flex-1 rounded-full ${i===step?"bg-volt":"bg-line"}`}/>)}</div>
+          </div>
+        </section>
+        <Doc id="launch" number="02" title="From an idea to a community" intro="Launching a token creates its community. You don’t need to set up a separate feed.">
+          <div className="grid gap-3 sm:grid-cols-2">{[
+            ["01", "Make it yours", "Add a name, ticker, image, and description in the Launchpad."],
+            ["02", "Set your wallet", "Provide the Solana wallet that receives your launcher share of creator fees."],
+            ["03", "Launch together", "The mint opens on pump.fun’s bonding curve and the community opens alongside it."],
+            ["04", "Grow the room", "Share the community, pin a welcome post, and manage its appearance and posting rules."],
+          ].map(([n,t,d])=><div key={n} className="docs-card"><span className="font-mono text-xs text-volt">{n}</span><h3 className="mb-2 mt-4 text-sm font-semibold">{t}</h3><p className="text-xs leading-6 text-muted">{d}</p></div>)}</div>
+          <Note>Communities can be transferred to another owner, but cannot be deleted.</Note>
+        </Doc>
+        <Doc id="mirroring" number="03" title="One conversation. Two places." intro="Bring matching X posts into a community, and choose when to share your Mentions posts back to X.">
+          <div className="docs-flow" aria-hidden="true"><span>𝕏</span><span className="docs-flow-track"><i style={{ animationPlayState: playing ? "running" : "paused" }}/></span><span className="font-display text-xs text-volt">mentions</span></div>
+          <div className="grid gap-3 sm:grid-cols-2"><div className="docs-card"><p className="mb-3 text-xs font-semibold text-volt">X → Mentions</p><p className="text-sm leading-6 text-muted">Matching posts from monitored member accounts appear in the community feed when they include its $TICKER or contract address. Import timing varies with account activity.</p></div><div className="docs-card"><p className="mb-3 text-xs font-semibold text-volt">Mentions → X</p><p className="text-sm leading-6 text-muted">Enable X posting in Settings, then select “Also post to my X” when composing. You can revoke that connection.</p></div></div>
+          <Note>Signing in with X and granting permission to post to X are separate steps.</Note>
+        </Doc>
+        <Doc id="trading" number="04" title="The market, next to the conversation" intro="Each community has a Trade tab. Review the token, amount, and transaction details before approving in your wallet.">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border hairline bg-surface p-5 text-sm"><span className="rounded-lg bg-raised px-3 py-2">Bonding curve</span><span className="text-muted">→ Graduation →</span><span className="rounded-lg border border-volt/20 px-3 py-2 text-volt">PumpSwap</span></div>
+          <p className="text-sm leading-7 text-muted">Trades route to pump.fun before graduation and PumpSwap afterward. Your profile also includes your personal Solana wallet, deposit address, and recent activity.</p>
+          <Note>Token prices can move quickly. Network costs and applicable trading fees are separate from the amount you trade.</Note>
+        </Doc>
+        <Doc id="fees" number="05" title="Know what you’re paying" intro="A quick reference for platform fees. Review the transaction details for the actual costs before you approve.">
+          <div className="overflow-x-auto rounded-xl border hairline"><table className="w-full min-w-[400px] text-left text-sm"><thead className="bg-surface text-xs text-muted"><tr><th className="p-4 font-medium">Action</th><th className="p-4 font-medium">Fee</th></tr></thead><tbody>{[["Launch a token","No platform launch fee; network costs apply"],["Trade inside Mentions","1% platform trading fee"],["Trade directly on pump.fun / PumpSwap","Venue’s standard fees"],["Creator fees","pump.fun’s dynamic rate; shared with the launcher"]].map(([a,b])=><tr key={a} className="border-t hairline"><th className="p-4 font-medium">{a}</th><td className="p-4 text-muted">{b}</td></tr>)}</tbody></table></div>
+          <p className="text-sm leading-7 text-muted">For tokens launched through Mentions, creator fees accrue to the platform creator account and are split with the launcher. The launcher’s share goes to the wallet supplied at launch.</p>
+        </Doc>
+        <Doc id="rules" number="06" title="A good room needs good rules" intro="Clear ownership and moderation keep communities useful.">
+          <div className="space-y-3">{[["Community owners","Manage appearance, pin and remove posts, set posting cooldowns, remove members, and transfer ownership."],["Site staff","Moderate posts and ban accounts across the site."],["Members","Join conversations and follow community rules. Banned accounts are read-only; posts remain unless removed."]].map(([a,b])=><div key={a} className="docs-card"><h3 className="mb-2 text-sm font-semibold">{a}</h3><p className="text-sm leading-6 text-muted">{b}</p></div>)}</div>
+        </Doc>
+        <div className="rounded-2xl border border-volt/20 bg-volt/5 p-6"><p className="text-lg font-semibold">Find your next conversation.</p><Link href="/explore" className="mt-3 inline-block text-sm font-semibold text-volt">Explore Mentions ↗</Link></div>
       </div>
-
-      <div className="space-y-10 px-5 py-8">
-        <Doc id="overview" title="What is Mention?">
-          <p>
-            Mention is social trading on Solana. Every token launched here mints its own
-            community — an X-style feed where the people holding, building and shilling a coin
-            post in one place, with the chart live in the room.
-          </p>
-          <p>
-            The feed is mirrored with X in both directions. Tweets that mention a community's
-            <Mono> $TICKER</Mono> or contract address appear in its feed automatically, and
-            posts you make on Mention can go out as real tweets from your account.
-          </p>
-        </Doc>
-
-        <Doc id="launch" title="Launching a token">
-          <p>
-            Launching is the only way a community is created. Fill in the name, ticker, image
-            and description on the <Link href="/launch" className="text-volt hover:underline">Launchpad</Link> —
-            your token goes live on pump.fun's bonding curve immediately, and the community
-            opens the moment the mint lands.
-          </p>
-          <Steps items={[
-            "Sign in with X — your handle is your identity here.",
-            "Fill in the token details and add your Solana wallet. That wallet receives your share of creator fees.",
-            "Launch. The token is live on pump.fun; your community opens with the chart, CA and mirroring already wired in.",
-            "Trade on the bonding curve from day one. When the token graduates, it migrates to PumpSwap automatically and the full chart appears.",
-          ]} />
-          <p>
-            You own the community: edit its look, pin posts, set posting cooldowns, remove
-            members, or transfer ownership. Communities can't be deleted — only transferred.
-          </p>
-        </Doc>
-
-        <Doc id="mirroring" title="X mirroring, both ways">
-          <p>
-            <Strong>X → Mention.</Strong> We continuously watch the X accounts of every member.
-            Any tweet that mentions a community's <Mono>$TICKER</Mono> or CA is pulled into
-            that community's feed, with its likes, reposts and views. Active accounts are
-            checked every couple of minutes; quiet ones less often.
-          </p>
-          <p>
-            <Strong>Mention → X.</Strong> Connect posting in{" "}
-            <Link href="/settings" className="text-volt hover:underline">Settings</Link> (one-time,
-            revocable) and tick "Also post to my X" when composing. Your post goes out as a
-            real tweet from your account and the two stay linked in the feed.
-          </p>
-        </Doc>
-
-        <Doc id="trading" title="Trading">
-          <p>
-            Every community page has a Trade tab. Buys and sells are routed to wherever the
-            token lives — the pump.fun bonding curve before graduation, PumpSwap after — and
-            are signed in your own wallet. Mention never holds your funds.
-          </p>
-          <p>
-            The Leaderboard ranks every community's token by live market cap, refreshed every
-            few seconds from on-chain market data.
-          </p>
-        </Doc>
-
-        <Doc id="fees" title="Fees">
-          <Table
-            head={["Action", "Fee", "Where it goes"]}
-            rows={[
-              ["Launching a token", "Free", "Network costs only"],
-              ["Trading on pump.fun / PumpSwap directly", "Their standard fees", "pump.fun protocol + LPs"],
-              ["Trading inside Mention", "1% of trade", "Platform"],
-              ["Creator fees (all venues)", "pump.fun's dynamic rate", "Split between the launcher and the platform"],
-            ]}
-          />
-          <p>
-            Tokens launched through Mention are deployed by the platform's creator account, so
-            pump.fun's creator-fee share on trading volume accrues to the platform and is
-            split with you, the launcher — your share pays to the wallet you gave at launch.
-            Trading anywhere still counts; you don't need to trade on Mention for the launcher
-            share to accrue.
-          </p>
-        </Doc>
-
-        <Doc id="rules" title="Rules & roles">
-          <p>
-            Community owners moderate their own house: pin posts, set cooldowns, remove posts
-            and members. Site staff can remove any post and ban accounts site-wide. Banned
-            accounts become read-only; their posts stay unless individually removed.
-          </p>
-        </Doc>
-      </div>
-    </Shell>
-  );
-}
-
-function Doc({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-28">
-      <h2 className="mb-3 font-display text-lg font-medium text-volt">{title}</h2>
-      <div className="space-y-3 text-[13px] leading-relaxed text-fg/90">{children}</div>
-    </section>
-  );
-}
-
-const Mono = ({ children }: { children: React.ReactNode }) => (
-  <span className="font-mono text-[13px] text-volt">{children}</span>
-);
-const Strong = ({ children }: { children: React.ReactNode }) => (
-  <span className="font-semibold text-fg">{children}</span>
-);
-
-function Steps({ items }: { items: string[] }) {
-  return (
-    <ol className="space-y-2.5">
-      {items.map((s, i) => (
-        <li key={i} className="flex gap-3">
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-volt/15 font-mono text-[11px] text-volt">
-            {i + 1}
-          </span>
-          <span>{s}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function Table({ head, rows }: { head: string[]; rows: string[][] }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border hairline">
-      <table className="w-full text-sm">
-        <thead className="bg-surface">
-          <tr>{head.map((h) => <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t hairline">
-              {r.map((cell, j) => <td key={j} className={`px-4 py-2.5 ${j === 1 ? "font-mono text-[13px]" : ""}`}>{cell}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
-  );
+  </Shell>;
 }
+function Doc({id,number,title,intro,children}:{id:string;number:string;title:string;intro:string;children:React.ReactNode}) {
+  return <section id={id} className="docs-section border-t hairline pt-8"><div className="mb-5"><span className="font-mono text-xs text-volt">{number} /</span><h2 className="mb-3 mt-3 text-2xl font-semibold tracking-tight">{title}</h2><p className="text-sm leading-7 text-muted">{intro}</p></div><div className="space-y-5">{children}</div></section>;
+}
+function Note({children}:{children:React.ReactNode}) { return <p className="border-l-2 border-volt/40 pl-4 text-xs leading-6 text-muted">{children}</p>; }
