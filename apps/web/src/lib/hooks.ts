@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/AuthProvider";
-import { api, registerTokenGetter } from "./api";
+import { api } from "./api";
 
 export interface Me {
   id: string;
@@ -16,25 +15,28 @@ export interface Me {
   xWriteEnabled: boolean;
 }
 
-/** Wires Privy's access token into the api client and loads /users/me. */
+/** Resolve the current X profile with an explicit token and account-scoped cache. */
 export function useMe() {
-  const { ready, authenticated, getAccessToken, login, logout } = useAuth();
+  const { ready, authenticated, getAccessToken, login, logout, userId, available } = useAuth();
   const qc = useQueryClient();
 
-  useEffect(() => {
-    registerTokenGetter(async () => (authenticated ? getAccessToken() : null));
-  }, [authenticated, getAccessToken]);
-
   const me = useQuery({
-    queryKey: ["me"],
-    queryFn: () => api<Me>("/v1/users/me"),
-    enabled: ready && authenticated,
+    queryKey: ["me", userId],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Your session is not ready. Please retry.");
+      return api<Me>("/v1/users/me", { token });
+    },
+    enabled: ready && authenticated && Boolean(userId),
     staleTime: 30_000,
   });
 
   return {
-    ready, authenticated, login,
+    ready, authenticated, available, login,
     logout: async () => { await logout(); qc.clear(); },
-    me: me.data ?? null,
+    me: authenticated ? me.data ?? null : null,
+    isLoading: authenticated && me.isPending,
+    error: authenticated ? me.error : null,
+    retry: me.refetch,
   };
 }

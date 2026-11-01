@@ -12,12 +12,12 @@ export function registerTokenGetter(fn: GetToken) { getToken = fn; }
 
 export async function api<T>(
   path: string,
-  opts: { method?: string; body?: unknown; auth?: boolean } = {},
+  opts: { method?: string; body?: unknown; auth?: boolean; token?: string | null } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
   if (opts.auth !== false) {
-    const token = await getToken();
+    const token = opts.token !== undefined ? opts.token : await getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
   const res = await fetch(`${API_URL}${path}`, {

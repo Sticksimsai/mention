@@ -37,6 +37,7 @@ export function Feed({ communityId, author, scope }: {
   const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
 
   if (feed.isLoading) return <FeedSkeleton />;
+  if (feed.isError) return <div className="px-6 py-12 text-center"><p className="text-sm text-muted">Could not load posts.</p><button onClick={() => feed.refetch()} className="mt-3 text-sm text-volt">Try again</button></div>;
   if (items.length === 0) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center text-muted">

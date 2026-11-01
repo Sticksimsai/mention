@@ -9,13 +9,15 @@ import { useMe } from "@/lib/hooks";
 import { TokenPulse } from "./TokenPulse";
 import { SearchBox } from "./SearchBox";
 import { TopTokensRail } from "./TopTokens";
+import { AccountButton } from "./AccountButton";
+import { WalletCard } from "./WalletCard";
 import { BrandLogo } from "./BrandLogo";
 import {
   HomeIcon, FlameIcon, RocketIcon, TrophyIcon, UserIcon, GearIcon, ShieldIcon, BookIcon,
 } from "./icons";
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { ready, authenticated, login, logout, me } = useMe();
+  const { me } = useMe();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1280px]">
@@ -45,38 +47,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <div>
-          {!ready ? null : authenticated && me ? (
-            <div className="flex items-center gap-3 rounded-2xl border hairline bg-surface p-3">
-              {me.pfpUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={me.pfpUrl} alt="" className="h-9 w-9 rounded-full" />
-              ) : (
-                <div className="h-9 w-9 rounded-full bg-raised" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{me.displayName}</p>
-                <p className="truncate text-xs text-muted">@{me.username}</p>
-              </div>
-              <button onClick={logout} className="text-xs text-muted hover:text-fg" title="Log out">
-                ⎋
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={login}
-              className="mt-6 min-h-11 w-full rounded-xl border hairline bg-surface/50 px-4 py-3 text-sm font-semibold transition-colors hover:border-volt/50 hover:text-volt"
-            >
-              Sign in with X
-            </button>
-          )}
-        </div>
+        <div className="mt-6"><AccountButton /></div>
       </header>
 
       {/* ── main column ── */}
       <main className="min-h-screen min-w-0 flex-1 border-r hairline">
-        <div className="border-b hairline py-2 md:hidden">
+        <div className="flex items-center justify-between gap-4 border-b hairline px-4 py-2 md:hidden">
           <BrandLogo compact />
+          <div className="max-w-[220px]"><AccountButton /></div>
         </div>
         {children}
       </main>
@@ -84,6 +62,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* ── right rail: search · top 10 · trending ── */}
       <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">
         <SearchBox />
+        {me && <WalletCard />}
         <TopTokensRail />
         <TrendingRail />
       </aside>
