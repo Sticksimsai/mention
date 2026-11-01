@@ -39,7 +39,7 @@ earningsRoute.post("/admin/receipts",rateLimit("receipts",10,60),zValidator("jso
    const [community]=await t.select().from(communities).where(eq(communities.id,allocation.communityId));if(!community?.creatorWallet||community.platformFeeShareBps===null)throw new HTTPException(400,{message:"Community has no fee recipient"});
    const [launch]=await t.execute(sql`SELECT user_id, details FROM money_operations WHERE kind='launch' AND status='complete' AND details::jsonb->>'ca'=${community.ca} LIMIT 1`);
    if(!launch)throw new HTTPException(409,{message:"Legacy launch requires verified original-launcher attribution before allocation"});
-   const d=JSON.parse(String(launch.details));const gross=positiveLamports(allocation.grossLamports);const amount=creatorShare(gross,d.platformFeeShareBps);address(d.creatorWallet);
+   const d=JSON.parse(String(launch.details));if(d.mode==="holders"||(d.quoteAsset&&d.quoteAsset!=="SOL"))throw new HTTPException(400,{message:"This launch does not use the SOL creator payout ledger"});const gross=positiveLamports(allocation.grossLamports);const amount=creatorShare(gross,d.platformFeeShareBps);address(d.creatorWallet);
    await t.insert(creatorEarnings).values({receipt:body.signature,communityId:community.id,userId:String(launch.user_id),wallet:d.creatorWallet,grossLamports:gross,creatorLamports:amount});
   }
   await t.insert(modAuditLog).values({actorId:c.get("user").id,action:"approve_creator_allocation",targetType:"receipt",targetId:body.signature,meta:JSON.stringify(body)});

@@ -5,16 +5,23 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { SystemProgram, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { tradeSchema } from "@mention/shared";
-import { moneyOperations } from "@mention/db";
+import { moneyOperations, sql } from "@mention/db";
 import { db } from "../lib/db.js";
 import { env } from "../env.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 import { address, connection, hash, ownOperation, publicOperation, refreshOperation, broadcast } from "../lib/money.js";
 
 export const tradeRoute = new Hono();
+async function tokenPair(ca:string){
+ const [row]=await db.execute(sql`SELECT details::jsonb->>'quoteAsset' AS pair FROM money_operations WHERE kind='launch' AND status='complete' AND details::jsonb->>'ca'=${ca} LIMIT 1`);
+ return String(row?.pair||"SOL");
+}
+tradeRoute.get("/capabilities/:ca",async c=>{address(c.req.param("ca"));const pair=await tokenPair(c.req.param("ca"));return c.json({pair,inAppTrading:pair==="SOL"});});
 tradeRoute.use("*",requireAuth);
 tradeRoute.post("/build",rateLimit("trade",15,60),zValidator("json",tradeSchema),async c=>{
-  requireNotBanned(c);const body=c.req.valid("json");const wallet=address(body.wallet);address(body.ca);
+  requireNotBanned(c);const body=c.req.valid("json");
+  if(await tokenPair(body.ca)!=="SOL")throw new HTTPException(400,{message:"This pair currently trades on Pump. Mentions in-app trading supports SOL pairs only."});
+  const wallet=address(body.wallet);address(body.ca);
   if(body.denominatedInSol!==(body.side==="buy"))throw new HTTPException(400,{message:"Buy amounts must use SOL; sell amounts must use tokens"});
   const bps=env.PLATFORM_TRADE_FEE_BPS;
   if(!env.PLATFORM_FEE_WALLET || !Number.isInteger(bps)||bps<0||bps>1000)throw new HTTPException(503,{message:"Trading fees are not configured"});

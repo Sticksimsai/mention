@@ -70,7 +70,7 @@ export const launchTokenSchema = z.object({
   telegram: z.string().max(200).optional().nullable(),
   /** launcher's wallet — receives their share of creator fees */
   creatorWallet: z.string().min(32).max(44),
-  /** initial dev-buy in SOL (optional) */
+  /** Legacy SOL amount is forbidden; new launches use capped devBuyBps. */
   devBuySol: z.literal(0).default(0),
 });
 
@@ -149,3 +149,28 @@ export interface TokenStats {
 }
 
 export const TICKER_RE = /^\$([A-Z0-9]{1,12})\b/;
+
+
+// Contract addresses from pump.fun/docs/custom-pairs, checked 2026-11-01.
+export const LAUNCH_PAIRS = [
+  { id: "SOL", symbol: "SOL", name: "Solana", category: "Crypto", mint: "So11111111111111111111111111111111111111112" },
+  { id: "USDC", symbol: "USDC", name: "US dollar", category: "Stablecoin", mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+  { id: "SPCX", symbol: "SPCX", name: "SpaceX", category: "Tokenized stock", mint: "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb" },
+  { id: "QQQX", symbol: "QQQx", name: "Nasdaq 100", category: "Tokenized ETF", mint: "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ" },
+  { id: "SPYX", symbol: "SPYx", name: "S&P 500", category: "Tokenized ETF", mint: "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W" },
+  { id: "NVDAX", symbol: "NVDAx", name: "NVIDIA", category: "Tokenized stock", mint: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh" },
+  { id: "GLDX", symbol: "GLDx", name: "Gold", category: "Tokenized ETF", mint: "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re" },
+] as const;
+export const MAX_DEV_BUY_BPS = 200;
+export const launchOptionsSchema = z.object({
+  quoteAsset: z.enum(["SOL", "USDC", "SPCX", "QQQX", "SPYX", "NVDAX", "GLDX"]).default("SOL"),
+  mode: z.enum(["fair", "creator", "holders"]).default("fair"),
+  devBuyBps: z.number().int().min(0).max(MAX_DEV_BUY_BPS).default(0),
+}).superRefine((value, ctx) => {
+  if (value.mode === "fair" && value.devBuyBps !== 0) ctx.addIssue({ code: "custom", path: ["devBuyBps"], message: "Fair starts have no developer buy" });
+  if (value.quoteAsset !== "SOL" && value.mode !== "holders") ctx.addIssue({ code: "custom", path: ["mode"], message: "Token pairs currently require holder rewards; creator payouts support SOL only" });
+});
+export function devBuyUnits(supply: bigint, bps: number): bigint {
+  if (supply <= 0n || !Number.isInteger(bps) || bps < 0 || bps > MAX_DEV_BUY_BPS) throw new Error("Developer buy must be between 0% and 2% of total supply");
+  return supply * BigInt(bps) / 10000n;
+}

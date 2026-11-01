@@ -6,11 +6,12 @@ The migration adds `money_operations`, `launch_images`, `creator_receipts`, and 
 
 Trades use the user's Privy Solana wallet. The user reviews a simulated transaction, then explicitly approves signing in Privy. The API accepts only the exact reviewed message with valid required signatures. It stores signed bytes encrypted and the signature before submitting to RPC. Repeating submit broadcasts the same transaction, not a replacement. The client distinguishes submitted from confirmed.
 
-Server-funded launches and payout execution default OFF. Before enabling either, set explicit limits on the API service:
+Launch execution and payout execution default OFF. New launches are creator-funded and require a Privy signature; the platform never pays their developer buy. Legacy prepared launches retain the server funding limits below. Before activation, configure and validate the appropriate settings on the API service:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `LAUNCH_ENABLED` | `false` | Allows launch preparation and explicit launch submission |
+| `PUMP_LOOKUP_TABLE` | empty | Existing active Solana address lookup table covering common Pump accounts; needed for combined create-and-buy transactions |
 | `LAUNCH_MAX_COST_SOL` | `0` | Maximum simulated platform cost for one launch |
 | `LAUNCH_DAILY_BUDGET_SOL` | `0` | Daily reservation and execution budget, UTC |
 | `PAYOUTS_ENABLED` | `false` | Enables the API's 15-second executor for approved payouts |
@@ -22,9 +23,19 @@ Server-funded launches and payout execution default OFF. Before enabling either,
 
 ## Launch lifecycle
 
-Upload a PNG/JPEG/WebP (maximum 2 MB), enter token details and the immutable fee recipient, and request a review. The request uses a unique operation ID and payload hash. Its mint address is reserved before any transaction can be sent. The server publishes metadata, builds and simulates the creation transaction, and saves the signed bytes encrypted. No chain transaction is sent during preparation.
+The Launchpad shows a live preview and preset Mentions image above the form. A user may replace it with PNG/JPEG/WebP (maximum 2 MB). The preset is uploaded through the same image endpoint when the review is requested.
 
-An explicit **Confirm launch** submits the prepared transaction. Confirmed mints are verified and their community is created transactionally. Refresh/recovery only checks the same signature and repairs the same community. It never creates another mint. Duplicate names are reserved against pending launches. Interrupted preparation can be retired after ten minutes, because preparation never broadcasts. Prepared reviews expire when their blockhash expires.
+New launch choices: fair start (SOL, zero initial buy), creator launch (SOL, 0–2% initial buy), and protocol holder rewards (SOL or one of the curated quote mints). The pair catalog uses exact addresses from https://pump.fun/docs/custom-pairs, checked 2026-11-01: SOL, USDC, SPCX, QQQx, SPYx, NVDAx, GLDx. The official Pump SDK 4.3.1 resolves the live on-chain whitelist, quote token program and decimals before building. Listing in the UI does not override protocol availability or issuer eligibility.
+
+Non-SOL pairs currently require holder rewards. Pump distributes the protocol creator fees to eligible holders in the paired asset; this is permanent and subject to Pump eligibility, thresholds and distribution costs. These launches do not enter the SOL creator payout ledger. In-app trading remains SOL-only; the community trade tab links token pairs to Pump. This is an explicit limitation, not automatic SOL conversion.
+
+The developer-buy limit is **200 basis points of live total supply**, rounded down in integer base units. It limits this launch transaction only, not subsequent market holdings. The official SDK builds an exact-token `buy_v2` atomically with `create_v2`; the token output is capped and the quote cost includes 1% slippage. Simulation verifies the minted supply and the payer's token-account output. The user pays rent, network costs and the buy, and sees maximum quote cost before signing. Native SDK launches have no PumpPortal creation surcharge. Future trades through the existing PumpPortal trade endpoint retain its provider costs.
+
+Only the generated mint signs during preparation. The authenticated owner receives a partially signed transaction, signs with their Privy wallet, and submits the exact reviewed message. Recipient and pair settings cannot change after review. Successful submission is recorded before broadcasting; retries reuse identical signed bytes. No new keypair is generated during recovery.
+
+`PUMP_LOOKUP_TABLE` must identify an active on-chain table covering enough shared accounts for combined create-and-buy transactions. No lookup table was created or funded by this implementation. Oversized transactions fail before requesting a wallet signature. Zero-buy creates fit without a table for tested instruction layouts. Do not enable developer buys until a real configured table and bounded acceptance transaction have been validated.
+
+An explicit wallet approval submits the prepared transaction. Confirmed mints are verified and their community is created transactionally. Refresh/recovery checks the same signature and repairs the same community. Duplicate names are reserved against pending launches. Interrupted preparation can be retired after ten minutes because preparation never broadcasts. Prepared reviews expire with their blockhash.
 
 ## Creator earnings: verified receipt, reviewed attribution
 
@@ -46,6 +57,7 @@ For a failed or uncertain operation: record the operation ID/signature, inspect 
 
 ## Validation
 
+- `node tests/launch-flow.cjs`: actual SDK instruction tests for curated pair addresses, exact 2% output limits, partial signing, transaction size with a mocked lookup table, and simulated oversupply rejection. RPC is mocked.
 - `node tests/money-flow.cjs`: real offline Solana message/signature tests, exact-message protection, integer splits, write-before-send, same-byte retry, finality, and expiry states.
 - `node tests/account-flow.cjs`: profile privacy and account/API regressions.
 - Typecheck web, API, and database packages.

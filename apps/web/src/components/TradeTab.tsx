@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./AuthProvider";
 import { api } from "@/lib/api";
 interface Review {id:string;status:string;transaction?:string;signature?:string;error?:string;details:{side:string;amount:number;wallet:string;feeLamports:number;feeBps:number;networkFeeLamports:number;slippageBps:number;feeBasis:string;venueFees:string}}
 export function TradeTab({ca,ticker}:{ca:string;ticker:string}){
  const auth=useAuth(),qc=useQueryClient();const [side,setSide]=useState<"buy"|"sell">("buy"),[amount,setAmount]=useState("0.1"),[slippage,setSlippage]=useState("5"),[review,setReview]=useState<Review|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");const lock=useRef(false);
+ const capabilities=useQuery({queryKey:["trade-capabilities",ca],queryFn:()=>api<{pair:string;inAppTrading:boolean}>(`/v1/trade/capabilities/${ca}`,{auth:false})});
  const key=`mentions:trade:${auth.userId}:${ca}`;
  useEffect(()=>{setReview(null);const id=localStorage.getItem(key);if(id&&auth.authenticated)api<Review>(`/v1/trade/${id}`).then(setReview).catch(()=>{});},[key,auth.authenticated]);
  useEffect(()=>{if(review?.status!=="submitted")return;const t=setInterval(()=>api<Review>(`/v1/trade/${review.id}`).then(r=>{setReview(r);if(r.status==="confirmed")qc.invalidateQueries({queryKey:["wallet"]});}).catch(()=>setError("Could not refresh confirmation. Your transaction may still complete.")),4000);return()=>clearInterval(t);},[review?.id,review?.status,qc]);
@@ -13,6 +14,7 @@ export function TradeTab({ca,ticker}:{ca:string;ticker:string}){
  async function build(){await run(async()=>{const r=await api<Review>("/v1/trade/build",{method:"POST",body:{ca,side,amount:Number(amount),denominatedInSol:side==="buy",slippageBps:Math.round(Number(slippage)*100),wallet:auth.walletAddress}});setReview(r);localStorage.setItem(key,r.id);});}
  async function confirm(){await run(async()=>{if(!review?.transaction)return;const signed=await auth.signTransaction(review.transaction);setReview({...review,status:"submitted"});const r=await api<Review>(`/v1/trade/${review.id}/submit`,{method:"POST",body:{signedTransaction:signed}});setReview(r);});}
  const pending=review?.status==="submitted"||review?.status==="needs_review";
+ if(capabilities.data&&!capabilities.data.inAppTrading)return <div className="space-y-3 p-5"><h3 className="text-sm font-semibold">{capabilities.data.pair} pair</h3><p className="text-sm text-muted">This token trades in its pair asset. In-app trading for token pairs is not available yet.</p><a className="text-sm text-volt" href={`https://pump.fun/coin/${ca}`} target="_blank" rel="noreferrer">Trade on Pump ↗</a></div>;
  return <div className="mx-auto max-w-md space-y-4 p-5"><h2 className="text-lg font-semibold">Trade ${ticker}</h2><p className="text-xs text-muted">Using your Mentions wallet · Solana mainnet</p>
  {!auth.authenticated?<button onClick={auth.login} className="text-volt">Sign in to trade</button>:!auth.walletAddress?<button onClick={()=>run(auth.createWallet)} disabled={busy} className="text-volt">Create your wallet</button>:<>
  <p className="break-all rounded-lg bg-surface p-3 font-mono text-xs">{auth.walletAddress}</p>

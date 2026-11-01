@@ -38,7 +38,7 @@ export async function ownOperation(id:string,userId:string,kind?:string){
   const [op]=await db.select().from(moneyOperations).where(and(eq(moneyOperations.id,id),eq(moneyOperations.userId,userId)));
   if(!op || (kind && op.kind!==kind))throw new HTTPException(404,{message:"Operation not found"});return op;
 }
-export function publicOperation(op:Operation){ return {id:op.id,kind:op.kind,status:op.status,details:JSON.parse(op.details),signature:op.signature,error:op.error,createdAt:op.createdAt,transaction:op.status==="prepared"&&op.kind==="trade"?op.transaction:undefined}; }
+export function publicOperation(op:Operation){ return {id:op.id,kind:op.kind,status:op.status,details:JSON.parse(op.details),signature:op.signature,error:op.error,createdAt:op.createdAt,transaction:op.status==="prepared"&&(op.kind==="trade"||(op.kind==="launch"&&JSON.parse(op.details).funding==="creator"))?op.transaction:undefined}; }
 export async function refreshOperation(op:Operation){
   if(op.status==="prepared" && op.lastValidBlockHeight && await connection.getBlockHeight("finalized")>op.lastValidBlockHeight){
     return db.transaction(async t=>{
@@ -63,10 +63,11 @@ export async function broadcast(op:Operation,signed?:string){
   if(op.status==="prepared"){
     if(!op.transaction)throw new Error("Missing transaction");
     if(op.lastValidBlockHeight && await connection.getBlockHeight("confirmed")>op.lastValidBlockHeight)throw new HTTPException(409,{message:"Review expired. Build a new review before signing."});
+    if(op.kind==="launch" && !env.LAUNCH_ENABLED)throw new HTTPException(503,{message:"Launch execution is not open yet"});
     const bytes=signed??(op.signedTransactionEnc?decrypt(op.signedTransactionEnc):"");
     const tx=verifySigned(op.transaction,bytes);
     const saved=await db.transaction(async t=>{
-      if(op.kind==="launch"){
+      if(op.kind==="launch" && JSON.parse(op.details).funding!=="creator"){
         await t.execute(sql`SELECT pg_advisory_xact_lock(721931)`);
         const [current]=await t.select().from(moneyOperations).where(eq(moneyOperations.id,op.id));
         if(current.status!=="prepared")return current;
