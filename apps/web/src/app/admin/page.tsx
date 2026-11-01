@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CreatorPayoutAdmin } from "@/components/CreatorPayoutAdmin";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
@@ -18,6 +19,7 @@ export default function AdminPage() {
         <p className="px-5 py-10 text-sm text-muted">Admins only.</p>
       ) : (
         <div className="space-y-6 px-5 py-6">
+          <CreatorPayoutAdmin />
           <Bans />
           <Staff />
           <Announcement />

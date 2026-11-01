@@ -64,6 +64,7 @@ function load(file, deps, globals = {}) {
   let viewer = {id:'viewer',username:'maya',displayName:'Maya',pfpUrl:'https://example.test/avatar.png'};
   let profileState = {data:{...data,createdAt:'2026-11-01T00:00:00Z'},isPending:false,isError:false};
   const frontendDeps = {
+    '@/components/CreatorEarnings':{CreatorEarnings:()=>null},
     'react':React,'react/jsx-runtime':webRequire('react/jsx-runtime'),
     'next/link':{default:props=>React.createElement('a',props,props.children)},
     'next/navigation':{useParams:()=>({username:'maya'})},

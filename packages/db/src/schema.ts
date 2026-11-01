@@ -10,7 +10,7 @@
 
 import {
   pgTable, uuid, text, integer, bigint, boolean, timestamp,
-  uniqueIndex, index, primaryKey, pgEnum,
+  uniqueIndex, index, primaryKey, pgEnum, check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -277,3 +277,48 @@ export const postFlags = pgTable("post_flags", {
   resolved: boolean("resolved").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Durable transaction intents. Encrypted signed bytes are never returned by the API.
+export const moneyOperations = pgTable("money_operations", {
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  kind: text("kind").notNull(),
+  status: text("status").notNull().default("preparing"),
+  requestHash: text("request_hash").notNull(),
+  details: text("details").notNull().default("{}"),
+  transaction: text("transaction"),
+  signedTransactionEnc: text("signed_transaction_enc"),
+  signature: text("signature").unique(),
+  lastValidBlockHeight: integer("last_valid_block_height"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("money_operations_user").on(t.userId, t.createdAt)]);
+
+export const launchImages = pgTable("launch_images", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  mime: text("mime").notNull(),
+  data: text("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// One reviewed allocation per finalized collection receipt; amounts are integer lamports.
+export const creatorReceipts = pgTable("creator_receipts", {
+  signature: text("signature").primaryKey(),
+  amountLamports: bigint("amount_lamports", { mode: "bigint" }).notNull(),
+  approvedBy: uuid("approved_by").notNull().references(() => users.id),
+  note: text("note").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("creator_receipts_positive", sql`${t.amountLamports} > 0`)]);
+export const creatorEarnings = pgTable("creator_earnings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  receipt: text("receipt").notNull().references(() => creatorReceipts.signature),
+  communityId: uuid("community_id").notNull().references(() => communities.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  wallet: text("wallet").notNull(),
+  grossLamports: bigint("gross_lamports", { mode: "bigint" }).notNull(),
+  creatorLamports: bigint("creator_lamports", { mode: "bigint" }).notNull(),
+  payoutId: uuid("payout_id").references(() => moneyOperations.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [uniqueIndex("creator_receipt_community").on(t.receipt,t.communityId), check("creator_earnings_positive", sql`${t.grossLamports} > 0`), check("creator_earnings_share", sql`${t.creatorLamports} >= 0 AND ${t.creatorLamports} <= ${t.grossLamports}`)]);

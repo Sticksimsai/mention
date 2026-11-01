@@ -71,14 +71,14 @@ export const launchTokenSchema = z.object({
   /** launcher's wallet — receives their share of creator fees */
   creatorWallet: z.string().min(32).max(44),
   /** initial dev-buy in SOL (optional) */
-  devBuySol: z.number().min(0).max(100).default(0),
+  devBuySol: z.literal(0).default(0),
 });
 
 export const tradeSchema = z.object({
   ca: z.string().min(32).max(44),
   side: z.enum(["buy", "sell"]),
   /** buy: SOL amount in; sell: token amount (or "100%" handled client-side) */
-  amount: z.number().positive(),
+  amount: z.number().finite().positive().max(1_000_000_000),
   denominatedInSol: z.boolean(),
   slippageBps: z.number().int().min(10).max(5000).default(500),
   /** trader wallet pubkey — tx is built server-side, signed client-side */

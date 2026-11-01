@@ -1,109 +1,28 @@
 "use client";
-
-// Launchpad: the only way a community is born. Mint on pump.fun through Mention —
-// the token, the community, the chart and the X mirroring all go live at once.
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { Shell } from "@/components/Shell";
+import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
-import { useMe } from "@/lib/hooks";
-
-export default function LaunchPage() {
-  const { authenticated, login } = useMe();
-  const router = useRouter();
-
-  return (
-    <Shell>
-      <div className="border-b hairline px-5 py-4">
-        <h1 className="font-display text-base font-medium">Launchpad</h1>
-        <p className="text-xs text-muted">
-          Mint a token, mint its community. One launch creates both — feed, chart and X mirroring included.
-        </p>
-      </div>
-
-      {!authenticated ? (
-        <div className="px-5 py-14 text-center">
-          <button onClick={login} className="rounded-2xl bg-volt px-6 py-3 font-bold text-ink hover:bg-volt-deep">
-            Sign in with X to launch
-          </button>
-        </div>
-      ) : (
-        <LaunchForm onDone={(communityId) => router.push(`/t/${communityId}`)} />
-      )}
-    </Shell>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-xs text-muted">{label}</span>
-      <div className="mt-1">{children}</div>
-    </label>
-  );
-}
-
-const inputCls = "w-full rounded-xl border hairline bg-surface px-4 py-3 text-sm outline-none transition focus:border-volt/60";
-
-function LaunchForm({ onDone }: { onDone: (communityId: string) => void }) {
-  const [f, setF] = useState({
-    name: "", ticker: "", description: "", imageUrl: "",
-    website: "", telegram: "", creatorWallet: "", devBuySol: "0",
-  });
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setF((p) => ({ ...p, [k]: e.target.value }));
-
-  const launch = useMutation({
-    mutationFn: () => api<{ ca: string; communityId: string; pumpUrl: string }>("/v1/launch", {
-      method: "POST",
-      body: {
-        name: f.name, ticker: f.ticker, description: f.description,
-        imageUrl: f.imageUrl,
-        website: f.website || null, telegram: f.telegram || null,
-        creatorWallet: f.creatorWallet,
-        devBuySol: Number(f.devBuySol) || 0,
-      },
-    }),
-    onSuccess: (d) => onDone(d.communityId),
-  });
-
-  return (
-    <div className="space-y-4 px-5 py-6">
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Token name"><input className={inputCls} value={f.name} onChange={set("name")} placeholder="Night Market" /></Field>
-        <Field label="Ticker"><input className={inputCls} value={f.ticker} onChange={set("ticker")} placeholder="NIGHT" /></Field>
-      </div>
-      <Field label="Description">
-        <textarea className={inputCls} rows={3} value={f.description} onChange={set("description")} placeholder="What is this one about?" />
-      </Field>
-      <Field label="Token image URL"><input className={inputCls} value={f.imageUrl} onChange={set("imageUrl")} placeholder="https://…" /></Field>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Website (optional)"><input className={inputCls} value={f.website} onChange={set("website")} /></Field>
-        <Field label="Telegram (optional)"><input className={inputCls} value={f.telegram} onChange={set("telegram")} /></Field>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Your wallet (receives your fee share)">
-          <input className={`${inputCls} font-mono`} value={f.creatorWallet} onChange={set("creatorWallet")} placeholder="Solana address" />
-        </Field>
-        <Field label="Dev buy (SOL, optional)"><input className={inputCls} value={f.devBuySol} onChange={set("devBuySol")} inputMode="decimal" /></Field>
-      </div>
-
-      <div className="rounded-2xl border border-volt/25 bg-volt/5 p-4 text-xs leading-relaxed text-muted">
-        <span className="text-volt">How launches work:</span> your token goes live on pump.fun
-        instantly. Creator fees on all trading volume are collected by the platform and split
-        with you — your share pays out to the wallet above. Your community opens the moment the
-        mint lands, with the chart, CA and X mirroring already wired in.
-      </div>
-
-      <button
-        onClick={() => launch.mutate()}
-        disabled={launch.isPending || !f.name || !f.ticker || !f.imageUrl || !f.creatorWallet}
-        className="w-full rounded-2xl bg-volt py-3.5 font-bold text-ink shadow-[0_0_24px_rgba(155,240,0,0.2)] transition hover:bg-volt-deep disabled:opacity-40 disabled:shadow-none"
-      >
-        {launch.isPending ? "Launching…" : "Launch token + community"}
-      </button>
-      {launch.isError && <p className="text-xs text-down">{(launch.error as Error).message}</p>}
-    </div>
-  );
+interface Launch {id:string;status:string;signature?:string;error?:string;details:{name:string;ticker:string;description:string;creatorWallet:string;imageUrl:string;ca:string;estimatedCostLamports?:number;platformFeeShareBps:number;communityId?:string}}
+export default function LaunchPage(){
+ const auth=useAuth();const [f,setF]=useState({name:"",ticker:"",description:"",website:"",telegram:"",creatorWallet:""}),[image,setImage]=useState<{id:string;url:string}|null>(null),[op,setOp]=useState<Launch|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");const lock=useRef(false);
+ const config=useQuery({queryKey:["launch-config",auth.userId],enabled:auth.authenticated,queryFn:()=>api<{enabled:boolean;platformFeeShareBps:number}>("/v1/launch/config")});
+ const recent=useQuery({queryKey:["launches",auth.userId],enabled:auth.authenticated,queryFn:()=>api<Launch[]>("/v1/launch/recent")});
+ const storageKey=`mentions:launch:${auth.userId}`;
+ useEffect(()=>{setOp(null);const id=localStorage.getItem(storageKey);if(id&&auth.authenticated)api<Launch>(`/v1/launch/${id}`).then(setOp).catch(()=>setError("Could not load your previous launch. Check recent launches before starting another."));},[storageKey,auth.authenticated]);
+ useEffect(()=>{if(!op||!["preparing","submitted","confirmed"].includes(op.status))return;const t=setInterval(()=>api<Launch>(`/v1/launch/${op.id}`).then(setOp).catch(()=>setError("Launch confirmation is temporarily unavailable. Do not submit a second launch.")),4000);return()=>clearInterval(t);},[op?.id,op?.status]);
+ async function run(fn:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(true);setError("");try{await fn();}catch(e){setError(e instanceof Error?e.message:"Launch did not complete");}finally{lock.current=false;setBusy(false);}}
+ async function upload(file?:File){if(!file)return;await run(async()=>{if(file.size>2_000_000)throw new Error("Choose an image smaller than 2 MB");const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(file);});setImage(await api<{id:string;url:string}>("/v1/launch/images",{method:"POST",body:{data}}));});}
+ const field=(key:keyof typeof f,label:string)=> <label className="block text-xs text-muted" key={key}>{label}<input value={f[key]} onChange={e=>setF({...f,[key]:e.target.value})} className="mt-2 w-full rounded-xl border hairline bg-surface p-3 text-sm text-fg"/></label>;
+ return <Shell><header className="border-b hairline p-5"><h1 className="font-display text-base">Launchpad</h1><p className="mt-3 text-sm text-muted">Your token and its community, created together.</p></header><div className="space-y-5 p-5">
+ {!auth.authenticated?<button onClick={auth.login} className="text-volt">Sign in with X to launch</button>:<>
+ {config.isError&&<p role="alert">Launch configuration could not load. <button onClick={()=>config.refetch()} className="text-volt">Retry</button></p>}
+ {config.data&&!config.data.enabled&&<p className="rounded-xl border hairline bg-surface p-4 text-sm text-muted">Launches are not open yet. Platform funding and spending limits need to be configured. You can prepare your details below.</p>}
+ {!op?<><div className="grid grid-cols-2 gap-4">{field("name","Token name")}{field("ticker","Ticker")}</div><label className="block text-xs text-muted">Description<textarea maxLength={2000} value={f.description} onChange={e=>setF({...f,description:e.target.value})} rows={4} className="mt-2 w-full rounded-xl border hairline bg-surface p-3 text-sm text-fg"/></label><label className="block text-sm">Token image · PNG, JPEG, WebP · max 2 MB<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>upload(e.target.files?.[0])} className="mt-2 block w-full text-xs"/></label>{image&&<img src={image.url} alt="Token preview" className="h-24 w-24 rounded-xl object-cover"/>}{field("website","Website (optional)")}{field("telegram","Telegram URL (optional)")}{field("creatorWallet","Creator fee recipient (Solana address)")}{auth.walletAddress&&<button onClick={()=>setF({...f,creatorWallet:auth.walletAddress!})} className="text-xs text-volt">Use my Mentions wallet</button>}
+ <div className="rounded-xl border hairline p-4 text-sm"><strong>{f.name||"Your token"} · ${f.ticker||"TICKER"}</strong><p className="mt-2 whitespace-pre-wrap text-muted">{f.description||"Your description appears here."}</p><p className="mt-3 text-xs text-muted">No platform-funded initial buy. Creator share: {config.data?(10000-config.data.platformFeeShareBps)/100:"—"}%. Earnings appear after receipt reconciliation and allocation; payouts are not instant.</p></div>
+ <button disabled={busy||!config.data?.enabled||!image||!f.name||!f.ticker||!f.creatorWallet} onClick={()=>run(async()=>{const id=crypto.randomUUID();localStorage.setItem(storageKey,id);setOp({id,status:"preparing",details:{...f,imageUrl:image!.url,ca:"Pending preparation",platformFeeShareBps:config.data!.platformFeeShareBps}});const prepared=await api<Launch>("/v1/launch/prepare",{method:"POST",body:{...f,id,imageId:image!.id,website:f.website||null,telegram:f.telegram||null,devBuySol:0}});setOp(prepared);recent.refetch();})} className="w-full rounded-xl bg-volt p-3 font-semibold text-ink disabled:opacity-40">{busy?"Preparing review…":"Review launch"}</button></>:<div className="space-y-4 rounded-xl border hairline p-5"><h2 className="text-lg font-semibold">{op.details.name} · ${op.details.ticker}</h2><p className="text-sm capitalize">Status: {op.status.replaceAll("_"," ")}</p><p className="break-all text-xs text-muted">Mint: {op.details.ca}<br/>Fee recipient: {op.details.creatorWallet}</p>{op.details.estimatedCostLamports!==undefined&&<p className="text-sm">Estimated platform cost: {(op.details.estimatedCostLamports/1e9).toFixed(6)} SOL</p>}{op.signature&&<a href={`https://solscan.io/tx/${op.signature}`} target="_blank" rel="noreferrer" className="block text-volt">View transaction ↗</a>}{op.error&&<p className="text-sm text-down">{op.error}</p>}{op.status==="prepared"&&<button disabled={busy||!config.data?.enabled} onClick={()=>run(async()=>{setOp(await api<Launch>(`/v1/launch/${op.id}/submit`,{method:"POST"}));})} className="w-full rounded-xl bg-volt p-3 font-semibold text-ink disabled:opacity-50">{busy?"Submitting…":"Confirm launch token + community"}</button>}{op.status==="complete"&&<Link href={`/t/${op.details.communityId}`} className="block text-volt">Open your community →</Link>}<button disabled={busy} onClick={()=>run(async()=>setOp(await api<Launch>(`/v1/launch/${op.id}`)))} className="text-sm text-volt">Refresh / recover community</button>{["complete","failed","expired"].includes(op.status)&&<button onClick={()=>{setOp(null);localStorage.removeItem(storageKey);}} className="ml-4 text-sm text-muted">New launch</button>}<p className="text-xs text-muted">If confirmation is delayed, return to this launch. Recovery checks the same mint and transaction.</p></div>}
+ {!!recent.data?.length&&<section className="border-t hairline pt-5"><h2 className="mb-3 font-semibold">Recent launches</h2>{recent.data.map(r=><button key={r.id} onClick={()=>{setOp(r);localStorage.setItem(storageKey,r.id);}} className="mb-2 flex w-full justify-between gap-3 rounded-lg bg-surface p-3 text-left text-xs"><span>{r.details.name}</span><span className="text-muted">{r.status}</span></button>)}</section>}
+ </>}{error&&<p role="alert" className="text-sm text-down">{error}</p>}</div></Shell>;
 }

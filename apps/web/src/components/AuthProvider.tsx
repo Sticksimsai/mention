@@ -2,7 +2,7 @@
 
 import { Component, createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { PrivyProvider, usePrivy, useLoginWithOAuth } from "@privy-io/react-auth";
-import { useCreateWallet, useFundWallet, useExportWallet } from "@privy-io/react-auth/solana";
+import { useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
 import { registerTokenGetter } from "@/lib/api";
 import { Modal } from "./Modal";
 
@@ -16,12 +16,13 @@ export interface AuthState {
   createWallet: () => Promise<void>;
   fundWallet: () => Promise<void>;
   exportWallet: () => Promise<void>;
+  signTransaction: (transaction: string) => Promise<string>;
 }
 const unavailable = async () => { throw new Error("Wallet services are unavailable. Please try again shortly."); };
 const stub: AuthState = {
   ready: true, authenticated: false, available: false, userId: null, walletAddress: null,
   login: () => {}, logout: async () => {}, getAccessToken: async () => null,
-  createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable,
+  createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable, signTransaction: unavailable,
 };
 const AuthCtx = createContext<AuthState>(stub);
 export const useAuth = () => useContext(AuthCtx);
@@ -47,6 +48,8 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const { createWallet } = useCreateWallet();
   const { fundWallet } = useFundWallet();
   const { exportWallet } = useExportWallet();
+  const { wallets } = useConnectedStandardWallets();
+  const { signTransaction } = useStandardSignTransaction();
   const wallet = user?.linkedAccounts.find((a) => a.type === "wallet" && a.chainType === "solana" && a.walletClientType === "privy");
   const walletAddress = wallet?.type === "wallet" ? wallet.address : null;
   const tokenGetter = useCallback(async () => authenticated ? getAccessToken() : null, [authenticated, getAccessToken]);
@@ -64,6 +67,12 @@ function PrivyBridge({ children }: { children: ReactNode }) {
     fundWallet: async () => {
       if (!walletAddress) throw new Error("Create your wallet first.");
       await fundWallet(walletAddress, { cluster: { name: "mainnet-beta" }, uiConfig: { receiveFundsTitle: "Add funds to Mentions", receiveFundsSubtitle: "Receive funds in your Solana wallet." } });
+    },
+    signTransaction: async (transaction) => {
+      const wallet = wallets.find(w => w.address === walletAddress);
+      if (!wallet) throw new Error("Your embedded wallet is still connecting. Please retry.");
+      const { signedTransaction } = await signTransaction({ transaction: Uint8Array.from(atob(transaction), c => c.charCodeAt(0)), wallet, chain: "solana:mainnet" });
+      return btoa(String.fromCharCode(...signedTransaction));
     },
     exportWallet: async () => { if (walletAddress) await exportWallet({ address: walletAddress }); },
   }}>

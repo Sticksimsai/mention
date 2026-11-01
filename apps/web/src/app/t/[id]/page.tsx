@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CommunityView, TokenStats } from "@mention/shared";
+import { TradeTab } from "@/components/TradeTab";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
 import { Composer } from "@/components/Composer";
@@ -144,81 +145,5 @@ function ChartTab({ ca }: { ca: string }) {
       src={`https://dexscreener.com/solana/${data.pairAddress}?embed=1&theme=dark&trades=0&info=0`}
       className="h-[560px] w-full border-0"
     />
-  );
-}
-
-function TradeTab({ ca, ticker }: { ca: string; ticker: string }) {
-  const { authenticated, login } = useMe();
-  const [side, setSide] = useState<"buy" | "sell">("buy");
-  const [amount, setAmount] = useState("0.1");
-  const [status, setStatus] = useState<string | null>(null);
-
-  async function trade() {
-    if (!authenticated) return login();
-    const provider = (window as any).solana;
-    if (!provider?.isPhantom && !provider) {
-      setStatus("No Solana wallet found — install Phantom.");
-      return;
-    }
-    try {
-      setStatus("Connecting wallet…");
-      await provider.connect();
-      const wallet = provider.publicKey.toString();
-      setStatus("Building transaction…");
-      const { tx, feeLamports } = await api<{ tx: string; feeLamports: number }>("/v1/trade/build", {
-        method: "POST",
-        body: {
-          ca, side, amount: Number(amount),
-          denominatedInSol: side === "buy",
-          slippageBps: 500, wallet,
-        },
-      });
-      setStatus("Awaiting signature…");
-      const raw = Uint8Array.from(atob(tx), (ch) => ch.charCodeAt(0));
-      const { signature } = await provider.signAndSendTransaction({ serialize: () => raw, serializeMessage: () => raw } as any)
-        .catch(async () => {
-          // Phantom's modern API takes a VersionedTransaction; fall back to request()
-          return provider.request({ method: "signAndSendTransaction", params: { message: tx } });
-        });
-      setStatus(`Sent ✓ ${String(signature).slice(0, 12)}… (platform fee ${(feeLamports / 1e9).toFixed(5)} SOL)`);
-    } catch (err: any) {
-      setStatus(err?.message ?? "Trade failed");
-    }
-  }
-
-  return (
-    <div className="mx-auto max-w-sm px-5 py-8">
-      <div className="rounded-2xl bg-surface p-5">
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          <button onClick={() => setSide("buy")}
-            className={`rounded-xl py-2 text-sm font-semibold ${side === "buy" ? "bg-up/15 text-up" : "bg-raised text-muted"}`}>
-            Buy
-          </button>
-          <button onClick={() => setSide("sell")}
-            className={`rounded-xl py-2 text-sm font-semibold ${side === "sell" ? "bg-down/15 text-down" : "bg-raised text-muted"}`}>
-            Sell
-          </button>
-        </div>
-        <label className="text-xs text-muted">
-          {side === "buy" ? "Amount (SOL)" : `Amount (${ticker})`}
-        </label>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          className="mt-1 w-full rounded-xl bg-raised px-4 py-3 font-mono outline-none focus:ring-1 focus:ring-volt"
-        />
-        <button
-          onClick={trade}
-          className="mt-4 w-full rounded-xl bg-volt py-3 font-semibold text-ink hover:bg-volt-deep"
-        >
-          {side === "buy" ? `Buy $${ticker}` : `Sell $${ticker}`}
-        </button>
-        <p className="mt-3 text-center text-xs text-muted">
-          Signed in your wallet. Includes a 1% platform fee.
-        </p>
-        {status && <p className="mt-2 text-center text-xs text-fg">{status}</p>}
-      </div>
-    </div>
   );
 }

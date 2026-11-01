@@ -23,5 +23,12 @@ export const env = {
   PLATFORM_FEE_WALLET: process.env.PLATFORM_FEE_WALLET ?? "",
   PLATFORM_TRADE_FEE_BPS: Number(process.env.PLATFORM_TRADE_FEE_BPS ?? 100),
   PLATFORM_CREATOR_FEE_SHARE_BPS: Number(process.env.PLATFORM_CREATOR_FEE_SHARE_BPS ?? 5000),
+  LAUNCH_ENABLED: process.env.LAUNCH_ENABLED === "true",
+  LAUNCH_MAX_COST_SOL: Number(process.env.LAUNCH_MAX_COST_SOL ?? 0),
+  LAUNCH_DAILY_BUDGET_SOL: Number(process.env.LAUNCH_DAILY_BUDGET_SOL ?? 0),
+  PAYOUTS_ENABLED: process.env.PAYOUTS_ENABLED === "true",
+  PAYOUT_MAX_SOL: Number(process.env.PAYOUT_MAX_SOL ?? 0),
+  PAYOUT_DAILY_BUDGET_SOL: Number(process.env.PAYOUT_DAILY_BUDGET_SOL ?? 0),
+  PUBLIC_ASSET_ORIGIN: process.env.PUBLIC_ASSET_ORIGIN ?? "https://mention-api.onrender.com",
   PLATFORM_WALLET_SECRET: process.env.PLATFORM_WALLET_SECRET ?? "",
 };

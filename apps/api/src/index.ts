@@ -18,6 +18,8 @@ import { tradeRoute } from "./routes/trade.js";
 import { adminRoute } from "./routes/admin.js";
 import { searchRoute } from "./routes/search.js";
 
+import { earningsRoute, processApprovedPayouts } from "./routes/earnings.js";
+
 const app = new Hono();
 
 app.use("*", logger());
@@ -58,6 +60,7 @@ app.route("/v1/users", usersRoute);
 app.route("/v1/x", xRoute);
 app.route("/v1/launch", launchRoute);
 app.route("/v1/trade", tradeRoute);
+app.route("/v1/earnings", earningsRoute);
 app.route("/v1/admin", adminRoute);
 app.route("/v1/search", searchRoute);
 
@@ -70,3 +73,6 @@ app.onError((err, c) => {
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   console.log(`mention api listening on :${info.port}`);
 });
+
+// Opt-in executor: approval records and explicit budgets are required before any payout.
+if (env.PAYOUTS_ENABLED) setInterval(() => processApprovedPayouts().catch(() => console.error("Payout reconciliation failed")), 15_000).unref();

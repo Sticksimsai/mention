@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
+import { CreatorEarnings } from "@/components/CreatorEarnings";
 import { WalletCard } from "@/components/WalletCard";
 import { Modal } from "@/components/Modal";
 import { api, ApiError } from "@/lib/api";
@@ -82,7 +83,7 @@ export default function ProfilePage() {
       </Link>)}</div> : <div className="py-10 text-center"><p className="text-sm text-muted">No communities joined yet.</p><Link href="/explore" className="mt-3 inline-block text-sm text-volt">Explore communities ↗</Link></div>}
       {p.tribes > (p.joinedCommunities?.length ?? 0) && p.joinedCommunities && <p className="mt-4 text-xs text-muted">Showing the {p.joinedCommunities.length} most recently joined communities.</p>}
     </div>}
-    {activeTab === "wallet" && own && <div className="p-5 sm:p-6"><WalletCard showActivity /></div>}
+    {activeTab === "wallet" && own && <div className="p-5 sm:p-6"><WalletCard showActivity /><CreatorEarnings /></div>}
     <Modal open={editing && own} onClose={() => setEditing(false)} title="Edit your profile">
       <form className="p-7 pt-14" onSubmit={e => { e.preventDefault(); save.mutate(); }}><h2 className="text-xl font-semibold">Edit profile</h2><p className="mt-2 text-xs text-muted">Your name, username and photo sync from X.</p><label htmlFor="profile-bio" className="mb-2 mt-6 block text-sm">Bio</label><textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={5} className="w-full resize-y rounded-xl border hairline bg-ink p-3 text-sm focus:border-volt focus:outline-none" /><p className="mt-1 text-right text-xs text-muted">{bio.length}/500</p>{save.isError && <p role="alert" className="mt-3 text-sm text-down">{save.error.message}</p>}<button disabled={save.isPending} className="mt-5 w-full rounded-xl bg-volt px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50">{save.isPending ? "Saving…" : "Save changes"}</button></form>
     </Modal>
