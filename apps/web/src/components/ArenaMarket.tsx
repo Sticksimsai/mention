@@ -53,7 +53,7 @@ export function MarketDetail({market:m,saved,onSave}:{market:ArenaMarket;saved:b
 export function OddsChart({market:m,compact=false}:{market:ArenaMarket;compact?:boolean}) {
  return <div className={compact?"arena-mini-chart":"arena-odds-chart"}>
   {!compact&&<div className="arena-chart-legend">{m.coins.map((coin,i)=><span key={coin.ticker}><i className={`arena-dot-${i}`}/>${coin.ticker} <strong>—</strong></span>)}<span className="arena-odds-label">Win probability</span></div>}
-  <div className="arena-chart-stage"><div className="arena-chart-empty"><strong>Odds unavailable</strong>{!compact&&<span>Live pricing is not connected yet.</span>}</div></div>
+  <div className="arena-chart-stage" style={{ minHeight: compact ? 70 : 220 }}><div className="arena-chart-empty"><strong>Odds unavailable</strong>{!compact&&<span>Live pricing is not connected yet.</span>}</div></div>
   {compact&&<div className="arena-mini-label"><span>Win probability</span><span>{roundLabel(m.duration)}</span></div>}
  </div>;
 }
