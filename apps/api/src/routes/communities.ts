@@ -231,5 +231,5 @@ communitiesRoute.post('/:id/stickers',requireAuth,rateLimit('sticker-create',5,3
   if(!member)throw new HTTPException(403,{message:'Join this community to create stickers'});
  }
  const [sticker]=await db.insert(communityStickers).values({...c.req.valid('json'),communityId:comm.id,createdBy:u.id}).returning();
- return c.json({...sticker,ticker:comm.ticker},201);
+ return c.json({...sticker,ticker:comm.ticker,pfpUrl:comm.pfpUrl},201);
 });

@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+import { launchImages } from "@mention/db";
 import { stickerPack } from "../lib/stickers.js";
 // Post mutations for both native ("n:<uuid>") and mirrored ("x:<uuid>") posts.
 // Counts update inside the same transaction as the like/repost row — v1 raced.
@@ -85,6 +87,13 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   }
 
   const sticker=body.stickerId && comm ? (await stickerPack(comm)).find(s=>s.id===body.stickerId) : null;
+  let stickerMediaUrl:string|undefined;
+  if(body.stickerMediaId){
+    const [asset]=await db.select().from(launchImages).where(and(eq(launchImages.id,body.stickerMediaId),eq(launchImages.userId,u.id)));
+    if(!sticker||!asset||asset.mime!=="image/gif")throw new HTTPException(400,{message:"Choose a community GIF sticker"});
+    const bytes=Buffer.from(asset.data,"base64");if(bytes.length<10||bytes.readUInt16LE(6)!==500||bytes.readUInt16LE(8)!==500)throw new HTTPException(400,{message:"Stickers must be 500 × 500 GIFs"});
+    stickerMediaUrl=`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${asset.id}`;
+  }
   if(body.stickerId&&!sticker)throw new HTTPException(400,{message:"Choose a sticker from this community"});
   if(body.crosspostToX&&(body.quotePostId||body.mediaUrl||sticker))throw new HTTPException(400,{message:"Quotes and attachments are posted on Mentions only for now"});
 
@@ -102,7 +111,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
     content: body.content,
     mediaUrl: body.mediaUrl ?? null,
     quotePostId: body.quotePostId ?? null,
-    stickerData: sticker ? JSON.stringify(sticker) : null,
+    stickerData: sticker ? JSON.stringify({...sticker,mediaUrl:stickerMediaUrl}) : null,
     crosspostStatus,
   }).returning();
 

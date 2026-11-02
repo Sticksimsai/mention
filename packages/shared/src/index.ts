@@ -51,13 +51,14 @@ export const OFFICIAL_ACCOUNT_ID = "b4104538-3fc4-4e4c-b877-47590f603528";
 
 export const createPostSchema = z.object({
   communityId: z.string().uuid().optional(),
-  content: z.string().min(1).max(4000),
+  content: z.string().max(4000).default(""),
   mediaUrl: z.string().url().refine(u => u.startsWith("https://"), "Use an HTTPS media URL").optional().nullable(),
   quotePostId: z.string().regex(/^[nx]:[0-9a-f-]{36}$/i).optional(),
   stickerId: z.string().max(100).optional(),
+  stickerMediaId: z.string().uuid().optional(),
   /** mirror this post to the author's X account */
   crosspostToX: z.boolean().default(false),
-});
+}).refine(p=>Boolean(p.content.trim()||p.mediaUrl||p.stickerId||p.quotePostId), {message:"Add text, a GIF, or a sticker"});
 
 export const createReplySchema = z.object({
   content: z.string().min(1).max(2000),
@@ -252,11 +253,17 @@ export const stickerSchema = z.object({
   glyph: z.enum(["spark", "diamond", "rocket", "heart", "bolt", "flag"]),
   color: z.enum(["#a3ed00", "#a78bfa", "#38bdf8", "#fb7185", "#fbbf24"]),
 });
-export interface StickerView { id: string; communityId: string; ticker: string; label: string; glyph: string; color: string }
-export function starterStickers(c: {id:string;ticker:string}): StickerView[] {
+export interface StickerView { mediaUrl?:string; pfpUrl?:string; id: string; communityId: string; ticker: string; label: string; glyph: string; color: string }
+export function starterStickers(c: {id:string;ticker:string;pfpUrl?:string}): StickerView[] {
   const labels=["gm", "still here", "building", "community first", "let’s go", "we’re early"];
   const glyphs=["spark", "diamond", "rocket", "heart", "bolt", "flag"];
   const colors=["#a3ed00", "#a78bfa", "#38bdf8", "#fb7185", "#fbbf24"];
   const seed=Array.from(c.id).reduce((n,ch)=>n+ch.charCodeAt(0),0);
-  return labels.map((label,i)=>({id:`preset:${i}`,communityId:c.id,ticker:c.ticker,label,glyph:glyphs[i],color:colors[(seed+i)%colors.length]}));
+  return labels.map((label,i)=>({id:`preset:${i}`,communityId:c.id,ticker:c.ticker,pfpUrl:c.pfpUrl,label,glyph:glyphs[i],color:colors[(seed+i)%colors.length]}));
+}
+
+export interface MarketChartView {
+ candles:{time:number;open:number;high:number;low:number;close:number;volume:number}[];
+ trades:{id:string;signature:string;maker:string;side:'buy'|'sell';amount:number|null;usd:number|null;price:number|null;time:string}[];
+ holders:number|null;holdersUpdatedAt:string|null;pairAddress:string|null;interval:string;updatedAt:string;errors:string[];
 }

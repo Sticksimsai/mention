@@ -13,7 +13,7 @@ import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js"
 import { address, connection, hash, platformKeypair, ownOperation, publicOperation, refreshOperation, broadcast, type Operation } from "../lib/money.js";
 
 export const launchRoute=new Hono();
-const input=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(32),ticker:z.string().regex(/^[A-Za-z0-9]{1,12}$/),description:z.string().max(2000),imageId:z.string().uuid(),fundingWallet:z.string().min(32).max(44),creatorWallet:z.string().min(32).max(44),website:z.string().url().nullable().optional(),telegram:z.string().url().nullable().optional(),devBuySol:z.literal(0).default(0)}).and(launchOptionsSchema);
+const input=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(32),ticker:z.string().regex(/^[A-Za-z0-9]{1,12}$/),description:z.string().max(2000),imageId:z.string().uuid(),bannerId:z.string().uuid().optional(),fundingWallet:z.string().min(32).max(44),creatorWallet:z.string().min(32).max(44),website:z.string().url().nullable().optional(),telegram:z.string().url().nullable().optional(),devBuySol:z.literal(0).default(0)}).and(launchOptionsSchema);
 launchRoute.get("/images/:id",async c=>{
  const id=z.string().uuid().safeParse(c.req.param("id"));if(!id.success)throw new HTTPException(404);
  const [image]=await db.select().from(launchImages).where(eq(launchImages.id,id.data));if(!image)throw new HTTPException(404);
@@ -38,9 +38,11 @@ launchRoute.post("/prepare",rateLimit("launch",2,3600),zValidator("json",input),
  const digest=hash(body);const [existing]=await db.select().from(moneyOperations).where(eq(moneyOperations.id,body.id));
  if(existing){if(existing.userId!==user.id||existing.kind!=="launch"||existing.requestHash!==digest)throw new HTTPException(409,{message:"Launch ID already used for different details"});return c.json(publicOperation(existing));}
  const [image]=await db.select().from(launchImages).where(and(eq(launchImages.id,body.imageId),eq(launchImages.userId,user.id)));if(!image)throw new HTTPException(400,{message:"Upload your token image first"});
+ const [banner]=body.bannerId?await db.select().from(launchImages).where(and(eq(launchImages.id,body.bannerId),eq(launchImages.userId,user.id))):[];
+ if(body.bannerId&&!banner)throw new HTTPException(400,{message:"Upload your community banner first"});
  const mint=Keypair.generate(), payer=address(body.fundingWallet);
  const creator=body.mode==="holders"?payer:platformKeypair().publicKey;
- const details={...body,ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
+ const details={...body,bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
  await db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(721931)`);
   const names=await tx.select({id:communities.id}).from(communities).where(eq(communities.name,body.name));if(names.length)throw new HTTPException(409,{message:"Community name is already taken"});
@@ -66,7 +68,7 @@ async function finish(op:Operation){
  return db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${op.id}))`);
   const [old]=await tx.select().from(communities).where(eq(communities.ca,d.ca));let community=old;
-  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
+  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
   const [done]=await tx.update(moneyOperations).set({status:"complete",details:JSON.stringify({...d,communityId:community.id}),updatedAt:new Date()}).where(eq(moneyOperations.id,op.id)).returning();return done;
  });
 }

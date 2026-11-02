@@ -1,5 +1,6 @@
 "use client";
 
+import {BannerEditor} from "@/components/BannerEditor";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ export default function LaunchPage() {
   const auth = useAuth();
   const [f, setF] = useState({ name: "", ticker: "", description: "", website: "", telegram: "", creatorWallet: "" });
   const [image, setImage] = useState<{ id: string; url: string } | null>(null);
+  const [banner,setBanner]=useState<{url:string;id?:string}>({url:""});
   const [mode, setMode] = useState<Mode>("fair");
   const [pairId, setPairId] = useState<Pair>("SOL");
   const [devBuyBps, setDevBuyBps] = useState(0);
@@ -53,7 +55,7 @@ export default function LaunchPage() {
 
   useEffect(() => {
     let active = true;
-    setOp(null); setImage(null); setError("");
+    setOp(null); setImage(null); setBanner({url:""}); setError("");
     const id = localStorage.getItem(storageKey);
     if (id && auth.authenticated) api<Launch>(`/v1/launch/${id}`).then(r => { if (active) setOp(r); }).catch(() => { if (active) setError("Could not load your previous launch. Check recent launches before starting another."); });
     return () => { active = false; };
@@ -92,7 +94,7 @@ export default function LaunchPage() {
     localStorage.setItem(storageKey, id);
     setOp({ id, status: "preparing", details });
     try {
-      setOp(await api<Launch>("/v1/launch/prepare", { method: "POST", body: { ...f, id, imageId: selectedImage.id, fundingWallet: auth.walletAddress, creatorWallet: details.creatorWallet, website: f.website || null, telegram: f.telegram || null, mode, quoteAsset: pairId, devBuyBps, devBuySol: 0 } }));
+      setOp(await api<Launch>("/v1/launch/prepare", { method: "POST", body: { ...f, id, imageId: selectedImage.id, bannerId:banner.id, fundingWallet: auth.walletAddress, creatorWallet: details.creatorWallet, website: f.website || null, telegram: f.telegram || null, mode, quoteAsset: pairId, devBuyBps, devBuySol: 0 } }));
       recent.refetch();
     } catch (e) {
       // A definite rejected request can be edited; a transport failure keeps the intent for recovery.
@@ -145,6 +147,7 @@ export default function LaunchPage() {
         <section className="launch-step space-y-4"><div className="launch-step-heading"><span>03</span><div><h2>Make it yours</h2><p>A name, an image and a reason to join.</p></div></div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{field("name", "Token name", 32)}{field("ticker", "Ticker", 12)}</div>
           <label className="block text-xs font-medium text-muted">Description<textarea maxLength={2000} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} rows={3} className={inputClass} /></label>
+          <BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>
           <div className="rounded-xl border hairline p-4"><label className="block text-sm font-medium">Token image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || !auth.authenticated} onChange={e => { const file = e.target.files?.[0]; if (file) run(async () => { await saveImage(file); }); }} className="mt-3 block w-full text-xs text-muted" /></label><p className="mt-3 text-xs text-muted">The Mentions image is preset. Upload PNG, JPEG or WebP up to 2 MB to replace it.{!auth.authenticated && " Sign in to upload."}</p>{image && <button type="button" onClick={() => setImage(null)} className="mt-2 text-xs text-volt">Use default image</button>}</div>
           <details className="text-sm"><summary className="cursor-pointer text-muted">Links & creator fee recipient</summary><div className="mt-4 space-y-4">{field("website", "Website (optional)")}{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to your Mentions wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
         </section>

@@ -1,75 +1,18 @@
 "use client";
-
-import { AttachmentPicker, emptyAttachments } from "./PostAttachments";
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useMe } from "@/lib/hooks";
-
-export function Composer({ communityId }: { communityId?: string }) {
-  const { authenticated, login, me } = useMe();
-  const [content, setContent] = useState("");
-  const [attachments,setAttachments]=useState(emptyAttachments);
-  const hasMedia=Boolean(attachments.mediaUrl||attachments.sticker);
-  const [toX, setToX] = useState(true);
-  const qc = useQueryClient();
-
-  const post = useMutation({
-    mutationFn: () =>
-      api<{ id: string; crosspostStatus: string }>("/v1/posts", {
-        method: "POST",
-        body: { communityId, content, mediaUrl:attachments.mediaUrl||null, stickerId:attachments.sticker?.id, crosspostToX: !hasMedia && toX && (me?.xWriteConnected ?? false) },
-      }),
-    onSuccess: () => {
-      setContent(""); setAttachments(emptyAttachments);
-      qc.invalidateQueries({ queryKey: ["feed"] });
-    },
-  });
-
-  if (!authenticated) {
-    return (
-      <div className="border-b hairline px-5 py-4">
-        <button onClick={login} className="text-sm text-volt hover:underline">
-          Sign in with X to post
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-b hairline px-5 py-4">
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder={communityId ? "Post to your community" : "Share an official update with everyone on Mentions"}
-        rows={2}
-        maxLength={280}
-        className="w-full resize-none bg-transparent text-[13px] outline-none placeholder:text-muted"
-      />
-      <AttachmentPicker communityId={communityId} value={attachments} onChange={setAttachments}/>
-      <div className="mt-2 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-xs text-muted">
-          <input
-            type="checkbox"
-            checked={!hasMedia && toX && (me?.xWriteConnected ?? false)}
-            disabled={hasMedia || !me?.xWriteConnected}
-            onChange={(e) => setToX(e.target.checked)}
-            className="accent-volt"
-          />
-          {hasMedia ? "Attachments post to Mentions only" : me?.xWriteConnected ? "Also post to my X" : "Connect X in settings to cross-post"}
-        </label>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-muted">{content.length}/280</span>
-          <button
-            onClick={() => post.mutate()}
-            disabled={!content.trim() || post.isPending}
-            className="rounded-full bg-volt px-4 py-1.5 text-sm font-semibold text-ink hover:bg-volt-deep disabled:opacity-40"
-          >
-            Post
-          </button>
-        </div>
-      </div>
-      {post.isError && <p className="mt-2 text-xs text-down">{(post.error as Error).message}</p>}
-    </div>
-  );
+import {AttachmentPicker,emptyAttachments} from './PostAttachments';
+import {TickerTextarea} from './TickerText';
+import {useEffect,useRef,useState} from 'react';
+import {useMutation,useQueryClient} from '@tanstack/react-query';
+import {api} from '@/lib/api';
+import {useMe} from '@/lib/hooks';
+import {XVerifiedBadge} from './XVerifiedBadge';
+export function Composer({communityId}:{communityId?:string}){
+ const {authenticated,login,me}=useMe();const [open,setOpen]=useState(false);
+ return <div className="border-b hairline px-5 py-4"><button onClick={()=>authenticated?setOpen(true):login()} className="flex w-full items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left hover:bg-raised">{me?.pfpUrl?<img src={me.pfpUrl} alt="" className="h-9 w-9 rounded-full"/>:<img src="/brand/favicon.svg" alt="" className="h-9 w-9"/>}<span className="flex-1 text-sm text-muted">{authenticated?'What’s happening?':'Sign in with X to post'}</span><span className="rounded-full bg-volt px-4 py-2 text-xs font-semibold text-ink">Post</span></button>{open&&<ComposeModal communityId={communityId} close={()=>setOpen(false)}/>}</div>;
+}
+function ComposeModal({communityId,close}:{communityId?:string;close:()=>void}){
+ const {me}=useMe();const dialog=useRef<HTMLDialogElement>(null),[content,setContent]=useState(''),[attachments,setAttachments]=useState(emptyAttachments),[mediaBusy,setMediaBusy]=useState(false),[toX,setToX]=useState(true);const qc=useQueryClient();const hasMedia=Boolean(attachments.mediaUrl||attachments.sticker);
+ useEffect(()=>{dialog.current?.showModal();return()=>dialog.current?.close();},[]);
+ const post=useMutation({mutationFn:()=>api<{id:string;crosspostStatus:string}>('/v1/posts',{method:'POST',body:{communityId,content:content.trim(),mediaUrl:attachments.mediaUrl||null,stickerId:attachments.sticker?.id,stickerMediaId:attachments.stickerMediaId,crosspostToX:!hasMedia&&toX&&(me?.xWriteConnected??false)}}),onSuccess:()=>{qc.invalidateQueries({queryKey:['feed']});close();}});
+ return <dialog ref={dialog} onCancel={e=>{if(post.isPending||mediaBusy)e.preventDefault();else close();}} aria-labelledby="compose-title" className="fixed inset-0 m-auto max-h-[92dvh] w-[calc(100%_-_1.5rem)] max-w-xl overflow-y-auto rounded-2xl border hairline bg-ink p-5 text-fg shadow-2xl backdrop:bg-black/75"><header className="mb-5 flex items-center justify-between"><h2 id="compose-title" className="text-base font-semibold">Create post</h2><button disabled={post.isPending||mediaBusy} type="button" onClick={close} className="rounded-full px-3 py-2 text-muted hover:bg-surface" aria-label="Close composer">✕</button></header><div className="mb-4 flex items-center gap-3">{me?.pfpUrl&&<img src={me.pfpUrl} alt="" className="h-10 w-10 rounded-full"/>}<div><p className="flex items-center text-sm font-semibold">{me?.displayName}</p><p className="mt-1 text-xs text-muted">@{me?.username} · {communityId?'Community post':'Official update'}</p></div></div><TickerTextarea value={content} onChange={setContent} autoFocus/><p className="text-[10px] text-muted">Type $ to add a ticker. Drop a GIF into the attachment area below.</p><AttachmentPicker communityId={communityId} value={attachments} onChange={setAttachments} onBusyChange={setMediaBusy}/><div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t hairline pt-4"><label className="flex items-center gap-2 text-[11px] text-muted"><input type="checkbox" checked={!hasMedia&&toX&&(me?.xWriteConnected??false)} disabled={hasMedia||!me?.xWriteConnected} onChange={e=>setToX(e.target.checked)} className="accent-volt"/>{hasMedia?'GIFs & stickers stay on Mentions':me?.xWriteConnected?'Also post to my X':'Connect X in settings to cross-post'}</label><div className="flex items-center gap-3"><span className="font-mono text-[11px] text-muted">{content.length}/280</span><button disabled={(!content.trim()&&!hasMedia)||post.isPending||mediaBusy} onClick={()=>post.mutate()} className="rounded-full bg-volt px-5 py-2.5 text-sm font-semibold text-ink disabled:opacity-40">{post.isPending?'Posting…':'Post'}</button></div></div>{post.error&&<p role="alert" className="mt-3 text-xs text-down">{post.error.message}</p>}</dialog>;
 }

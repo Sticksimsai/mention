@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {useEffect} from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CommunityView } from "@mention/shared";
@@ -15,16 +16,19 @@ const SORTS = [
 ] as const;
 
 export default function ExplorePage() {
+  const [filter,setFilter]=useState("");
+  useEffect(()=>setFilter(new URLSearchParams(window.location.search).get("q")??""),[]);
   const [sort, setSort] = useState<string>("trending");
   const { data, isLoading } = useQuery({
-    queryKey: ["communities", sort],
-    queryFn: () => api<CommunityView[]>(`/v1/communities?sort=${sort}`, { auth: false }),
+    queryKey: ["communities", sort,filter],
+    queryFn: () => api<CommunityView[]>(`/v1/communities?sort=${filter?"new":sort}`, { auth: false }),
   });
 
   return (
     <Shell>
       <div className="sticky top-0 z-10 border-b hairline bg-ink/80 px-5 pt-4 backdrop-blur">
         <h1 className="font-display text-base font-medium">Explore</h1>
+        <input aria-label="Search communities or tickers" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Search communities or $tickers" className="mt-4 w-full rounded-xl border hairline bg-surface px-3 py-2.5 text-sm"/>
         <div className="mt-3 flex gap-6 text-sm">
           {SORTS.map((s) => (
             <button
@@ -46,7 +50,7 @@ export default function ExplorePage() {
         </div>
       )}
       <ul>
-        {data?.map((t) => (
+        {data?.filter(t=>!filter||`${t.name} ${t.ticker} ${t.ca}`.toLowerCase().includes(filter.replace(/^\$/," ").trim().toLowerCase())).map((t) => (
           <li key={t.id} className="border-b hairline">
             <Link href={`/t/${t.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-surface/40">
               {t.pfpUrl ? (

@@ -89,6 +89,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
+      gifenc:
+        specifier: 1.0.3
+        version: 1.0.3
       next:
         specifier: ^14.2.23
         version: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -176,6 +179,9 @@ importers:
         version: 5.9.3
 
 packages:
+
+  gifenc@1.0.3:
+    resolution: {integrity: sha512-xdr6AdrfGBcfzncONUOlXMBuc5wJDtOueE3c5rdG0oNgtINLD+f2iFZltrBRZYzACRbKr+mSVU/x98zv2u3jmw==}
 
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
@@ -4077,6 +4083,8 @@ packages:
         optional: true
 
 snapshots:
+
+  gifenc@1.0.3: {}
 
   '@adraffy/ens-normalize@1.11.1': {}
 

@@ -1,5 +1,6 @@
 "use client";
 
+import {TickerText} from "./TickerText";
 import { useState } from "react";
 import { PostInteraction, QuotedPost } from "./PostInteraction";
 import { CommunitySticker } from "./PostAttachments";
@@ -120,7 +121,7 @@ export function PostCard({ post }: { post: PostView }) {
               <time dateTime={post.createdAt}>{formatDistanceToNowStrict(new Date(post.createdAt), {addSuffix:true})}</time>
             </Link>
           </div>
-          <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-fg">{post.content}</p>
+          <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-fg"><TickerText text={post.content}/></p>
           {(post.tweetUrl || post.communityName || post.official || post.globalPinned || post.pinned) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
             {post.tweetUrl && <a href={post.tweetUrl} target="_blank" rel="noreferrer" className="hover:text-fg" title="Open original post on X">{post.source === "x" ? "From 𝕏 ↗" : "Also on 𝕏 ↗"}</a>}
             {post.communityName && <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">${post.communityTicker}</Link>}

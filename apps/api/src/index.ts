@@ -1,3 +1,4 @@
+import { mediaRoute } from "./routes/media.js";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -58,6 +59,7 @@ app.get("/v1/announcement", async (c) => {
 app.route("/v1/communities", communitiesRoute);
 app.route("/v1/feed", feedRoute);
 app.route("/v1/posts", postsRoute);
+app.route("/v1/media", mediaRoute);
 app.route("/v1/token", tokenRoute);
 app.route("/v1/users", usersRoute);
 app.route("/v1/x", xRoute);
