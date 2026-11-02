@@ -1,0 +1,22 @@
+[package]
+name = "mention-escrow"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.84"
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "mention_escrow"
+[features]
+default = []
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+no-idl = []
+no-log-ix-name = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+[dependencies]
+anchor-lang = "=0.32.2"
+anchor-spl = "=0.32.2"
+

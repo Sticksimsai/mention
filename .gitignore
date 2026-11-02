@@ -6,3 +6,5 @@ dist/
 *.tsbuildinfo
 .turbo/
 pgdata/
+/qa/devnet-private/
+/qa/toolchain/

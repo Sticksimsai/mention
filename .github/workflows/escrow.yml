@@ -1,0 +1,32 @@
+name: Escrow executable tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/escrow.yml'
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/escrow.yml'
+permissions:
+  contents: read
+jobs:
+  escrow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install official Agave toolchain
+        run: |
+          curl --fail --location --retry 3 https://github.com/anza-xyz/agave/releases/download/v2.3.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2 -o "$RUNNER_TEMP/solana.tar.bz2"
+          tar -xjf "$RUNNER_TEMP/solana.tar.bz2" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/solana-release/bin" >> "$GITHUB_PATH"
+      - name: Build the actual Solana program
+        run: cargo-build-sbf --manifest-path contracts/mention-escrow/Cargo.toml -- --locked
+      - name: Install pinned test dependencies
+        working-directory: contracts/harness
+        run: npm ci --ignore-scripts --no-audit
+      - name: Execute token escrow cases in LiteSVM
+        working-directory: contracts/harness
+        run: npm test
