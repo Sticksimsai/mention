@@ -20,6 +20,8 @@ import { searchRoute } from "./routes/search.js";
 
 import { earningsRoute, processApprovedPayouts } from "./routes/earnings.js";
 
+import { battlesRoute } from "./routes/battles.js";
+
 const app = new Hono();
 
 app.use("*", logger());
@@ -61,6 +63,7 @@ app.route("/v1/x", xRoute);
 app.route("/v1/launch", launchRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);
+app.route("/v1/battles", battlesRoute);
 app.route("/v1/admin", adminRoute);
 app.route("/v1/search", searchRoute);
 

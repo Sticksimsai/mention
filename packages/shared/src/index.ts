@@ -164,7 +164,7 @@ export const LAUNCH_PAIRS = [
 export const MAX_DEV_BUY_BPS = 200;
 export const launchOptionsSchema = z.object({
   quoteAsset: z.enum(["SOL", "USDC", "SPCX", "QQQX", "SPYX", "NVDAX", "GLDX"]).default("SOL"),
-  mode: z.enum(["fair", "creator", "holders"]).default("fair"),
+  mode: z.enum(["fair", "creator", "holders", "battle"]).default("fair"),
   devBuyBps: z.number().int().min(0).max(MAX_DEV_BUY_BPS).default(0),
 }).superRefine((value, ctx) => {
   if (value.mode === "fair" && value.devBuyBps !== 0) ctx.addIssue({ code: "custom", path: ["devBuyBps"], message: "Fair starts have no developer buy" });
@@ -173,4 +173,39 @@ export const launchOptionsSchema = z.object({
 export function devBuyUnits(supply: bigint, bps: number): bigint {
   if (supply <= 0n || !Number.isInteger(bps) || bps < 0 || bps > MAX_DEV_BUY_BPS) throw new Error("Developer buy must be between 0% and 2% of total supply");
   return supply * BigInt(bps) / 10000n;
+}
+
+export const BATTLE_DURATIONS = [600, 1800, 3600] as const;
+export const BATTLE_RULES_VERSION = "draft-v1";
+export function battleReserveSplit(purchased: bigint) {
+  if (purchased < 0n) throw new Error("Purchased tokens cannot be negative");
+  const reserve = purchased / 100n;
+  return { reserve, developer: purchased - reserve };
+}
+export function tokenAmountUnits(amount: string): bigint {
+  if (!/^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(amount)) throw new Error("Enter a token amount with at most 6 decimal places");
+  const [whole, fraction = ""] = amount.split(".");
+  const value = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0"));
+  if (value <= 0n) throw new Error("Stake must be greater than zero");
+  return value;
+}
+export function formatTokenUnits(units: string): string {
+  const value = BigInt(units), whole = value / 1_000_000n;
+  const fraction = (value % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  return whole.toLocaleString("en-US") + (fraction ? `.${fraction}` : "");
+}
+export const battleChallengeSchema = z.object({
+  id: z.string().uuid(), challengerId: z.string().uuid(), opponentId: z.string().uuid(),
+  durationSecs: z.union([z.literal(600), z.literal(1800), z.literal(3600)]),
+  challengerAmount: z.string().refine(v => { try { tokenAmountUnits(v); return true; } catch { return false; } }, "Invalid stake amount"),
+  opponentAmount: z.string().refine(v => { try { tokenAmountUnits(v); return true; } catch { return false; } }, "Invalid stake amount"),
+  acknowledgeDraft: z.literal(true),
+}).refine(v => v.challengerId !== v.opponentId, "Choose two different communities");
+export type BattleStatus = "open" | "accepted" | "cancelled" | "expired";
+export interface BattleCoin { id: string; name: string; ticker: string; pfpUrl: string | null; ownerId: string }
+export interface BattleView {
+  id: string; challenger: BattleCoin; opponent: BattleCoin; durationSecs: number;
+  challengerStakeUnits: string; opponentStakeUnits: string; status: BattleStatus;
+  rulesVersion: string; createdAt: string; expiresAt: string; acceptedAt: string | null;
+  escrowFunded: false;
 }

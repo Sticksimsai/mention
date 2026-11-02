@@ -1,12 +1,14 @@
 // Post mutations for both native ("n:<uuid>") and mirrored ("x:<uuid>") posts.
 // Counts update inside the same transaction as the like/repost row — v1 raced.
+import { z } from "zod";
+import { nativeToView, xToView, decorate } from "./feed.js";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
 import { createPostSchema, createReplySchema } from "@mention/shared";
 import {
   posts, postLikes, postReposts, postReplies,
-  xPosts, xPostLikes, xPostReposts, xPostReplies,
+  xPosts, xPostLikes, xPostReposts, xPostReplies, xPostCommunities,
   communities, communityMembers, xConnections, users,
   eq, and, sql, desc,
 } from "@mention/db";
@@ -15,9 +17,10 @@ import { redis, queues } from "../lib/redis.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 
 export const postsRoute = new Hono();
-postsRoute.use("*", requireAuth);
+
 
 function parseId(raw: string): { source: "native" | "x"; id: string } {
+  if (!/^[nx]:/.test(raw) || !z.string().uuid().safeParse(raw.slice(2)).success) throw new HTTPException(400, { message: "Invalid post ID" });
   if (raw.startsWith("n:")) return { source: "native", id: raw.slice(2) };
   if (raw.startsWith("x:")) return { source: "x", id: raw.slice(2) };
   throw new HTTPException(400, { message: "bad post id" });
@@ -28,6 +31,41 @@ async function invalidateFeeds(communityId?: string) {
   if (communityId) keys.push(`feed:${communityId}`);
   await redis.del(...keys).catch(() => {});
 }
+
+async function visiblePost(source: "native" | "x", id: string) {
+  if (source === "native") {
+    const [r] = await db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).innerJoin(communities,eq(posts.communityId,communities.id)).where(and(eq(posts.id,id),eq(posts.hidden,false),eq(communities.status,"approved")));
+    if(!r)throw new HTTPException(404,{message:"Post not found"});
+    return nativeToView(r.p,r.u,r.c);
+  }
+  const [r]=await db.select({p:xPosts,c:communities}).from(xPosts).innerJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id)).innerJoin(communities,eq(xPostCommunities.communityId,communities.id)).where(and(eq(xPosts.id,id),eq(xPosts.hidden,false),eq(communities.status,"approved"))).limit(1);
+  if(!r)throw new HTTPException(404,{message:"Post not found"});
+  const view=xToView(r.p,r.c.id,r.c);
+  const [count]=await db.select({count:sql<number>`count(*)::int`}).from(xPostReplies).where(and(eq(xPostReplies.xPostId,id),eq(xPostReplies.hidden,false)));
+  return {...view,replies:view.replies+(count?.count??0)};
+}
+postsRoute.get("/:id",async c=>{
+ const {source,id}=parseId(c.req.param("id"));
+ const viewer=c.req.query("viewerId");if(viewer&&!z.string().uuid().safeParse(viewer).success)throw new HTTPException(400,{message:"Invalid viewer ID"});
+ return c.json((await decorate([await visiblePost(source,id)],viewer??null))[0]);
+});
+postsRoute.get("/:id/replies", async (c) => {
+  const { source, id } = parseId(c.req.param("id")!);
+  await visiblePost(source, id);
+  const table = source === "native" ? postReplies : xPostReplies;
+  const fk = source === "native" ? postReplies.postId : xPostReplies.xPostId;
+  const rows = await db.select({ r: table, u: users })
+    .from(table).innerJoin(users, eq((table as any).authorId, users.id))
+    .where(and(eq(fk as any, id), eq((table as any).hidden, false)))
+    .orderBy((table as any).createdAt).limit(200);
+  return c.json(rows.map(({ r, u: au }: any) => ({
+    id: r.id, content: r.content,
+    author: { id: au.id, username: au.username, name: au.displayName, pfpUrl: au.pfpUrl },
+    createdAt: r.createdAt,
+  })));
+});
+
+postsRoute.use("*", requireAuth);
 
 // ── create post ──
 postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSchema), async (c) => {
@@ -147,25 +185,12 @@ postsRoute.post("/:id/unrepost", async (c) => {
 });
 
 // ── replies ──
-postsRoute.get("/:id/replies", async (c) => {
-  const { source, id } = parseId(c.req.param("id")!);
-  const table = source === "native" ? postReplies : xPostReplies;
-  const fk = source === "native" ? postReplies.postId : xPostReplies.xPostId;
-  const rows = await db.select({ r: table, u: users })
-    .from(table).innerJoin(users, eq((table as any).authorId, users.id))
-    .where(and(eq(fk as any, id), eq((table as any).hidden, false)))
-    .orderBy((table as any).createdAt).limit(200);
-  return c.json(rows.map(({ r, u: au }: any) => ({
-    id: r.id, content: r.content,
-    author: { id: au.id, username: au.username, name: au.displayName, pfpUrl: au.pfpUrl },
-    createdAt: r.createdAt,
-  })));
-});
 
 postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", createReplySchema), async (c) => {
   requireNotBanned(c);
   const u = c.get("user");
   const { source, id } = parseId(c.req.param("id")!);
+  const parent = await visiblePost(source,id);
   const { content } = c.req.valid("json");
   if (source === "native") {
     await db.transaction(async (tx) => {
@@ -175,6 +200,7 @@ postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", c
   } else {
     await db.insert(xPostReplies).values({ xPostId: id, authorId: u.id, content });
   }
+  await invalidateFeeds(parent.communityId);
   return c.json({ ok: true }, 201);
 });
 

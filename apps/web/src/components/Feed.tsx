@@ -81,7 +81,7 @@ export function PostCard({ post }: { post: PostView }) {
   const act = useMutation({
     mutationFn: ({ action }: { action: string }) =>
       api(`/v1/posts/${post.id}/${action}`, { method: "POST" }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["feed"] }),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["feed"] }); qc.invalidateQueries({ queryKey: ["post",post.id] }); },
   });
 
   function engage(liked: boolean | undefined, on: string, off: string) {
@@ -104,7 +104,7 @@ export function PostCard({ post }: { post: PostView }) {
               {post.author.name}
             </Link>
             <span className="text-muted">@{post.author.username}</span>
-            <span className="text-muted">· {formatDistanceToNowStrict(new Date(post.createdAt))}</span>
+            <Link href={`/post/${encodeURIComponent(post.id)}`} className="text-muted hover:underline">· {formatDistanceToNowStrict(new Date(post.createdAt))}</Link>
             {post.communityName && (
               <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">
                 ${post.communityTicker}
@@ -134,20 +134,23 @@ export function PostCard({ post }: { post: PostView }) {
             <img src={post.mediaUrl} alt="" className="mt-3 max-h-[480px] rounded-xl border hairline object-cover" />
           )}
 
+          {act.error && <p role="alert" className="mt-2 text-xs text-down">{act.error.message}</p>}
           <div className="mt-3 flex items-center gap-8 text-sm text-muted">
             <button
+              disabled={act.isPending}
               onClick={() => engage(post.likedByMe, "like", "unlike")}
               className={`hover:text-volt ${post.likedByMe ? "text-volt" : ""}`}
             >
               ♥ {post.likes}
             </button>
             <button
+              disabled={act.isPending}
               onClick={() => engage(post.repostedByMe, "repost", "unrepost")}
               className={`hover:text-up ${post.repostedByMe ? "text-up" : ""}`}
             >
               ⇄ {post.reposts}
             </button>
-            <span>◌ {post.replies}</span>
+            <Link href={`/post/${encodeURIComponent(post.id)}`} aria-label={`View replies (${post.replies})`} className="hover:text-volt">◌ {post.replies}</Link>
             {me?.role && (
               <button
                 onClick={() => api(`/v1/posts/${post.id}`, { method: "DELETE" }).then(() => qc.invalidateQueries({ queryKey: ["feed"] }))}

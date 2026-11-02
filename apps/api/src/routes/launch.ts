@@ -19,7 +19,7 @@ launchRoute.get("/images/:id",async c=>{
  const [image]=await db.select().from(launchImages).where(eq(launchImages.id,id.data));if(!image)throw new HTTPException(404);
  c.header("Content-Type",image.mime);c.header("X-Content-Type-Options","nosniff");c.header("Cache-Control","public, max-age=31536000, immutable");return c.body(new Uint8Array(Buffer.from(image.data,"base64")));
 });
-launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,devBuyEnabled:true,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
+launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,devBuyEnabled:true,battleExecutionEnabled:false,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
 launchRoute.use("*",requireAuth);
 launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:3_000_000}),zValidator("json",z.object({data:z.string().max(2_800_000)})),async c=>{
  requireNotBanned(c);const raw=c.req.valid("json").data;const match=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw);
@@ -34,6 +34,7 @@ function assertEnabled(){
 }
 launchRoute.post("/prepare",rateLimit("launch",2,3600),zValidator("json",input),async c=>{
  requireNotBanned(c);assertEnabled();const body=c.req.valid("json"),user=c.get("user");address(body.creatorWallet);
+ if(body.mode==="battle")throw new HTTPException(503,{message:"Battle launches are unavailable until escrow and settlement are connected"});
  const digest=hash(body);const [existing]=await db.select().from(moneyOperations).where(eq(moneyOperations.id,body.id));
  if(existing){if(existing.userId!==user.id||existing.kind!=="launch"||existing.requestHash!==digest)throw new HTTPException(409,{message:"Launch ID already used for different details"});return c.json(publicOperation(existing));}
  const [image]=await db.select().from(launchImages).where(and(eq(launchImages.id,body.imageId),eq(launchImages.userId,user.id)));if(!image)throw new HTTPException(400,{message:"Upload your token image first"});

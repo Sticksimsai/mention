@@ -30,6 +30,7 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
 
           <nav aria-label="Main navigation" className="flex flex-col gap-1">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
+            <NavItem href="/battles" icon={<ShieldIcon />}>Battles</NavItem>
             <NavItem href="/explore" icon={<FlameIcon />}>Explore</NavItem>
             <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launchpad</NavItem>
@@ -51,7 +52,7 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
       </header>
 
       {/* ── main column ── */}
-      <main className="min-h-screen min-w-0 flex-1 border-r hairline">
+      <main className="min-h-screen min-w-0 flex-1 border-r hairline pb-24 md:pb-0">
         <div className="flex items-center justify-between gap-4 border-b hairline px-4 py-2 md:hidden">
           <BrandLogo compact />
           <div className="max-w-[220px]"><AccountButton /></div>
@@ -59,6 +60,13 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
         {children}
       </main>
 
+      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t hairline bg-ink px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+        <MobileLink href="/" icon={<HomeIcon />} label="Home" />
+        <MobileLink href="/explore" icon={<FlameIcon />} label="Explore" />
+        <MobileLink href="/battles" icon={<ShieldIcon />} label="Battles" />
+        <MobileLink href="/launch" icon={<RocketIcon />} label="Launch" />
+        <details className="relative"><summary className="cursor-pointer list-none px-3 py-3 text-xs text-muted">More</summary><div className="absolute bottom-full right-0 mb-3 w-48 rounded-xl border hairline bg-ink p-2 shadow-xl"><NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem><NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>{me&&<><NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem><NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem></>}{me?.role==="admin"&&<NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}</div></details>
+      </nav>
       {/* ── right rail: search · top 10 · trending ── */}
       {!wide && <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">
         <SearchBox />
@@ -128,4 +136,9 @@ function TrendingRail() {
       </ul>
     </div>
   );
+}
+
+function MobileLink({href,icon,label}:{href:string;icon:React.ReactNode;label:string}) {
+ const pathname=usePathname();const active=href==="/"?pathname===href:pathname.startsWith(href);
+ return <Link href={href} aria-current={active?"page":undefined} className={`flex min-h-12 min-w-14 flex-col items-center justify-center gap-1 text-[10px] ${active?"text-volt":"text-muted"}`}><span className="h-5 w-5" aria-hidden="true">{icon}</span>{label}</Link>;
 }

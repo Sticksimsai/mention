@@ -11,6 +11,7 @@ export async function buildLaunch(args: z.infer<typeof launchOptionsSchema> & {
   mint: Keypair; payer: PublicKey; creator: PublicKey; name: string; ticker: string; uri: string;
 }) {
   const options = launchOptionsSchema.parse(args);
+  if (options.mode === "battle") throw new Error("Battle launches are unavailable until escrow and settlement are connected");
   const pair = LAUNCH_PAIRS.find(p => p.id === options.quoteAsset)!;
   const quoteMint = new PublicKey(pair.mint);
   const sdk = new OnlinePumpSdk(connection);

@@ -36,6 +36,7 @@ const connection={
 const env={PUMP_LOOKUP_TABLE:web3.Keypair.generate().publicKey.toBase58()};
 const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'@mention/shared':shared,'./money.js':{connection},'../env.js':{env},'./pump-sdk.js':{...sdk,OnlinePumpSdk:Online}});
 (async()=>{
+ await assert.rejects(buildLaunch({mint,payer:payer.publicKey,creator,name:"Battle",ticker:"BTL",uri:"https://example.invalid",mode:"battle",quoteAsset:"SOL",devBuyBps:200}),/unavailable until escrow/);
  for(const quoteAsset of ['SOL','SPCX','QQQX','SPYX'])for(const devBuyBps of [0,200]){
   amount=shared.devBuyUnits(BigInt(global.tokenTotalSupply.toString()),devBuyBps);
   const pair=shared.LAUNCH_PAIRS.find(p=>p.id===quoteAsset);

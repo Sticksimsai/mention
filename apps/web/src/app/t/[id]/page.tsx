@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CommunityView, TokenStats } from "@mention/shared";
+import { CommunityBattles } from "@/components/Battles";
 import { TradeTab } from "@/components/TradeTab";
 import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
@@ -18,7 +19,7 @@ export default function TribePage() {
   const { id } = useParams<{ id: string }>();
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"feed" | "chart" | "trade">("feed");
+  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "battles">("feed");
 
   const { data: tribe } = useQuery({
     queryKey: ["community", id],
@@ -102,7 +103,7 @@ export default function TribePage() {
         </p>
 
         <div className="mt-4 flex gap-6 text-sm">
-          {(["feed", "chart", "trade"] as const).map((t) => (
+          {(["feed", "chart", "trade", "battles"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -121,6 +122,7 @@ export default function TribePage() {
         </>
       )}
       {tab === "chart" && <ChartTab ca={tribe.ca} />}
+      {tab === "battles" && <CommunityBattles id={tribe.id} />}
       {tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}
     </Shell>
   );

@@ -322,3 +322,29 @@ export const creatorEarnings = pgTable("creator_earnings", {
   payoutId: uuid("payout_id").references(() => moneyOperations.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex("creator_receipt_community").on(t.receipt,t.communityId), check("creator_earnings_positive", sql`${t.grossLamports} > 0`), check("creator_earnings_share", sql`${t.creatorLamports} >= 0 AND ${t.creatorLamports} <= ${t.grossLamports}`)]);
+
+// Non-custodial challenge proposals only. Acceptance never implies deposited funds.
+export const battleChallenges = pgTable("battle_challenges", {
+  id: uuid("id").primaryKey(),
+  challengerId: uuid("challenger_id").notNull().references(() => communities.id),
+  opponentId: uuid("opponent_id").notNull().references(() => communities.id),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  acceptedBy: uuid("accepted_by").references(() => users.id),
+  challengerStakeUnits: text("challenger_stake_units").notNull(),
+  opponentStakeUnits: text("opponent_stake_units").notNull(),
+  durationSecs: integer("duration_secs").notNull(),
+  status: text("status").notNull().default("open"),
+  rulesVersion: text("rules_version").notNull(),
+  requestHash: text("request_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+}, t => [
+  index("battle_created").on(t.createdAt),
+  index("battle_challenger").on(t.challengerId), index("battle_opponent").on(t.opponentId),
+  check("battle_distinct_coins", sql`${t.challengerId} <> ${t.opponentId}`),
+  check("battle_duration", sql`${t.durationSecs} IN (600,1800,3600)`),
+  check("battle_draft_status", sql`${t.status} IN ('open','accepted','cancelled','expired')`),
+  check("battle_positive_stakes", sql`${t.challengerStakeUnits} ~ '^[1-9][0-9]{0,17}$' AND ${t.opponentStakeUnits} ~ '^[1-9][0-9]{0,17}$'`),
+]);

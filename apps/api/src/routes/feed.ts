@@ -15,7 +15,7 @@ export const feedRoute = new Hono();
 
 const PAGE = 30;
 
-function nativeToView(p: any, author: any, comm: any): PostView {
+export function nativeToView(p: any, author: any, comm: any): PostView {
   return {
     id: `n:${p.id}`, source: "native",
     content: p.content, mediaUrl: p.mediaUrl,
@@ -29,7 +29,7 @@ function nativeToView(p: any, author: any, comm: any): PostView {
   };
 }
 
-function xToView(x: any, communityId: string, comm: any): PostView {
+export function xToView(x: any, communityId: string, comm: any): PostView {
   return {
     id: `x:${x.id}`, source: "x",
     content: x.content, mediaUrl: x.imageUrl,
@@ -89,7 +89,7 @@ async function fetchMerged(opts: {
 }
 
 /** Decorate posts with likedByMe/repostedByMe for an authed viewer. */
-async function decorate(items: PostView[], userId: string | null): Promise<PostView[]> {
+export async function decorate(items: PostView[], userId: string | null): Promise<PostView[]> {
   if (!userId || items.length === 0) return items;
   const nIds = items.filter((i) => i.source === "native").map((i) => i.id.slice(2));
   const xIds = items.filter((i) => i.source === "x").map((i) => i.id.slice(2));
