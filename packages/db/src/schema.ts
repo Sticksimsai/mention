@@ -369,3 +369,12 @@ export const communityStickers = pgTable("community_stickers", {
   color: text("color").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [index("idx_stickers_community").on(t.communityId)]);
+
+// Persistent claim prevents replaying an ambiguous POST to X after a worker restart.
+export const xWriteAttempts = pgTable("x_write_attempts", {
+  postId: uuid("post_id").primaryKey().references(() => posts.id, {onDelete:"cascade"}),
+  status: text("status").notNull().default("sending"),
+  xTweetId: text("x_tweet_id"),
+  createdAt: timestamp("created_at", {withTimezone:true}).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", {withTimezone:true}).notNull().defaultNow(),
+});

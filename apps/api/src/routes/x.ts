@@ -10,12 +10,12 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { randomBytes, createHash } from "node:crypto";
-import { xConnections, eq } from "@mention/db";
+import { xConnections, users, eq } from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
 import { encrypt } from "../lib/crypto.js";
 import { env } from "../env.js";
-import { requireAuth } from "../auth/middleware.js";
+import { requireAuth, requireNotBanned } from "../auth/middleware.js";
 
 export const xRoute = new Hono();
 
@@ -26,7 +26,8 @@ function b64url(buf: Buffer) {
 }
 
 xRoute.get("/connect", requireAuth, async (c) => {
-  if (!env.X_CLIENT_ID) throw new HTTPException(503, { message: "X write-back not configured" });
+  requireNotBanned(c);
+  if (!env.X_CLIENT_ID || !env.X_CLIENT_SECRET || !env.X_REDIRECT_URI) throw new HTTPException(503, { message: "X write-back not configured" });
   const u = c.get("user");
   const state = b64url(randomBytes(24));
   const verifier = b64url(randomBytes(48));
@@ -46,6 +47,7 @@ xRoute.get("/connect", requireAuth, async (c) => {
 });
 
 xRoute.get("/callback", async (c) => {
+  if(c.req.query("error"))return c.redirect(`${env.WEB_ORIGIN}/settings?x=cancelled`);
   const code = c.req.query("code");
   const state = c.req.query("state");
   if (!code || !state) throw new HTTPException(400, { message: "missing code/state" });
@@ -67,18 +69,22 @@ xRoute.get("/callback", async (c) => {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: "Basic " + Buffer.from(`${env.X_CLIENT_ID}:${env.X_CLIENT_SECRET}`).toString("base64"),
     },
-    body,
+    body, signal:AbortSignal.timeout(15000),
   });
   if (!res.ok) {
     throw new HTTPException(502, { message: `token exchange failed: ${res.status}` });
   }
   const tok: any = await res.json();
+  if(!tok.access_token||!tok.refresh_token||!String(tok.scope??'').split(' ').includes('tweet.write'))throw new HTTPException(400,{message:'X did not grant posting and refresh access. Reconnect with the required permissions.'});
 
   // whoami — confirm the X account
   const meRes = await fetch("https://api.x.com/2/users/me", {
-    headers: { Authorization: `Bearer ${tok.access_token}` },
+    headers: { Authorization: `Bearer ${tok.access_token}` }, signal:AbortSignal.timeout(15000),
   });
-  const me: any = meRes.ok ? await meRes.json() : { data: {} };
+  if(!meRes.ok)throw new HTTPException(502,{message:'Could not verify the connected X account. Please reconnect.'});
+  const me: any = await meRes.json();
+  const [account]=await db.select({xUserId:users.xUserId}).from(users).where(eq(users.id,userId));
+  if(!account?.xUserId||!me.data?.id||String(account.xUserId)!==String(me.data.id))throw new HTTPException(403,{message:'Connect the same X account that you used to sign in to Mentions.'});
 
   await db.insert(xConnections).values({
     userId,
@@ -113,7 +119,9 @@ xRoute.get("/status", requireAuth, async (c) => {
 
 xRoute.post("/toggle", requireAuth, async (c) => {
   const u = c.get("user");
+  requireNotBanned(c);
   const { enabled } = await c.req.json<{ enabled: boolean }>();
+  if(typeof enabled!=="boolean")throw new HTTPException(400,{message:"enabled must be true or false"});
   await db.update(xConnections).set({ writeEnabled: enabled, updatedAt: new Date() })
     .where(eq(xConnections.userId, u.id));
   return c.json({ ok: true });

@@ -9,7 +9,7 @@
 import { Worker, Queue } from "bullmq";
 import { OFFICIAL_ACCOUNT_ID, QUEUES, type TweetSyncJob, type XWritebackJob, type TokenStatsJob } from "@mention/shared";
 import { users, xSyncState, communityMembers, eq, sql } from "@mention/db";
-import { db, queueConnection } from "./lib/context.js";
+import { db, redis, queueConnection } from "./lib/context.js";
 import { tweetSyncJob } from "./jobs/tweetSync.js";
 import { xWritebackJob } from "./jobs/xWriteback.js";
 import { tokenStatsJob, warmAllTokenStats } from "./jobs/tokenStats.js";
@@ -19,12 +19,16 @@ import { communitySearchJob } from "./jobs/communitySearch.js";
 import { xProfileJob } from "./jobs/xProfile.js";
 
 const connection = queueConnection;
+async function recordFailure(queue:string){
+ const event=JSON.stringify({queue,at:new Date().toISOString(),message:'Job failed; inspect Render logs for details'});
+ try{await redis.lpush('ops:worker-failures',event);await redis.ltrim('ops:worker-failures',0,99);await redis.expire('ops:worker-failures',604800);}catch{}
+}
 function observe<T>(worker: Worker<T>) {
- worker.on("failed", (job,error)=>console.warn("queue job failed",worker.name,job?.name,error.message.slice(0,180)));
+ worker.on("failed", (job,error)=>{console.warn("queue job failed",worker.name,job?.name,error.message.slice(0,180));void recordFailure(worker.name);});
  worker.on("error", error=>console.error("queue connection error",worker.name,error.message.slice(0,180)));
  return worker;
 }
-new Worker<{userId:string}>(QUEUES.X_PROFILE, job => xProfileJob(job.data.userId), { connection, concurrency: 2, limiter: { max: 30, duration: 60_000 } });
+observe(new Worker<{userId:string}>(QUEUES.X_PROFILE, job => xProfileJob(job.data.userId), { connection, concurrency: 2, limiter: { max: 30, duration: 60_000 } }));
 
 const searchQueue = new Queue(QUEUES.COMMUNITY_SEARCH, { connection });
 observe(new Worker<{communityId:string}>(QUEUES.COMMUNITY_SEARCH,job=>communitySearchJob(job.data.communityId),{connection,concurrency:2,limiter:{max:30,duration:60_000}}));
@@ -44,24 +48,24 @@ observe(new Worker<TweetSyncJob>(QUEUES.TWEET_SYNC, async (job) => {
   limiter: { max: 60, duration: 60_000 }, // global-ish politeness cap
 }));
 
-new Worker<XWritebackJob>(QUEUES.X_WRITEBACK, async (job) => {
+observe(new Worker<XWritebackJob>(QUEUES.X_WRITEBACK, async (job) => {
   const exhausted = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
   return xWritebackJob(job.data.postId, exhausted);
 }, {
   connection,
   concurrency: 2,
   limiter: { max: 30, duration: 60_000 }, // X API politeness
-});
+}));
 
-new Worker<TokenStatsJob>(QUEUES.TOKEN_STATS, async (job) => {
+observe(new Worker<TokenStatsJob>(QUEUES.TOKEN_STATS, async (job) => {
   return tokenStatsJob(job.data.ca);
 }, {
   connection,
   concurrency: 4,
   limiter: { max: 120, duration: 60_000 },
-});
+}));
 
-new Worker(QUEUES.TRENDING, async () => trendingJob(), { connection });
+observe(new Worker(QUEUES.TRENDING, async () => trendingJob(), { connection }));
 
 // ── scheduler: the heartbeat that replaces pg_cron ──
 observe(new Worker(QUEUES.SCHEDULER, async (job) => {
@@ -121,6 +125,8 @@ async function registerSchedules() {
   await schedulerQueue.upsertJobScheduler("fanout-tweet-sync", { every: 60_000 }, { name: "fanout-tweet-sync" });
   await schedulerQueue.upsertJobScheduler("warm-token-stats", { every: 30_000 }, { name: "warm-token-stats" });
   await schedulerQueue.upsertJobScheduler("refresh-trending", { every: 300_000 }, { name: "refresh-trending" });
+  const heartbeat=()=>redis.set('ops:worker-heartbeat',new Date().toISOString(),'EX',90).catch(()=>{});
+  await heartbeat();setInterval(()=>void heartbeat(),15000).unref();
   console.log("schedules registered");
 }
 

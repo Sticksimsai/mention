@@ -24,6 +24,7 @@ import { earningsRoute, processApprovedPayouts } from "./routes/earnings.js";
 
 import { battlesRoute } from "./routes/battles.js";
 
+import {readinessRoute} from "./routes/readiness.js";
 const app = new Hono();
 
 app.use("*", logger());
@@ -50,6 +51,7 @@ app.get("/health", async (c) => {
   return c.json({ ok, checks }, ok ? 200 : 503);
 });
 
+app.get('/health/worker',async c=>{const heartbeat=await redis.get('ops:worker-heartbeat').catch(()=>null);const ok=Boolean(heartbeat&&Date.now()-Date.parse(heartbeat)<90000);return c.json({ok},ok?200:503);});
 app.get("/v1/announcement", async (c) => {
   const [row] = await db.select().from(siteAnnouncements)
     .where(eq(siteAnnouncements.active, true)).limit(1);
@@ -67,6 +69,7 @@ app.route("/v1/launch", launchRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);
 app.route("/v1/battles", battlesRoute);
+app.route("/v1/readiness",readinessRoute);
 app.route("/v1/admin", adminRoute);
 app.route("/v1/manage", managementRoute);
 app.route("/v1/search", searchRoute);

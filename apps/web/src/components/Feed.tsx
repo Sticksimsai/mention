@@ -128,7 +128,7 @@ export function PostCard({ post }: { post: PostView }) {
             {post.official && <span>Official Mentions</span>}
             {(post.globalPinned || post.pinned) && <span className="text-volt">{post.globalPinned ? "Pinned sitewide" : "Pinned in community"}</span>}
           </div>}
-          {post.source === "native" && post.author.id === me?.id && ["pending","failed"].includes(post.crosspostStatus ?? "") && <p className="mt-2 text-xs text-muted">{post.crosspostStatus === "pending" ? "Queued for X" : "X cross-post failed"}</p>}
+          {post.source === "native" && post.author.id === me?.id && ["pending","failed"].includes(post.crosspostStatus ?? "") && <p className="mt-2 text-xs text-muted">{post.crosspostStatus === "pending" ? "Queued for X" : "X post unconfirmed. Check your X profile before posting again."}</p>}
 
           {post.mediaUrl && (
             // eslint-disable-next-line @next/next/no-img-element

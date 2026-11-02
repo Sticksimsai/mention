@@ -2,8 +2,9 @@
 // official X API (OAuth2 user context, tweet.write). Handles token refresh.
 // Jobs retry with exponential backoff (configured at enqueue time in the API).
 import { createDecipheriv, createCipheriv, createHash, randomBytes } from "node:crypto";
-import { posts, xConnections, users, eq } from "@mention/db";
+import { posts, xConnections, xWriteAttempts, users, eq } from "@mention/db";
 import { db } from "../lib/context.js";
+import { sendOnce } from "../lib/sendOnce.js";
 import { env } from "../env.js";
 
 function key(): Buffer {
@@ -30,7 +31,7 @@ async function refreshIfNeeded(conn: typeof xConnections.$inferSelect): Promise<
     return decrypt(conn.accessTokenEnc);
   }
   const res = await fetch("https://api.x.com/2/oauth2/token", {
-    method: "POST",
+    method: "POST", signal:AbortSignal.timeout(15000),
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: "Basic " + Buffer.from(`${env.X_CLIENT_ID}:${env.X_CLIENT_SECRET}`).toString("base64"),
@@ -67,20 +68,39 @@ export async function xWritebackJob(postId: string, attemptsExhausted: boolean):
     return;
   }
 
+  if(!conn.xUserId||conn.xUserId!==row.u.xUserId){await db.update(posts).set({crosspostStatus:'failed'}).where(eq(posts.id,postId));throw new Error('X identity mismatch: reconnect before posting');}
   try {
     const accessToken = await refreshIfNeeded(conn);
-    const res = await fetch("https://api.x.com/2/tweets", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ text: row.p.content.slice(0, 280) }),
+    await sendOnce({
+      claim:async()=>{
+        const claimed=await db.insert(xWriteAttempts).values({postId}).onConflictDoNothing().returning();
+        if(claimed.length)return true;
+        const [attempt]=await db.select().from(xWriteAttempts).where(eq(xWriteAttempts.postId,postId));
+        await db.update(posts).set({crosspostStatus:attempt?.status==='posted'?'posted':'failed',xTweetId:attempt?.xTweetId??null}).where(eq(posts.id,postId));
+        return false;
+      },
+      send:async()=>{
+        const res=await fetch("https://api.x.com/2/tweets",{
+          method:"POST",signal:AbortSignal.timeout(15000),
+          headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},
+          body:JSON.stringify({text:row.p.content.slice(0,280)}),
+        });
+        if(!res.ok)throw new Error(`X post not confirmed: HTTP ${res.status}`);
+        const out:any=await res.json();
+        if(typeof out.data?.id!=='string'||!/^\d+$/.test(out.data.id))throw new Error('X returned no post ID');
+        return out.data.id as string;
+      },
+      complete:async(id)=>{
+        await db.transaction(async tx=>{
+          await tx.update(xWriteAttempts).set({status:'posted',xTweetId:id,updatedAt:new Date()}).where(eq(xWriteAttempts.postId,postId));
+          await tx.update(posts).set({crosspostStatus:'posted',xTweetId:id}).where(eq(posts.id,postId));
+        });
+      },
+      uncertain:async()=>{
+        await db.update(xWriteAttempts).set({status:'uncertain',updatedAt:new Date()}).where(eq(xWriteAttempts.postId,postId));
+        await db.update(posts).set({crosspostStatus:'failed'}).where(eq(posts.id,postId));
+      },
     });
-    if (res.status === 429) throw new Error("x rate limited"); // retried by BullMQ backoff
-    if (!res.ok) throw new Error(`x post failed: ${res.status} ${await res.text().then((t) => t.slice(0, 200))}`);
-    const out: any = await res.json();
-    await db.update(posts).set({
-      crosspostStatus: "posted",
-      xTweetId: out.data?.id ?? null,
-    }).where(eq(posts.id, postId));
   } catch (err) {
     if (attemptsExhausted) {
       await db.update(posts).set({ crosspostStatus: "failed" }).where(eq(posts.id, postId));

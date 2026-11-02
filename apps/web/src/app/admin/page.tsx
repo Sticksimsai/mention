@@ -6,6 +6,7 @@ import { Composer } from "@/components/Composer";
 import { ManagementGate, Panel, CommunityDirectory, PostControls, ManagedPost, control, Result } from "@/components/Management";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LaunchReadiness } from "@/components/LaunchReadiness";
 import { CreatorPayoutAdmin } from "@/components/CreatorPayoutAdmin";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
@@ -19,7 +20,7 @@ function AdminDashboard(){
  const overview=useQuery({queryKey:["manage","overview"],queryFn:()=>api<{users:number;communities:number;posts:number;bans:{username:string;reason:string}[];audit:{id:string;action:string;targetId:string;createdAt:string}[]}>("/v1/manage/overview")});
  const recent=useQuery({queryKey:["manage","posts"],queryFn:()=>api<ManagedPost[]>("/v1/manage/posts"),enabled:tab==="Posts"});
  const qc=useQueryClient();const unban=useMutation({mutationFn:(username:string)=>api(`/v1/admin/bans/${username}`,{method:"DELETE"}),onSuccess:()=>qc.invalidateQueries({queryKey:["manage"]})});
- const tabs=["Overview","Posts","Communities","Moderation","X sync",...(me?.role==="admin"?["Settings","Payouts"]:[])];
+ const tabs=["Overview","Posts","Communities","Moderation","X sync",...(me?.role==="admin"?["Readiness","Settings","Payouts"]:[])];
  return <><nav className="flex gap-5 overflow-x-auto border-b hairline px-5 pt-4">{tabs.map(t=><button className={`shrink-0 border-b-2 pb-3 text-sm ${tab===t?"border-volt text-fg":"border-transparent text-muted"}`} key={t} onClick={()=>setTab(t)}>{t}</button>)}</nav><div className="space-y-5 p-5 sm:p-6">
  {tab==="Overview"&&<>{overview.isError?<p className="text-sm text-down">{overview.error.message}</p>:<div className="grid grid-cols-3 gap-3">{([['Accounts',overview.data?.users],['Communities',overview.data?.communities],['Native posts',overview.data?.posts]] as const).map(([label,value])=><div key={label} className="rounded-xl border hairline bg-surface p-4"><p className="text-xs text-muted">{label}</p><p className="mt-3 text-2xl font-semibold">{value??"—"}</p></div>)}</div>}
  {me?.id===OFFICIAL_ACCOUNT_ID&&<Panel title="Publish an official update" description="Every post from this account appears in everyone’s For you and Joined feeds. Pin important updates from the Posts tab."><Composer/></Panel>}
@@ -30,6 +31,7 @@ function AdminDashboard(){
  {tab==="Communities"&&<Panel title="All token communities" description="Open a dashboard to review its details, members and posts."><CommunityDirectory/></Panel>}
  {tab==="Moderation"&&<><Bans/><Panel title="Restricted accounts"><Result mutation={unban}/>{overview.data?.bans.length?overview.data.bans.map(b=><div key={b.username} className="flex items-center justify-between gap-3 border-b hairline py-3"><div><p className="text-sm">@{b.username}</p><p className="text-xs text-muted">{b.reason}</p></div><button className={control} disabled={unban.isPending} onClick={()=>unban.mutate(b.username)}>Unban</button></div>):<p className="text-sm text-muted">No banned accounts.</p>}</Panel></>}
  {tab==="Settings"&&me?.role==="admin"&&<><Staff/><Announcement/><Usage/></>}
+ {tab==="Readiness"&&me?.role==="admin"&&<LaunchReadiness/>}
  {tab==="Payouts"&&me?.role==="admin"&&<CreatorPayoutAdmin/>}
  </div></>;
 }

@@ -43,6 +43,13 @@
       "when": 1793627212174,
       "tag": "0005_chunky_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793628396629,
+      "tag": "0006_friendly_loa",
+      "breakpoints": true
     }
   ]
 }
