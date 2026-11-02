@@ -61,8 +61,11 @@ export const createPostSchema = z.object({
 }).refine(p=>Boolean(p.content.trim()||p.mediaUrl||p.stickerId||p.quotePostId), {message:"Add text, a GIF, or a sticker"});
 
 export const createReplySchema = z.object({
-  content: z.string().min(1).max(2000),
-});
+  content: z.string().max(2000).default(""),
+  mediaUrl: z.string().url().refine(u=>u.startsWith("https://"),"Use an HTTPS media URL").optional().nullable(),
+  stickerId: z.string().max(100).optional(),
+  stickerMediaId: z.string().uuid().optional(),
+}).refine(p=>Boolean(p.content.trim()||p.mediaUrl||p.stickerId),{message:"Add text, an image, a GIF, or a sticker"});
 
 export const updateProfileSchema = z.object({
   bio: z.string().max(500).optional(),

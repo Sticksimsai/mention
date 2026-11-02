@@ -50,7 +50,7 @@ postsRoute.get("/:id/replies", async (c) => {
     .where(and(eq(fk as any, id), eq((table as any).hidden, false)))
     .orderBy((table as any).createdAt).limit(200);
   return c.json(rows.map(({ r, u: au }: any) => ({
-    id: r.id, content: r.content,
+    id: r.id, content: r.content, mediaUrl:r.mediaUrl??null, sticker:r.stickerData?JSON.parse(r.stickerData):null,
     author: { id: au.id, username: au.username, name: au.displayName, pfpUrl: au.pfpUrl },
     createdAt: r.createdAt,
   })));
@@ -202,15 +202,28 @@ postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", c
   const u = c.get("user");
   const { source, id } = parseId(c.req.param("id")!);
   const parent = await visiblePost(source,id);
-  const { content } = c.req.valid("json");
+  const body = c.req.valid("json");
+  const {content,mediaUrl}=body;
+  const [comm]=body.stickerId&&parent.communityId?await db.select().from(communities).where(eq(communities.id,parent.communityId)):[];
+  const sticker=comm&&body.stickerId?(await stickerPack(comm)).find(s=>s.id===body.stickerId):null;
+  if(body.stickerId&&!sticker)throw new HTTPException(400,{message:"Choose a sticker from this community"});
+  let stickerMediaUrl:string|undefined;
+  if(body.stickerMediaId){
+    const [asset]=await db.select().from(launchImages).where(and(eq(launchImages.id,body.stickerMediaId),eq(launchImages.userId,u.id)));
+    if(!sticker||!asset||asset.mime!=="image/gif")throw new HTTPException(400,{message:"Choose a community GIF sticker"});
+    const bytes=Buffer.from(asset.data,"base64");
+    if(bytes.length<10||bytes.readUInt16LE(6)!==500||bytes.readUInt16LE(8)!==500)throw new HTTPException(400,{message:"Stickers must be 500 × 500 GIFs"});
+    stickerMediaUrl=`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${asset.id}`;
+  }
+  const attachment={mediaUrl:mediaUrl??null,stickerData:sticker?JSON.stringify({...sticker,mediaUrl:stickerMediaUrl}):null};
   if (source === "native") {
     await db.transaction(async (tx) => {
-      await tx.insert(postReplies).values({ postId: id, authorId: u.id, content });
+      await tx.insert(postReplies).values({ postId: id, authorId: u.id, content, ...attachment });
       await tx.update(posts).set({ repliesCount: sql`${posts.repliesCount} + 1` }).where(eq(posts.id, id));
     });
   } else {
     await db.transaction(async tx=>{
-      await tx.insert(xPostReplies).values({ xPostId: id, authorId: u.id, content });
+      await tx.insert(xPostReplies).values({ xPostId: id, authorId: u.id, content, ...attachment });
       await tx.update(xPosts).set({nativeRepliesCount:sql`${xPosts.nativeRepliesCount} + 1`}).where(eq(xPosts.id,id));
     });
   }

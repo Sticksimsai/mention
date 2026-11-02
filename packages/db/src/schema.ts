@@ -161,6 +161,8 @@ export const postReplies = pgTable("post_replies", {
   postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
   authorId: uuid("author_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  mediaUrl: text("media_url"),
+  stickerData: text("sticker_data"),
   hidden: boolean("hidden").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("idx_replies_post").on(t.postId, t.createdAt)]);
@@ -230,6 +232,8 @@ export const xPostReplies = pgTable("x_post_replies", {
   xPostId: uuid("x_post_id").notNull().references(() => xPosts.id, { onDelete: "cascade" }),
   authorId: uuid("author_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  mediaUrl: text("media_url"),
+  stickerData: text("sticker_data"),
   hidden: boolean("hidden").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("idx_x_replies_post").on(t.xPostId, t.createdAt)]);
