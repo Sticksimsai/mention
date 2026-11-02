@@ -25,3 +25,7 @@
 Offline battle tests cover allocation math, stake validation, durations, permissions, expiry, rule versions, idempotency, cancellation, duplicate proposals and unfunded balances. Thread tests cover anonymous reads, authenticated writes and hidden parent protection. Existing account, transaction and launch SDK regression suites also run. TypeScript checks cover API and web. Additive migration only creates battle_challenges; prior schema snapshots are unchanged.
 
 Live browser checks are read-only or use the isolated demo. No real orders, bets, launch submissions, payout requests or public posts are created as tests.
+
+## Arena visual update — 2026-11-02
+
+The public section is named Arena, at /arena; legacy /battles routes redirect. Navigation, community tabs, Launchpad copy and Docs use Arena. Compact market cards include two coin rows, native-token challenge details, bookmarks and duration filters. The separately labelled Layout demo contains six fictional pairings and a wide percentage-price-change chart view. Real unfunded challenges show unavailable performance rather than invented odds, volume or price history. Watchlists are stored on the current browser. Financial execution gates are unchanged.

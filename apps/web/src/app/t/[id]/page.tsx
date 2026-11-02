@@ -19,7 +19,7 @@ export default function TribePage() {
   const { id } = useParams<{ id: string }>();
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "battles">("feed");
+  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "arena">("feed");
 
   const { data: tribe } = useQuery({
     queryKey: ["community", id],
@@ -103,7 +103,7 @@ export default function TribePage() {
         </p>
 
         <div className="mt-4 flex gap-6 text-sm">
-          {(["feed", "chart", "trade", "battles"] as const).map((t) => (
+          {(["feed", "chart", "trade", "arena"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -122,7 +122,7 @@ export default function TribePage() {
         </>
       )}
       {tab === "chart" && <ChartTab ca={tribe.ca} />}
-      {tab === "battles" && <CommunityBattles id={tribe.id} />}
+      {tab === "arena" && <CommunityBattles id={tribe.id} />}
       {tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}
     </Shell>
   );

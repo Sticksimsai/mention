@@ -30,7 +30,7 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
 
           <nav aria-label="Main navigation" className="flex flex-col gap-1">
             <NavItem href="/" icon={<HomeIcon />}>Home</NavItem>
-            <NavItem href="/battles" icon={<ShieldIcon />}>Battles</NavItem>
+            <NavItem href="/arena" icon={<ShieldIcon />}>Arena</NavItem>
             <NavItem href="/explore" icon={<FlameIcon />}>Explore</NavItem>
             <NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launchpad</NavItem>
@@ -63,7 +63,7 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t hairline bg-ink px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
         <MobileLink href="/" icon={<HomeIcon />} label="Home" />
         <MobileLink href="/explore" icon={<FlameIcon />} label="Explore" />
-        <MobileLink href="/battles" icon={<ShieldIcon />} label="Battles" />
+        <MobileLink href="/arena" icon={<ShieldIcon />} label="Arena" />
         <MobileLink href="/launch" icon={<RocketIcon />} label="Launch" />
         <details className="relative"><summary className="cursor-pointer list-none px-3 py-3 text-xs text-muted">More</summary><div className="absolute bottom-full right-0 mb-3 w-48 rounded-xl border hairline bg-ink p-2 shadow-xl"><NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem><NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>{me&&<><NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem><NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem></>}{me?.role==="admin"&&<NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}</div></details>
       </nav>
