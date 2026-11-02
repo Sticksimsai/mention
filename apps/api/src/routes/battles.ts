@@ -13,7 +13,7 @@ const parseId = (id: string | undefined) => { const p=z.string().uuid().safePars
 function effectiveStatus(row: typeof battleChallenges.$inferSelect) {
   return row.status === "open" && row.expiresAt.getTime() <= Date.now() ? "expired" : row.status;
 }
-async function views(rows: (typeof battleChallenges.$inferSelect)[]): Promise<BattleView[]> {
+export async function battleViews(rows: (typeof battleChallenges.$inferSelect)[]): Promise<BattleView[]> {
   if (!rows.length) return [];
   const ids=[...new Set(rows.flatMap(r=>[r.challengerId,r.opponentId]))];
   const coins=await db.select({id:communities.id,name:communities.name,ticker:communities.ticker,pfpUrl:communities.pfpUrl,ownerId:communities.ownerId}).from(communities).where(inArray(communities.id,ids));
@@ -25,7 +25,7 @@ battlesRoute.get("/",async c=>{
   const communityId=c.req.query("communityId");if(communityId)parseId(communityId);
   const cursor=c.req.query("cursor");if(cursor&&!z.string().datetime().safeParse(cursor).success)throw new HTTPException(400,{message:"Invalid cursor"});
   const rows=await db.select().from(battleChallenges).where(and(communityId?or(eq(battleChallenges.challengerId,communityId),eq(battleChallenges.opponentId,communityId)):undefined,cursor?sql`${battleChallenges.createdAt} < ${new Date(cursor)}`:undefined)).orderBy(desc(battleChallenges.createdAt)).limit(41);
-  const page=rows.slice(0,40);return c.json({items:await views(page),nextCursor:rows.length>40?page[page.length-1].createdAt.toISOString():null});
+  const page=rows.slice(0,40);return c.json({items:await battleViews(page),nextCursor:rows.length>40?page[page.length-1].createdAt.toISOString():null});
 });
 battlesRoute.get("/community/:id/reserve",async c=>{
   const [coin]=await db.select({id:communities.id,ticker:communities.ticker}).from(communities).where(eq(communities.id,parseId(c.req.param("id"))));
@@ -46,7 +46,7 @@ battlesRoute.get("/mine",requireAuth,async c=>{
 });
 battlesRoute.get("/:id",async c=>{
  const [row]=await db.select().from(battleChallenges).where(eq(battleChallenges.id,parseId(c.req.param("id"))));
- if(!row)throw new HTTPException(404,{message:"Challenge not found"});return c.json((await views([row]))[0]);
+ if(!row)throw new HTTPException(404,{message:"Challenge not found"});return c.json((await battleViews([row]))[0]);
 });
 battlesRoute.post("/",requireAuth,rateLimit("battle-create",5,3600),zValidator("json",battleChallengeSchema),async c=>{
  requireNotBanned(c);const body=c.req.valid("json"),user=c.get("user"),digest=hash(body);
@@ -62,7 +62,7 @@ battlesRoute.post("/",requireAuth,rateLimit("battle-create",5,3600),zValidator("
   const [duplicate]=await tx.select().from(battleChallenges).where(and(or(and(eq(battleChallenges.challengerId,a.id),eq(battleChallenges.opponentId,b.id)),and(eq(battleChallenges.challengerId,b.id),eq(battleChallenges.opponentId,a.id))),or(eq(battleChallenges.status,"accepted"),and(eq(battleChallenges.status,"open"),sql`${battleChallenges.expiresAt}>now()`))));
   if(duplicate)throw new HTTPException(409,{message:"These communities already have an open or agreed challenge"});
   const [created]=await tx.insert(battleChallenges).values({id:body.id,challengerId:a.id,opponentId:b.id,createdBy:user.id,challengerStakeUnits:tokenAmountUnits(body.challengerAmount).toString(),opponentStakeUnits:tokenAmountUnits(body.opponentAmount).toString(),durationSecs:body.durationSecs,rulesVersion:BATTLE_RULES_VERSION,requestHash:digest,expiresAt:new Date(Date.now()+86400000)}).returning();return created;
- });return c.json((await views([row]))[0],201);
+ });return c.json((await battleViews([row]))[0],201);
 });
 battlesRoute.post("/:id/:action",requireAuth,rateLimit("battle-action",20,60),async c=>{
  requireNotBanned(c);const id=parseId(c.req.param("id")),action=c.req.param("action")!,user=c.get("user");
@@ -83,5 +83,5 @@ battlesRoute.post("/:id/:action",requireAuth,rateLimit("battle-action",20,60),as
   const status=effectiveStatus(row);
   if((action==="accept"&&status!=="open")||(action==="cancel"&&!["open","accepted"].includes(status)))throw new HTTPException(409,{message:"This challenge is no longer open"});
   const [updated]=await tx.update(battleChallenges).set(action==="accept"?{status:"accepted",acceptedBy:user.id,acceptedAt:new Date()}:{status:"cancelled",closedAt:new Date()}).where(eq(battleChallenges.id,id)).returning();return updated;
- });return c.json((await views([result]))[0]);
+ });return c.json((await battleViews([result]))[0]);
 });

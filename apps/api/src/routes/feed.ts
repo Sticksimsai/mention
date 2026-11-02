@@ -2,7 +2,7 @@
 // Global feed is Redis-cached (5s) — this is the hottest path and the main
 // fix for v1's "every pageview hammers Postgres" overload.
 import { Hono } from "hono";
-import type { PostView } from "@mention/shared";
+import type { PostView, FeedItem } from "@mention/shared";
 import {
   posts, xPosts, xPostCommunities, communities, users, communityMembers,
   postLikes, postReposts, xPostLikes, xPostReposts,
@@ -10,6 +10,8 @@ import {
 } from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
+
+import { marketActivity } from "../lib/market-activity.js";
 
 export const feedRoute = new Hono();
 
@@ -49,7 +51,8 @@ async function fetchMerged(opts: {
   /** limit to these communities (the viewer's joined tribes) */
   communityIds?: string[];
   before?: Date;
-}): Promise<PostView[]> {
+  includeMarkets?: boolean;
+}): Promise<FeedItem[]> {
   const before = opts.before ?? new Date(Date.now() + 60_000);
 
   // native
@@ -75,9 +78,10 @@ async function fetchMerged(opts: {
     .where(and(...xWhere))
     .orderBy(desc(xPosts.tweetCreatedAt)).limit(PAGE);
 
-  const [nativeRows, xRows] = await Promise.all([nativeQ, xQ]);
+  const [nativeRows, xRows, activity] = await Promise.all([nativeQ, xQ, opts.includeMarkets ? marketActivity({ ...opts, before }) : Promise.resolve([])]);
 
-  const views: PostView[] = [
+  const views: FeedItem[] = [
+    ...activity,
     ...nativeRows.map((r) => nativeToView(r.p, r.u, r.c)),
     ...xRows.map((r) => xToView(r.x, r.link.communityId, r.c)),
   ];
@@ -89,7 +93,7 @@ async function fetchMerged(opts: {
 }
 
 /** Decorate posts with likedByMe/repostedByMe for an authed viewer. */
-export async function decorate(items: PostView[], userId: string | null): Promise<PostView[]> {
+export async function decorate<T extends FeedItem>(items: T[], userId: string | null): Promise<T[]> {
   if (!userId || items.length === 0) return items;
   const nIds = items.filter((i) => i.source === "native").map((i) => i.id.slice(2));
   const xIds = items.filter((i) => i.source === "x").map((i) => i.id.slice(2));
@@ -101,11 +105,12 @@ export async function decorate(items: PostView[], userId: string | null): Promis
   ]);
   const liked = new Set([...nl.map((r) => `n:${r.postId}`), ...xl.map((r) => `x:${r.xPostId}`)]);
   const reposted = new Set([...nr.map((r) => `n:${r.postId}`), ...xr.map((r) => `x:${r.xPostId}`)]);
-  return items.map((i) => ({ ...i, likedByMe: liked.has(i.id), repostedByMe: reposted.has(i.id) }));
+  return items.map((i) => i.source === "market" ? i : ({ ...i, likedByMe: liked.has(i.id), repostedByMe: reposted.has(i.id) }));
 }
 
 feedRoute.get("/", async (c) => {
   const communityId = c.req.query("communityId") || undefined;
+  const includeMarkets = c.req.query("includeMarkets") === "true";
   const author = c.req.query("author")?.toLowerCase() || undefined;
   const cursor = c.req.query("cursor");
   const before = cursor ? new Date(cursor) : undefined;
@@ -114,7 +119,7 @@ feedRoute.get("/", async (c) => {
 
   // only cache the anonymous first page of global/community feeds
   const cacheable = !before && !author && !viewerId && scope === "all";
-  const cacheKey = `feed:${communityId ?? "global"}`;
+  const cacheKey = `feed:v2:${includeMarkets ? "markets" : "posts"}:${communityId ?? "global"}`;
   if (cacheable) {
     const hit = await redis.get(cacheKey).catch(() => null);
     if (hit) return c.json(JSON.parse(hit));
@@ -129,7 +134,7 @@ feedRoute.get("/", async (c) => {
     if (communityIds.length === 0) return c.json({ items: [], nextCursor: null });
   }
 
-  let items = await fetchMerged({ communityId, authorUsername: author, communityIds, before });
+  let items = await fetchMerged({ communityId, authorUsername: author, communityIds, before, includeMarkets });
   items = await decorate(items, viewerId);
   const out = {
     items,

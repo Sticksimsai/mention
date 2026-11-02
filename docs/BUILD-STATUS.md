@@ -1,5 +1,16 @@
 # Mentions build status — 2026-11-02
 
+## Current release: real activity only
+
+- Removed fictional market cards, Layout demo and synthetic odds histories.
+- Real challenge proposals, acceptances, cancellations and expiries appear chronologically alongside posts in the public home feed and relevant community/joined feeds. System updates are not attributed to a user and have no fake engagement controls. Only challenges between approved communities are eligible. Personal profile feeds remain posts-only.
+- Existing eight-second home polling and five-second server caching refresh activity; this is not a websocket stream.
+- Browser favicon uses the same pixel @ geometry as the rotating site logo.
+- Live API checked 2026-11-02: launch enabled=false, battleExecutionEnabled=false, maxDevBuyBps=200. No flags changed, no on-chain transaction submitted.
+- API/web typechecks plus offline market activity, battle state/permission and post-thread tests pass.
+
+Older release notes below describe historical UI, including demos that have now been removed.
+
 ## This release
 
 - Battles feed, coin search, Open / Live / Completed / My communities views, paginated proposals and detail pages.

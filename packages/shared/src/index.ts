@@ -209,3 +209,13 @@ export interface BattleView {
   rulesVersion: string; createdAt: string; expiresAt: string; acceptedAt: string | null;
   escrowFunded: false;
 }
+
+/** System-generated public challenge updates; never attributed to a user's post. */
+export interface MarketActivityView {
+  id: string;
+  source: "market";
+  event: "proposed" | "accepted" | "cancelled" | "expired";
+  createdAt: string;
+  battle: BattleView;
+}
+export type FeedItem = PostView | MarketActivityView;

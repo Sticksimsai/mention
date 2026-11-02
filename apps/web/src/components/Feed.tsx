@@ -3,11 +3,11 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import Link from "next/link";
-import type { PostView } from "@mention/shared";
+import type { PostView, FeedItem, MarketActivityView } from "@mention/shared";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
-interface FeedPage { items: PostView[]; nextCursor: string | null }
+interface FeedPage { items: FeedItem[]; nextCursor: string | null }
 
 export function Feed({ communityId, author, scope }: {
   communityId?: string;
@@ -16,7 +16,7 @@ export function Feed({ communityId, author, scope }: {
   scope?: "joined";
 }) {
   const { me } = useMe();
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ includeMarkets: "true" });
   if (communityId) params.set("communityId", communityId);
   if (author) params.set("author", author);
   if (me) params.set("viewerId", me.id);
@@ -47,7 +47,7 @@ export function Feed({ communityId, author, scope }: {
         <p className="text-sm leading-6">
           {scope === "joined"
             ? "Join a community and its posts — on-site and from X — show up here."
-            : "Posts made here and matching tweets from X both land in this feed."}
+            : "Community posts, matching tweets and real mentionmarkets updates appear here."}
         </p>
         {!communityId && !author && (
           <Link href="/explore" className="mt-6 rounded-xl border hairline bg-surface px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-volt/40 hover:text-volt">
@@ -60,7 +60,7 @@ export function Feed({ communityId, author, scope }: {
 
   return (
     <div>
-      {items.map((p) => <PostCard key={p.id} post={p} />)}
+      {items.map((p) => p.source === "market" ? <MarketActivityCard key={p.id} activity={p} /> : <PostCard key={p.id} post={p} />)}
       {feed.hasNextPage && (
         <button
           onClick={() => feed.fetchNextPage()}
@@ -181,4 +181,18 @@ function FeedSkeleton() {
       ))}
     </div>
   );
+}
+
+function MarketActivityCard({ activity }: { activity: MarketActivityView }) {
+  const b = activity.battle;
+  const labels = { proposed: "Challenge proposed", accepted: "Challenge accepted · awaiting escrow", cancelled: "Challenge cancelled", expired: "Proposal expired" };
+  return <article className="border-b hairline px-5 py-5">
+    <div className="flex items-center gap-2 text-xs text-muted"><img src="/brand/favicon.svg" alt="" className="h-7 w-7"/><Link href="/mentionmarkets" className="font-semibold text-fg hover:text-volt">mentionmarkets</Link><span>·</span><time dateTime={activity.createdAt}>{formatDistanceToNowStrict(new Date(activity.createdAt), { addSuffix: true })}</time></div>
+    <p className="mt-3 text-xs font-medium text-volt">{labels[activity.event]}</p>
+    <Link href={`/mentionmarkets/${b.id}`} className="mt-3 block rounded-xl border hairline bg-surface p-4 transition hover:border-volt/40">
+      <div className="flex flex-wrap items-center gap-3">{[b.challenger,b.opponent].map((coin,i)=><span key={coin.id} className="inline-flex items-center gap-2">{i===1&&<span className="mr-1 text-xs text-muted">vs</span>}{coin.pfpUrl?<img src={coin.pfpUrl} alt="" className="h-8 w-8 rounded-full object-cover"/>:<span className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-xs text-volt">{coin.ticker.slice(0,2)}</span>}<strong className="text-sm">${coin.ticker}</strong></span>)}</div>
+      <p className="mt-3 text-xs leading-5 text-muted">{b.durationSecs/60}-minute proposed round · {({open:"Open proposal",accepted:"Awaiting escrow",cancelled:"Cancelled",expired:"Expired"})[b.status]}</p><span className="mt-3 block text-xs text-volt">View challenge →</span>
+    </Link>
+    <p className="mt-2 text-[11px] leading-5 text-muted">Draft challenge activity. No funds locked; no live wagering.</p>
+  </article>;
 }
