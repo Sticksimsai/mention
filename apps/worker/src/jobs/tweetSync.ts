@@ -29,7 +29,7 @@ export async function tweetSyncJob(username:string):Promise<{found:number}>{
    if(cursor===progress.cursor)throw new Error("Timeline cursor did not advance");
    progress.cursor=cursor;await redis.set(key,JSON.stringify(progress));
   }
-  const values={username:uname,lastTweetId:complete?progress.newest:state?.lastTweetId??null,consecutiveEmptyRuns:found?0:(state?.consecutiveEmptyRuns??0)+1,nextEligibleAt:new Date(Date.now()+60000),lastSyncedAt:new Date(),lastError:null};
+  const values={username:uname,lastTweetId:complete?progress.newest:state?.lastTweetId??null,consecutiveEmptyRuns:found?0:(state?.consecutiveEmptyRuns??0)+1,nextEligibleAt:new Date(Date.now()+45000),lastSyncedAt:new Date(),lastError:null};
   await db.insert(xSyncState).values(values).onConflictDoUpdate({target:xSyncState.username,set:values});
   if(complete)await redis.del(key);
   if(found)await redis.del("feed:v3:markets:global","feed:v3:posts:global");

@@ -19,10 +19,15 @@ import { communitySearchJob } from "./jobs/communitySearch.js";
 import { xProfileJob } from "./jobs/xProfile.js";
 
 const connection = queueConnection;
+function observe<T>(worker: Worker<T>) {
+ worker.on("failed", (job,error)=>console.warn("queue job failed",worker.name,job?.name,error.message.slice(0,180)));
+ worker.on("error", error=>console.error("queue connection error",worker.name,error.message.slice(0,180)));
+ return worker;
+}
 new Worker<{userId:string}>(QUEUES.X_PROFILE, job => xProfileJob(job.data.userId), { connection, concurrency: 2, limiter: { max: 30, duration: 60_000 } });
 
 const searchQueue = new Queue(QUEUES.COMMUNITY_SEARCH, { connection });
-new Worker<{communityId:string}>(QUEUES.COMMUNITY_SEARCH,job=>communitySearchJob(job.data.communityId),{connection,concurrency:2,limiter:{max:30,duration:60_000}});
+observe(new Worker<{communityId:string}>(QUEUES.COMMUNITY_SEARCH,job=>communitySearchJob(job.data.communityId),{connection,concurrency:2,limiter:{max:30,duration:60_000}}));
 
 const tweetSyncQueue = new Queue(QUEUES.TWEET_SYNC, { connection });
 const writebackQueue = new Queue(QUEUES.X_WRITEBACK, { connection });
@@ -31,13 +36,13 @@ const schedulerQueue = new Queue(QUEUES.SCHEDULER, { connection });
 
 // ── workers ──
 
-new Worker<TweetSyncJob>(QUEUES.TWEET_SYNC, async (job) => {
+observe(new Worker<TweetSyncJob>(QUEUES.TWEET_SYNC, async (job) => {
   return tweetSyncJob(job.data.username);
 }, {
   connection,
   concurrency: 4,                       // parallel SocialData fetches per instance
   limiter: { max: 60, duration: 60_000 }, // global-ish politeness cap
-});
+}));
 
 new Worker<XWritebackJob>(QUEUES.X_WRITEBACK, async (job) => {
   const exhausted = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
@@ -59,7 +64,7 @@ new Worker<TokenStatsJob>(QUEUES.TOKEN_STATS, async (job) => {
 new Worker(QUEUES.TRENDING, async () => trendingJob(), { connection });
 
 // ── scheduler: the heartbeat that replaces pg_cron ──
-new Worker(QUEUES.SCHEDULER, async (job) => {
+observe(new Worker(QUEUES.SCHEDULER, async (job) => {
   switch (job.name) {
     case "pending-writebacks": {
       const rows=await db.execute(sql`SELECT id FROM posts WHERE crosspost_status = 'pending' ORDER BY created_at LIMIT 100`);
@@ -107,7 +112,7 @@ new Worker(QUEUES.SCHEDULER, async (job) => {
       return { ok: true };
     }
   }
-}, { connection });
+}, { connection })).on("completed",job=>{if(job.name==="fanout-tweet-sync"||job.name==="community-search")console.info("sync scheduler completed",job.name,job.returnvalue);});
 
 // repeatable schedules (idempotent to re-register on boot)
 async function registerSchedules() {
