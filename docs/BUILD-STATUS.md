@@ -29,3 +29,7 @@ Live browser checks are read-only or use the isolated demo. No real orders, bets
 ## Arena visual update — 2026-11-02
 
 The public section is named Arena, at /arena; legacy /battles routes redirect. Navigation, community tabs, Launchpad copy and Docs use Arena. Compact market cards include two coin rows, native-token challenge details, bookmarks and duration filters. The separately labelled Layout demo contains six fictional pairings and a wide percentage-price-change chart view. Real unfunded challenges show unavailable performance rather than invented odds, volume or price history. Watchlists are stored on the current browser. Financial execution gates are unchanged.
+
+## Arena palette and odds charts — 2026-11-02
+
+Arena now uses the same surface, raised, line, foreground, muted and volt theme colors as the rest of Mentions. Cards include small odds-history charts and the detail view shows a 0–100% probability axis with pointer and keyboard history inspection. Demonstration odds are explicitly synthetic, sum to 100% at each sample, and are not inferred from token returns. Real challenge odds remain unavailable until market pricing is implemented. No pricing, escrow or settlement service is enabled by this visual change.
