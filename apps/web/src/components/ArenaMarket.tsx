@@ -40,8 +40,8 @@ export function MarketCard({market:m,saved,onSave,onOpen}:{market:ArenaMarket;sa
  const title=`Which coin leads after ${roundLabel(m.duration)}?`;
  const head=<><span className="arena-pair"><CoinAvatar coin={m.coins[0]}/><CoinAvatar coin={m.coins[1]} side={1}/></span><span>{title}</span></>;
  return <article className="arena-market-card">
-  {m.demo?<button onClick={onOpen} className="arena-card-title">{head}</button>:<Link href={`/arena/${m.id}`} className="arena-card-title">{head}</Link>}
-  <div className="arena-card-rows">{m.coins.map((c,i)=><div className="arena-coin-row" key={c.ticker}><span className="arena-ticker">${c.ticker}</span><strong>{m.demo?percent(m.odds![i]):"—"}</strong>{m.demo?<button className={`arena-side arena-side-${i}`} onClick={onOpen}>View</button>:<Link href={`/arena/${m.id}`} className={`arena-side arena-side-${i}`}>View</Link>}</div>)}</div>
+  {m.demo?<button onClick={onOpen} className="arena-card-title">{head}</button>:<Link href={`/mentionmarkets/${m.id}`} className="arena-card-title">{head}</Link>}
+  <div className="arena-card-rows">{m.coins.map((c,i)=><div className="arena-coin-row" key={c.ticker}><span className="arena-ticker">${c.ticker}</span><strong>{m.demo?percent(m.odds![i]):"—"}</strong>{m.demo?<button className={`arena-side arena-side-${i}`} onClick={onOpen}>View</button>:<Link href={`/mentionmarkets/${m.id}`} className={`arena-side arena-side-${i}`}>View</Link>}</div>)}</div>
   <OddsChart market={m} compact/>
   <footer className="arena-card-footer"><span>{m.demo?"Demo odds":m.status}</span><Bookmark saved={saved} onClick={onSave}/></footer>
  </article>;
@@ -51,12 +51,12 @@ export function MarketDetail({market:m,saved,onSave}:{market:ArenaMarket;saved:b
  const [copied,setCopied]=useState(false);
  useEffect(()=>setCopied(false),[m.id]);
  return <section className="arena-detail" aria-label={`${m.coins[0].ticker} versus ${m.coins[1].ticker} details`}>
-  <header className="arena-detail-heading"><span className="arena-pair"><CoinAvatar coin={m.coins[0]}/><CoinAvatar coin={m.coins[1]} side={1}/></span><div><p className="arena-eyebrow">{m.demo?"Illustrative market · demo odds":m.status}</p><h2>Which coin leads after {roundLabel(m.duration)}?</h2></div><div className="arena-detail-tools">{!m.demo&&<button className="arena-copy" onClick={async()=>{try{await navigator.clipboard.writeText(`${location.origin}/arena/${m.id}`);setCopied(true);}catch{setCopied(false);}}}>{copied?"Copied":"Copy link"}</button>}<Bookmark saved={saved} onClick={onSave}/></div></header>
+  <header className="arena-detail-heading"><span className="arena-pair"><CoinAvatar coin={m.coins[0]}/><CoinAvatar coin={m.coins[1]} side={1}/></span><div><p className="arena-eyebrow">{m.demo?"Illustrative market · demo odds":m.status}</p><h2>Which coin leads after {roundLabel(m.duration)}?</h2></div><div className="arena-detail-tools">{!m.demo&&<button className="arena-copy" onClick={async()=>{try{await navigator.clipboard.writeText(`${location.origin}/mentionmarkets/${m.id}`);setCopied(true);}catch{setCopied(false);}}}>{copied?"Copied":"Copy link"}</button>}<Bookmark saved={saved} onClick={onSave}/></div></header>
   <div className="arena-detail-body"><div className="arena-detail-summary">{m.coins.map((c,i)=><div className="arena-summary-row" key={c.ticker}><CoinAvatar coin={c} side={i}/><span><strong>${c.ticker}</strong><small>{c.name}</small></span><b>{m.demo?percent(m.odds![i]):"—"}</b></div>)}
     <div className="arena-round-info"><p className="arena-eyebrow">Round brief</p><h3>Two communities. One finish line.</h3><p>The higher percentage price change leads. Both coins are measured over the same {roundLabel(m.duration)} window.</p><dl><div><dt>Format</dt><dd>Community vs community</dd></div><div><dt>{m.demo?"Data":"Funding"}</dt><dd>{m.demo?"Illustrative only":"Not deposited"}</dd></div><div><dt>Chart</dt><dd>Win probability (%)</dd></div></dl>{m.stakes&&<p className="arena-stakes">Proposed stakes: {m.stakes[0]} ${m.coins[0].ticker} / {m.stakes[1]} ${m.coins[1].ticker}. Token quantities are not equal-value commitments.</p>}</div>
   </div><div className="arena-chart"><OddsChart market={m}/>
     <p className="arena-chart-caption">{m.demo?"Illustrative odds only · not derived from trades or token price returns.":"Market odds will appear when a pricing mechanism is connected."}</p>
-  </div></div><footer className="arena-detail-footer"><span>{m.demo?"Demo preview · no volume or funds":"Proposed stakes · no funds locked"}</span><span>{roundLabel(m.duration)} round <span className="arena-footer-brand">mentions / arena</span></span></footer>
+  </div></div><footer className="arena-detail-footer"><span>{m.demo?"Demo preview · no volume or funds":"Proposed stakes · no funds locked"}</span><span>{roundLabel(m.duration)} round <span className="arena-footer-brand">mentions / mentionmarkets</span></span></footer>
  </section>;
 }
 

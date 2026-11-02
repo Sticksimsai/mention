@@ -19,7 +19,7 @@ export default function TribePage() {
   const { id } = useParams<{ id: string }>();
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "arena">("feed");
+  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "mentionmarkets">("feed");
 
   const { data: tribe } = useQuery({
     queryKey: ["community", id],
@@ -102,12 +102,12 @@ export default function TribePage() {
           <a className="hover:text-volt" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a>
         </p>
 
-        <div className="mt-4 flex gap-6 text-sm">
-          {(["feed", "chart", "trade", "arena"] as const).map((t) => (
+        <div className="mt-4 flex gap-4 overflow-x-auto text-sm sm:gap-6">
+          {(["feed", "chart", "trade", "mentionmarkets"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`border-b-2 pb-2 capitalize ${tab === t ? "border-volt text-fg" : "border-transparent text-muted hover:text-fg"}`}
+              className={`shrink-0 border-b-2 pb-2 ${t === "mentionmarkets" ? "" : "capitalize"} ${tab === t ? "border-volt text-fg" : "border-transparent text-muted hover:text-fg"}`}
             >
               {t}
             </button>
@@ -122,7 +122,7 @@ export default function TribePage() {
         </>
       )}
       {tab === "chart" && <ChartTab ca={tribe.ca} />}
-      {tab === "arena" && <CommunityBattles id={tribe.id} />}
+      {tab === "mentionmarkets" && <CommunityBattles id={tribe.id} />}
       {tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}
     </Shell>
   );

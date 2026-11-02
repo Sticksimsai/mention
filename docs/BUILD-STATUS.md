@@ -33,3 +33,7 @@ The public section is named Arena, at /arena; legacy /battles routes redirect. N
 ## Arena palette and odds charts — 2026-11-02
 
 Arena now uses the same surface, raised, line, foreground, muted and volt theme colors as the rest of Mentions. Cards include small odds-history charts and the detail view shows a 0–100% probability axis with pointer and keyboard history inspection. Demonstration odds are explicitly synthetic, sum to 100% at each sample, and are not inferred from token returns. Real challenge odds remain unavailable until market pricing is implemented. No pricing, escrow or settlement service is enabled by this visual change.
+
+## 2026-11-02 — Launchpad presentation and mentionmarkets
+
+Launchpad uses a wider, numbered setup layout, icon-led launch options, grouped pair assets with locally bundled official token artwork, and clear pair/mode selection feedback. Fee detail is collapsible; the live token preview stays at the top. Public Arena pages renamed to `/mentionmarkets`, with redirects for Arena and Battles URLs. Navigation places mentionmarkets below Launchpad. Transaction logic, launch execution flags, the 2% developer-buy cap and planned 1% purchased-token reserve are unchanged.

@@ -229,3 +229,52 @@ button, input { font: inherit; }
 .arena-odds-label { margin-left:auto; color:theme('colors.muted'); font-size:10px; }
 .arena-odds-scrubber { display:flex; align-items:center; gap:12px; margin:10px 0; font-size:10px; color:theme('colors.muted'); }
 .arena-odds-scrubber input { flex:1; min-width:0; accent-color:theme('colors.volt'); }
+
+/* Launchpad: a focused setup flow using the shared Mentions palette. */
+.launch-header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:28px 32px; border-bottom:1px solid theme('colors.line'); }
+.launch-eyebrow { color:theme('colors.volt'); font-size:10px; font-weight:600; letter-spacing:.16em; margin-bottom:12px; }
+.launch-header h1 { line-height:1.6; }
+.launch-header h1 + p { margin-top:10px; color:theme('colors.muted'); font-size:14px; line-height:1.6; }
+.launch-network { display:flex; align-items:center; gap:8px; border:1px solid theme('colors.line'); border-radius:100px; padding:8px 12px; color:theme('colors.muted'); font-size:12px; white-space:nowrap; }
+.launch-network > span { width:6px; height:6px; background:theme('colors.volt'); border-radius:50%; }
+.launch-content { max-width:960px; margin:auto; padding:28px 32px 40px; }
+.launch-preview { border-top:2px solid theme('colors.volt'); }
+.launch-fees { background:theme('colors.surface'); }
+.launch-fees summary { line-height:1.8; }
+.launch-step { border:1px solid theme('colors.line'); border-radius:18px; padding:24px; }
+.launch-step-heading { display:flex; align-items:center; gap:13px; margin-bottom:22px; }
+.launch-step-heading > span { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:34px; height:34px; border:1px solid theme('colors.line'); background:theme('colors.surface'); border-radius:10px; font-size:11px; font-family:monospace; color:theme('colors.volt'); }
+.launch-step-heading h2 { font-size:16px; font-weight:600; }
+.launch-step-heading p { margin-top:4px; font-size:12px; line-height:1.6; color:theme('colors.muted'); }
+.launch-mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.launch-mode-card { display:flex; flex-direction:column; min-width:0; border:1px solid theme('colors.line'); border-radius:14px; background:theme('colors.surface'); padding:18px; text-align:left; transition:border-color .15s,background-color .15s; }
+.launch-mode-top { display:flex; align-items:center; gap:9px; width:100%; margin-bottom:16px; }
+.launch-mode-icon { display:flex; width:36px; height:36px; flex-shrink:0; align-items:center; justify-content:center; border:1px solid theme('colors.line'); border-radius:10px; color:theme('colors.muted'); background:theme('colors.ink'); }
+.launch-mode-tag { font-size:10px; line-height:1.5; color:theme('colors.muted'); }
+.launch-check { display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:auto; width:18px; height:18px; border-radius:50%; border:1px solid theme('colors.line'); font-size:11px; font-weight:700; }
+.launch-mode-card strong { font-size:14px; font-weight:600; }
+.launch-mode-description { display:block; margin-top:8px; font-size:12px; line-height:1.7; color:theme('colors.muted'); }
+.launch-mode-card:hover,.launch-pair-card:hover { border-color:theme('colors.muted'); }
+.launch-mode-card:focus-visible,.launch-pair-card:focus-visible { outline:2px solid theme('colors.volt'); outline-offset:3px; }
+.launch-mode-card.is-selected,.launch-pair-card.is-selected { border-color:theme('colors.volt'); background:rgb(155 240 0 / .045); }
+.is-selected .launch-check { background:theme('colors.volt'); border-color:theme('colors.volt'); color:theme('colors.ink'); }
+.is-selected .launch-mode-icon { color:theme('colors.volt'); }
+.launch-pair-group + .launch-pair-group { margin-top:22px; }
+.launch-pair-group h3 { margin-bottom:10px; font-size:11px; font-weight:500; color:theme('colors.muted'); }
+.launch-pair-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.launch-pair-card { display:flex; align-items:center; gap:10px; min-width:0; border:1px solid theme('colors.line'); border-radius:12px; padding:14px 12px; background:theme('colors.surface'); text-align:left; transition:border-color .15s,background-color .15s; }
+.launch-pair-logo { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:38px; height:38px; overflow:hidden; border-radius:50%; background:theme('colors.raised'); font-size:12px; color:theme('colors.fg'); }
+.launch-pair-logo img { width:100%; height:100%; object-fit:contain; }
+.launch-pair-logo.is-small { width:20px; height:20px; font-size:8px; }
+.launch-pair-name { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.launch-pair-name strong { font-size:13px; font-weight:600; }
+.launch-pair-name > span { font-size:11px; line-height:1.4; color:theme('colors.muted'); }
+.launch-pair-card .launch-check { width:15px; height:15px; font-size:9px; }
+.launch-selection-note { display:flex; align-items:center; gap:9px; margin-top:20px; padding:12px; background:theme('colors.surface'); border-radius:10px; font-size:12px; line-height:1.7; color:theme('colors.muted'); }
+.launch-selection-note strong { color:theme('colors.fg'); font-weight:500; }
+@media(max-width:1100px) { .launch-pair-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .launch-header { padding:22px 16px; align-items:flex-start; } .launch-header h1 { font-size:15px; } .launch-header h1 + p { font-size:12px; } .launch-network { padding:6px 9px; font-size:10px; } .launch-content { padding:20px 12px 28px; } .launch-step { padding:18px 14px; } .launch-mode-card { padding:14px; } .launch-mode-top { flex-wrap:wrap; gap:7px; } .launch-mode-tag { font-size:9px; } .launch-mode-grid { gap:9px; } .launch-pair-card { padding:12px 9px; gap:8px; } .launch-pair-logo { width:30px; height:30px; } .launch-pair-card .launch-check { width:13px; height:13px; } }
+@media(max-width:370px) { .launch-mode-grid { grid-template-columns:1fr; } .launch-mode-top { flex-wrap:nowrap; margin-bottom:10px; } .launch-pair-card .launch-check { display:none; } }
+@media(prefers-reduced-motion:reduce) { .launch-mode-card,.launch-pair-card { transition:none; } }
+
+@media(max-width:600px) { .arena-page-header h1 { font-size:clamp(13px,3.4vw,20px); } }

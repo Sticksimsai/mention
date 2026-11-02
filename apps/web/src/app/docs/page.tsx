@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 
-const sections = ["Overview", "Launching", "X mirroring", "Trading", "Fees", "Rules & roles", "Arena"];
-const ids = ["overview", "launch", "mirroring", "trading", "fees", "rules", "arena"];
+const sections = ["Overview", "Launching", "X mirroring", "Trading", "Fees", "Rules & roles", "mentionmarkets"];
+const ids = ["overview", "launch", "mirroring", "trading", "fees", "rules", "mentionmarkets"];
 export default function DocsPage() {
   const [playing, setPlaying] = useState(false);
   const [active, setActive] = useState("overview");
@@ -65,9 +65,9 @@ export default function DocsPage() {
           <div className="space-y-3">{[["Community owners","Manage appearance, pin and remove posts, set posting cooldowns, remove members, and transfer ownership."],["Site staff","Moderate posts and ban accounts across the site."],["Members","Join conversations and follow community rules. Banned accounts are read-only; posts remain unless removed."]].map(([a,b])=><div key={a} className="docs-card"><h3 className="mb-2 text-sm font-semibold">{a}</h3><p className="text-sm leading-6 text-muted">{b}</p></div>)}</div>
         </Doc>
         <span id="battles" className="block scroll-mt-24"/>
-        <Doc id="arena" number="07" title="Community Arena" intro="Short token-versus-token rounds, powered by community reserves. Currently available as a challenge preview.">
+        <span id="arena" className="scroll-mt-6" /><Doc id="mentionmarkets" number="07" title="Community mentionmarkets" intro="Short token-versus-token rounds, powered by community reserves. Currently available as a challenge preview.">
           <div className="grid gap-3 sm:grid-cols-3">{[["Reserve", "Planned: 1% of the tokens purchased in a developer buy goes to the battle reserve; 99% stays with the developer. The buy itself is capped at 2% of total supply."], ["Challenge", "Owners propose each coin’s stake and a 10-minute, 30-minute or one-hour round. The opponent’s owner can accept draft terms; either owner can cancel."], ["Settle", "Proposed scoring compares percentage price changes. Escrow, price-source rules, tie handling and refunds must be completed before any live wagering."]].map(([title,body])=><div key={title} className="docs-card"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-3 text-xs leading-6 text-muted">{body}</p></div>)}</div>
-          <p className="mt-4 text-sm leading-6 text-muted">Acceptance means “Awaiting escrow.” It does not transfer tokens, start a countdown or promise a payout. Existing proposals need fresh consent to final settlement terms. The interactive demo uses illustrative odds and no funds.</p><Link href="/arena" className="mt-4 inline-block text-sm text-volt">Explore Arena →</Link>
+          <p className="mt-4 text-sm leading-6 text-muted">Acceptance means “Awaiting escrow.” It does not transfer tokens, start a countdown or promise a payout. Existing proposals need fresh consent to final settlement terms. The interactive demo uses illustrative odds and no funds.</p><Link href="/mentionmarkets" className="mt-4 inline-block text-sm text-volt">Explore mentionmarkets →</Link>
         </Doc>
 
         <div className="rounded-2xl border border-volt/20 bg-volt/5 p-6"><p className="text-lg font-semibold">Find your next conversation.</p><Link href="/explore" className="mt-3 inline-block text-sm font-semibold text-volt">Explore Mentions ↗</Link></div>
