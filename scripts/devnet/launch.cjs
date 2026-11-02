@@ -6,17 +6,17 @@ function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.tra
  if(process.env.RUN_DEVNET_TESTS!=='true')throw Error('Set RUN_DEVNET_TESTS=true to run the test-only rehearsal');
  const c=new web3.Connection(process.env.DEVNET_RPC_URL||'https://api.devnet.solana.com',{commitment:'confirmed',disableRetryOnRateLimit:true,fetch:(u,o)=>fetch(u,{...o,signal:AbortSignal.timeout(20000)})});
  if(await c.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('DEVNET ONLY: wrong genesis');
- const payer=web3.Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync('qa/devnet-private/payer.json'))));
+ const {payer,dir}=require('./local-state.cjs').context(web3.Keypair);
  const balance=await c.getBalance(payer.publicKey);if(balance<1e9)throw Error(`Need at least 1 test SOL on devnet at ${payer.publicKey.toBase58()}. Never send mainnet SOL.`);
  const mode=process.env.DEVNET_LAUNCH_MODE||'creator';if(!['fair','creator'].includes(mode))throw Error('Devnet rehearsal supports fair or creator mode');const bps=mode==='fair'?0:200;const test=mode==='fair'?'fair-no-buy':'creator-2-percent';
- const file='qa/devnet-launch-evidence.json',evidence=fs.existsSync(file)?JSON.parse(fs.readFileSync(file)):[];
+ const file=path.join(dir,'launch-evidence.json'),evidence=fs.existsSync(file)?JSON.parse(fs.readFileSync(file)):[];
  const record=event=>{evidence.push({...event,at:new Date().toISOString()});fs.writeFileSync(file,JSON.stringify(evidence,null,2));};
  async function send(instructions){const bh=await c.getLatestBlockhash();const tx=new web3.Transaction({...bh,feePayer:payer.publicKey}).add(...instructions);tx.sign(payer);return submit(tx.serialize());}
  async function submit(bytes){const tx=web3.VersionedTransaction.deserialize(bytes);const sig=load('apps/api/src/lib/money.ts',{'@mention/db':{},'./db.js':{},'../env.js':{env:{SOLANA_RPC_URL:'https://api.devnet.solana.com'}},'./crypto.js':{}}).base58(tx.signatures[0]);record({signature:sig,status:'signed-before-send'});await c.sendRawTransaction(bytes,{skipPreflight:false,maxRetries:3});for(let n=0;n<90;n++){const s=(await c.getSignatureStatuses([sig],{searchTransactionHistory:true})).value[0];if(s?.err)throw Error('Devnet transaction failed: '+sig);if(s?.confirmationStatus==='confirmed'||s?.confirmationStatus==='finalized'){record({signature:sig,status:'confirmed'});return sig;}await new Promise(r=>setTimeout(r,1000));}throw Error('Unknown confirmation. Reconcile saved signature before rerunning: '+sig);}
  if(evidence.some(e=>e.status==='signed-before-send'&&!evidence.some(x=>x.signature===e.signature&&x.status==='confirmed')))throw Error('An earlier signature needs reconciliation; refusing a fresh attempt');
  if(evidence.some(e=>e.test===test&&e.passed))throw Error('Rehearsal already completed; inspect saved evidence before creating another token');
  const shared=load('packages/shared/src/index.ts'),online=new sdk.OnlinePumpSdk(c),mint=web3.Keypair.generate(),quoteMint=new web3.PublicKey(shared.LAUNCH_PAIRS.find(p=>p.id==='SOL').mint);
- fs.writeFileSync('qa/devnet-private/launch-mint.json',JSON.stringify([...mint.secretKey]),{mode:0o600});
+ fs.writeFileSync(path.join(dir,`launch-${mode}-mint.json`),JSON.stringify([...mint.secretKey]),{mode:0o600});
  const [global,feeConfig,quoteControl,resolved,quoteTransferFee]=await Promise.all([online.fetchGlobal(),online.fetchFeeConfig(),online.fetchQuoteControl(),online.resolveQuoteMint(quoteMint),online.fetchQuoteTransferFee(quoteMint)]);
  const amount=new BN(shared.devBuyUnits(BigInt(global.tokenTotalSupply.toString()),bps).toString());
  const quote=amount.isZero()?new BN(0):sdk.getBuySolAmountFromTokenAmount({global,feeConfig,quoteControl,quoteTransferFee,quoteMint,mintSupply:global.tokenTotalSupply,bondingCurve:null,amount});

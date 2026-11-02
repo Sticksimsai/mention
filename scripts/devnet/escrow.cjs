@@ -11,11 +11,11 @@ const base58=bytes=>{let n=BigInt('0x'+Buffer.from(bytes).toString('hex')),s='',
  if(await c.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('DEVNET ONLY');
  const program=new PublicKey(fs.readFileSync('contracts/mention-escrow/program-id.txt','utf8').trim());
  if(!(await c.getAccountInfo(program))?.executable)throw Error('Development escrow is not deployed');
- const payer=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync('qa/devnet-private/payer.json'))));
+ const {payer,dir}=require('./local-state.cjs').context(Keypair);
  if(await c.getBalance(payer.publicKey)<100000000)throw Error('Need at least 0.1 devnet SOL for test accounts and transaction fees');
- const file='qa/devnet-escrow-evidence.json';if(fs.existsSync(file))throw Error('A prior public-devnet run exists. Reconcile its signatures and claims before starting another round.');
+ const file=path.join(dir,'escrow-evidence.json');if(fs.existsSync(file))throw Error('A prior public-devnet run exists. Reconcile its signatures and claims before starting another round.');
  const opponent=Keypair.generate(),oracle=Keypair.generate(),mintA=Keypair.generate(),mintB=Keypair.generate();
- fs.writeFileSync('qa/devnet-private/escrow-actors.json',JSON.stringify({opponent:[...opponent.secretKey],oracle:[...oracle.secretKey],mintA:[...mintA.secretKey],mintB:[...mintB.secretKey]}),{mode:0o600});
+ fs.writeFileSync(path.join(dir,'escrow-actors.json'),JSON.stringify({opponent:[...opponent.secretKey],oracle:[...oracle.secretKey],mintA:[...mintA.secretKey],mintB:[...mintB.secretKey]}),{mode:0o600});
  const events=[];const record=event=>{events.push({...event,at:new Date().toISOString()});fs.writeFileSync(file,JSON.stringify(events,null,2))};
  async function send(label,ixs,signers=[]){const bh=await c.getLatestBlockhash();const tx=new Transaction({...bh,feePayer:payer.publicKey}).add(ComputeBudgetProgram.setComputeUnitLimit({units:600000}),...ixs);tx.sign(payer,...signers);const bytes=tx.serialize(),signature=base58(tx.signature);record({label,signature,status:'signed-before-send'});await c.sendRawTransaction(bytes,{skipPreflight:false,maxRetries:3});for(let i=0;i<90;i++){const s=(await c.getSignatureStatuses([signature],{searchTransactionHistory:true})).value[0];if(s?.err)throw Error('Transaction failed; inspect '+signature);if(s?.confirmationStatus==='confirmed'||s?.confirmationStatus==='finalized'){record({label,signature,status:'confirmed'});return signature}await sleep(1000)}throw Error('Unknown confirmation. Reconcile '+signature+' before rerunning');}
  const tokenA=spl.TOKEN_PROGRAM_ID,tokenB=spl.TOKEN_2022_PROGRAM_ID;

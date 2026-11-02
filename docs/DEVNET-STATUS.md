@@ -10,25 +10,15 @@
 
 ## Public devnet execution is not complete
 
-No escrow deployment or token-launch transaction has been sent to public devnet. The RPC faucet returns HTTP 410 and directs developers to the official faucet; the faucet's agent guidance excludes automated website use. The isolated test wallet currently has no test SOL.
+No escrow deployment or token-launch transaction has been sent to public devnet.
 
-Test wallet: `6qfiMQ6ET2aY3267s69WW5VCi5dEShPU2o3Ze7ekMYU6`
+The original test wallet `6qfiMQ6ET2aY3267s69WW5VCi5dEShPU2o3Ze7ekMYU6` received **5 devnet SOL**, verified on 2026-11-02 at slot 517938900. Its signing key and the original program key are absent from the restored workspace. Do not fund that address again. It cannot be used unless its original key is recovered.
 
-Development escrow program ID: `8ZM7gXJo4xxdD9DJcXvMFby66ioCv3QW5w5yDo9sBQNM`
+## Resume with keys on your own computer
 
-Fund only on **devnet**. Never send mainnet funds. About 5 test SOL covers the measured ~2.0183 SOL program-data rent, a similarly sized temporary deployment buffer, and a small launch rehearsal allowance. Exact deployment charging/refunds depend on the CLI's transaction sequence.
+Follow [DEVNET-RUNBOOK.md](DEVNET-RUNBOOK.md). Scripts now require explicit local key paths and a persistent state directory outside the checkout. They never silently replace a missing payer or request an airdrop. `prepare.cjs` binds state to both payer and program identities and updates the development program ID in source; deployment always rebuilds and runs the executable tests first.
 
-## Resume
-
-From the repository root, with the development keypairs retained in the ignored `qa/devnet-private` directory:
-
-```sh
-node scripts/devnet/probe.cjs
-RUN_DEVNET_TESTS=true DEVNET_LAUNCH_MODE=fair node scripts/devnet/launch.cjs
-RUN_DEVNET_TESTS=true DEVNET_LAUNCH_MODE=creator node scripts/devnet/launch.cjs
-RUN_DEVNET_TESTS=true bash scripts/devnet/deploy-escrow.sh
-RUN_DEVNET_TESTS=true node scripts/devnet/escrow.cjs
-```
+The user-controlled-key changes have syntax and local state validation tests; public devnet execution remains pending. The earlier 75 executable assertions apply to the previously built contract, not a newly deployed program.
 
 The launch script reuses the production launch builder with a devnet connection, creates a devnet lookup table, signs with the isolated test wallet, records signatures before sending, and verifies actual supply/developer token balance. Its connection and deployment scripts reject other genesis hashes. Public metadata must be deployed before launch rehearsal. A recorded ambiguous signature must be reconciled before any rerun. The deployment script reruns the executable tests before uploading the program.
 
