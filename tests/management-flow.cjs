@@ -12,7 +12,8 @@ const db={select:(selection)=>{let rows=[],base,sort,limit=Infinity;const q={fro
 let user={id:'ordinary',role:null};
 const middleware={requireAuth:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);c.set('user',user);await next()},requireStaff:(c,roles=['admin','moderator'])=>{if(!roles.includes(c.get('user').role))throw new HTTPException(403)},requireNotBanned:()=>{}};
 const redis={get:async()=>null,set:async()=>{},del:async()=>{}};
-const feed=load('apps/api/src/routes/feed.ts',{'@mention/shared':shared,'@mention/db':orm,'../lib/db.js':{db},'../lib/redis.js':{redis},'../lib/market-activity.js':{marketActivity:async()=>[]}});
+let badgeStatus="verified";
+const feed=load('apps/api/src/routes/feed.ts',{'@mention/shared':shared,'@mention/db':orm,'../lib/db.js':{db},'../lib/redis.js':{redis},'../lib/x-verification.js':{xVerification:async()=>({status:badgeStatus})},'../lib/market-activity.js':{marketActivity:async()=>[]}});
 const mgmt=load('apps/api/src/routes/management.ts',{'@mention/db':orm,'../lib/db.js':{db},'../lib/redis.js':{redis},'../auth/middleware.js':middleware,'./feed.js':feed});
 const app=new Hono();app.route('/manage',mgmt.managementRoute);app.route('/feed',feed.feedRoute);app.onError((e,c)=>c.json({error:e.message},e.status??500));
 const cid='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',pid='33333333-3333-4333-8333-333333333333',global='44444444-4444-4444-8444-444444444444';
@@ -40,6 +41,8 @@ const req=(url,method='GET',body,auth=true)=>app.request('http://test'+url,{meth
  items=(await (await req('/feed')).json()).items;assert(!items.some(x=>x.id==='n:bad'),'Pending community posts excluded');
  const more=Array.from({length:35},(_,i)=>native('p'+i,'owner',cid,30+i));data.posts.push(...more);items=await (await req('/feed')).json();assert(items.nextCursor);assert.equal(items.items[0].id,'n:'+global);assert.equal(items.nextCursor,items.items.at(-1).createdAt);
  const cursor=items.nextCursor;items=(await (await req('/feed?cursor='+encodeURIComponent(cursor))).json()).items;assert(!items.some(x=>x.id==='n:'+global),'Older pages do not re-inject pin');
+ const verified=await feed.decorate([{id:'n:test',source:'native',author:{username:'tradementions'}}],null);assert.equal(verified[0].author.verified,true);
+ badgeStatus='unverified';const unverified=await feed.decorate([{id:'n:test',source:'native',author:{username:'tradementions'}}],null);assert.equal(unverified[0].author.verified,false);
  assert(data.modAuditLog.length>=3,'Changes are audited');
  console.log('PASS: anonymous and ordinary-user denial, owner isolation, mixed privilege denial, community hide/pin, global moderation, audit writes, official native/X reach, profile isolation, approval visibility, pins and pagination.');
 })().catch(e=>{console.error(e);process.exitCode=1});

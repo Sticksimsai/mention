@@ -92,6 +92,7 @@ export const tradeSchema = z.object({
 // ────────────────────────── shared view types ──────────────────────────
 
 export interface AuthorView {
+  verified?: boolean;
   id?: string;
   username: string;
   name: string;

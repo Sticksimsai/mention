@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import Link from "next/link";
+import { XVerifiedBadge } from "./XVerifiedBadge";
 import type { PostView, FeedItem, MarketActivityView } from "@mention/shared";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
@@ -91,7 +92,7 @@ export function PostCard({ post }: { post: PostView }) {
   }
 
   return (
-    <article className="border-b hairline px-5 py-4 hover:bg-surface/40">
+    <article className="border-b hairline px-5 py-5 transition-colors hover:bg-surface/30 sm:px-6">
       <div className="flex gap-3">
         {post.author.pfpUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -100,40 +101,26 @@ export function PostCard({ post }: { post: PostView }) {
           <div className="h-10 w-10 shrink-0 rounded-full bg-raised" />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
-            <Link href={`/u/${post.author.username}`} className="font-semibold hover:underline">
-              {post.author.name}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center text-[15px] leading-5">
+                <Link href={`/u/${post.author.username}`} className="truncate font-semibold text-fg hover:underline">{post.author.name}</Link>
+                {post.author.verified && <span className="shrink-0"><XVerifiedBadge /></span>}
+              </div>
+              <Link href={`/u/${post.author.username}`} className="mt-0.5 block truncate text-xs leading-5 text-muted hover:text-fg">@{post.author.username}</Link>
+            </div>
+            <Link href={`/post/${encodeURIComponent(post.id)}`} className="shrink-0 pt-0.5 text-[11px] text-muted hover:text-fg" title={new Date(post.createdAt).toLocaleString()}>
+              <time dateTime={post.createdAt}>{formatDistanceToNowStrict(new Date(post.createdAt), {addSuffix:true})}</time>
             </Link>
-            <span className="text-muted">@{post.author.username}</span>
-            <Link href={`/post/${encodeURIComponent(post.id)}`} className="text-muted hover:underline">· {formatDistanceToNowStrict(new Date(post.createdAt))}</Link>
-            {post.communityName && (
-              <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">
-                ${post.communityTicker}
-              </Link>
-            )}
-            {post.source === "x" && post.tweetUrl && (
-              <a href={post.tweetUrl} target="_blank" rel="noreferrer"
-                 className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] text-muted hover:text-fg"
-                 title="Mirrored from X">
-                from 𝕏
-              </a>
-            )}
-            {post.source === "native" && post.author.id === me?.id && post.crosspostStatus === "pending" && <span className="text-[11px] text-muted">Queued for X</span>}
-            {post.source === "native" && post.author.id === me?.id && post.crosspostStatus === "failed" && <span className="text-[11px] text-down">X cross-post failed</span>}
-            {post.source === "native" && post.crosspostStatus === "posted" && post.tweetUrl && (
-              <a href={post.tweetUrl} target="_blank" rel="noreferrer"
-                 className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] text-muted hover:text-fg"
-                 title="Also posted to X">
-                on 𝕏 ↗
-              </a>
-            )}
-            {post.official && <span className="text-[11px] text-volt">Official Mentions</span>}
-            {post.globalPinned && <span className="text-[11px] text-volt">Pinned sitewide</span>}
-            {me?.role && <Link href="/admin" className="text-[11px] text-muted hover:text-volt">Moderate</Link>}
-            {post.pinned && <span className="text-[11px] text-volt">pinned</span>}
           </div>
-
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed">{post.content}</p>
+          <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-fg">{post.content}</p>
+          {(post.tweetUrl || post.communityName || post.official || post.globalPinned || post.pinned) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+            {post.tweetUrl && <a href={post.tweetUrl} target="_blank" rel="noreferrer" className="hover:text-fg" title="Open original post on X">{post.source === "x" ? "From 𝕏 ↗" : "Also on 𝕏 ↗"}</a>}
+            {post.communityName && <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">${post.communityTicker}</Link>}
+            {post.official && <span>Official Mentions</span>}
+            {(post.globalPinned || post.pinned) && <span className="text-volt">{post.globalPinned ? "Pinned sitewide" : "Pinned in community"}</span>}
+          </div>}
+          {post.source === "native" && post.author.id === me?.id && ["pending","failed"].includes(post.crosspostStatus ?? "") && <p className="mt-2 text-xs text-muted">{post.crosspostStatus === "pending" ? "Queued for X" : "X cross-post failed"}</p>}
 
           {post.mediaUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -141,22 +128,24 @@ export function PostCard({ post }: { post: PostView }) {
           )}
 
           {act.error && <p role="alert" className="mt-2 text-xs text-down">{act.error.message}</p>}
-          <div className="mt-3 flex items-center gap-8 text-sm text-muted">
+          <div className="mt-4 flex items-center gap-6 text-xs text-muted">
             <button
               disabled={act.isPending}
               onClick={() => engage(post.likedByMe, "like", "unlike")}
-              className={`hover:text-volt ${post.likedByMe ? "text-volt" : ""}`}
+              aria-label={`Like post (${post.likes})`}
+              className={`inline-flex min-h-8 items-center gap-1.5 hover:text-volt ${post.likedByMe ? "text-volt" : ""}`}
             >
-              ♥ {post.likes}
+              <PostIcon kind="like" /> {post.likes}
             </button>
             <button
               disabled={act.isPending}
               onClick={() => engage(post.repostedByMe, "repost", "unrepost")}
-              className={`hover:text-up ${post.repostedByMe ? "text-up" : ""}`}
+              aria-label={`Repost (${post.reposts})`}
+              className={`inline-flex min-h-8 items-center gap-1.5 hover:text-up ${post.repostedByMe ? "text-up" : ""}`}
             >
-              ⇄ {post.reposts}
+              <PostIcon kind="repost" /> {post.reposts}
             </button>
-            <Link href={`/post/${encodeURIComponent(post.id)}`} aria-label={`View replies (${post.replies})`} className="hover:text-volt">◌ {post.replies}</Link>
+            <Link href={`/post/${encodeURIComponent(post.id)}`} aria-label={`View replies (${post.replies})`} className="inline-flex min-h-8 items-center gap-1.5 hover:text-volt"><PostIcon kind="reply" /> {post.replies}</Link>
             {me?.role && (
               <button
                 onClick={() => api(`/v1/posts/${post.id}`, { method: "DELETE" }).then(() => qc.invalidateQueries({ queryKey: ["feed"] }))}
@@ -170,6 +159,10 @@ export function PostCard({ post }: { post: PostView }) {
       </div>
     </article>
   );
+}
+
+function PostIcon({kind}:{kind:"like"|"repost"|"reply"}) {
+ return <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{kind==="like"?<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>:kind==="repost"?<><path d="m3 8 4-4 4 4M7 4v12a3 3 0 0 0 3 3h3M21 16l-4 4-4-4M17 20V8a3 3 0 0 0-3-3h-3"/></>:<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0Z"/>}</svg>;
 }
 
 function FeedSkeleton() {

@@ -1,5 +1,5 @@
 import { communities, xPosts, xPostCommunities, posts, eq, sql } from "@mention/db";
-import { db } from "./context.js";
+import { db, redis } from "./context.js";
 export interface MatchCommunity {id:string;ticker:string;ca:string}
 export function matchingCommunities(text:string, rows:MatchCommunity[]) {
  return rows.flatMap(c=>{
@@ -12,6 +12,8 @@ export function matchingCommunities(text:string, rows:MatchCommunity[]) {
 export async function persistTweet(t:any,matches:ReturnType<typeof matchingCommunities>,official=false){
  const tweetId=t?.id_str,username=t?.user?.screen_name;
  if(typeof tweetId!=="string"||!/^\d+$/.test(tweetId)||typeof username!=="string"||!/^\w{1,15}$/.test(username))return false;
+ const verified=typeof t.user.is_blue_verified==="boolean"?t.user.is_blue_verified:t.user.verified;
+ if(typeof verified==="boolean")await redis.set(`x-author-verification:${username.toLowerCase()}`,verified?"verified":"unverified","EX",900);
  const date=new Date(t.tweet_created_at??t.created_at);if(!Number.isFinite(date.getTime()))return false;
  // A successful native cross-post already has its own card and engagement.
  const [native]=await db.select({id:posts.id}).from(posts).where(eq(posts.xTweetId,tweetId)).limit(1);

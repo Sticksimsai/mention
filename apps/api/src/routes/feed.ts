@@ -11,6 +11,7 @@ import {
 import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
 
+import { xVerification } from "../lib/x-verification.js";
 import { marketActivity } from "../lib/market-activity.js";
 
 export const feedRoute = new Hono();
@@ -97,7 +98,17 @@ async function fetchMerged(opts: {
 
 /** Decorate posts with likedByMe/repostedByMe for an authed viewer. */
 export async function decorate<T extends FeedItem>(items: T[], userId: string | null): Promise<T[]> {
-  if (!userId || items.length === 0) return items;
+  if (items.length === 0) return items;
+  const handles=[...new Set(items.filter(i=>i.source!=="market").map(i=>(i as PostView).author.username.toLowerCase()))];
+  const accounts=handles.length?await db.select().from(users).where(inArray(users.username,handles)):[];
+  const badges=new Map<string,boolean>();
+  await Promise.all(handles.map(async handle=>{
+    const account=accounts.find(a=>a.username===handle);
+    if(account)badges.set(handle,(await xVerification(account)).status==="verified");
+    else badges.set(handle,(await redis.get(`x-author-verification:${handle}`).catch(()=>null))==="verified");
+  }));
+  items=items.map(i=>i.source==="market"?i:({...i,author:{...i.author,verified:badges.get(i.author.username.toLowerCase())===true}})) as T[];
+  if (!userId) return items;
   const nIds = items.filter((i) => i.source === "native").map((i) => i.id.slice(2));
   const xIds = items.filter((i) => i.source === "x").map((i) => i.id.slice(2));
   const [nl, nr, xl, xr] = await Promise.all([
