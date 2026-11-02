@@ -12,7 +12,7 @@ export async function tweetSyncJob(username:string):Promise<{found:number}>{
  const key=`x-timeline:${uname}`,saved=await redis.get(key);
  let progress:{since:string|null;newest:string|null;cursor?:string}=saved?JSON.parse(saved):{since:state?.lastTweetId??null,newest:state?.lastTweetId??null};
  const [officialAccount]=await db.select().from(users).where(eq(users.id,OFFICIAL_ACCOUNT_ID));
- const matchers=await db.select({id:communities.id,ticker:communities.ticker,ca:communities.ca}).from(communities).where(eq(communities.status,"approved"));
+ const matchers=await db.select({id:communities.id,ticker:communities.ticker,ca:communities.ca,isExample:communities.isExample}).from(communities).where(eq(communities.status,"approved"));
  let found=0,complete=false;
  try{
   for(let page=0;page<5;page++){

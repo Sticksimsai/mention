@@ -1,5 +1,6 @@
 "use client";
 
+import { AttachmentPicker, emptyAttachments } from "./PostAttachments";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -8,6 +9,8 @@ import { useMe } from "@/lib/hooks";
 export function Composer({ communityId }: { communityId?: string }) {
   const { authenticated, login, me } = useMe();
   const [content, setContent] = useState("");
+  const [attachments,setAttachments]=useState(emptyAttachments);
+  const hasMedia=Boolean(attachments.mediaUrl||attachments.sticker);
   const [toX, setToX] = useState(true);
   const qc = useQueryClient();
 
@@ -15,10 +18,10 @@ export function Composer({ communityId }: { communityId?: string }) {
     mutationFn: () =>
       api<{ id: string; crosspostStatus: string }>("/v1/posts", {
         method: "POST",
-        body: { communityId, content, crosspostToX: toX && (me?.xWriteConnected ?? false) },
+        body: { communityId, content, mediaUrl:attachments.mediaUrl||null, stickerId:attachments.sticker?.id, crosspostToX: !hasMedia && toX && (me?.xWriteConnected ?? false) },
       }),
     onSuccess: () => {
-      setContent("");
+      setContent(""); setAttachments(emptyAttachments);
       qc.invalidateQueries({ queryKey: ["feed"] });
     },
   });
@@ -43,16 +46,17 @@ export function Composer({ communityId }: { communityId?: string }) {
         maxLength={280}
         className="w-full resize-none bg-transparent text-[13px] outline-none placeholder:text-muted"
       />
+      <AttachmentPicker communityId={communityId} value={attachments} onChange={setAttachments}/>
       <div className="mt-2 flex items-center justify-between">
         <label className="flex items-center gap-2 text-xs text-muted">
           <input
             type="checkbox"
-            checked={toX && (me?.xWriteConnected ?? false)}
-            disabled={!me?.xWriteConnected}
+            checked={!hasMedia && toX && (me?.xWriteConnected ?? false)}
+            disabled={hasMedia || !me?.xWriteConnected}
             onChange={(e) => setToX(e.target.checked)}
             className="accent-volt"
           />
-          {me?.xWriteConnected ? "Also post to my X" : "Connect X in settings to cross-post"}
+          {hasMedia ? "Attachments post to Mentions only" : me?.xWriteConnected ? "Also post to my X" : "Connect X in settings to cross-post"}
         </label>
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-muted">{content.length}/280</span>

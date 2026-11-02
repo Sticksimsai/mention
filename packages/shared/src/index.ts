@@ -52,7 +52,9 @@ export const OFFICIAL_ACCOUNT_ID = "b4104538-3fc4-4e4c-b877-47590f603528";
 export const createPostSchema = z.object({
   communityId: z.string().uuid().optional(),
   content: z.string().min(1).max(4000),
-  mediaUrl: z.string().url().optional().nullable(),
+  mediaUrl: z.string().url().refine(u => u.startsWith("https://"), "Use an HTTPS media URL").optional().nullable(),
+  quotePostId: z.string().regex(/^[nx]:[0-9a-f-]{36}$/i).optional(),
+  stickerId: z.string().max(100).optional(),
   /** mirror this post to the author's X account */
   crosspostToX: z.boolean().default(false),
 });
@@ -104,6 +106,11 @@ export interface PostView {
   source: "native" | "x";
   content: string;
   mediaUrl: string | null;
+  quotePostId?: string | null;
+  quotedPost?: PostView | null;
+  sticker?: StickerView | null;
+  repostedBy?: AuthorView;
+  repostedAt?: string;
   author: AuthorView;
   communityId: string;
   communityName?: string;
@@ -137,6 +144,7 @@ export interface CommunityView {
   membersCount: number;
   pinned: boolean;
   launchedViaTribes: boolean;
+  isExample?: boolean;
   isMember?: boolean;
   createdAt: string;
 }
@@ -237,4 +245,18 @@ export function parseXVerification(profile: unknown, expected: {username:string;
   const verified = typeof p.is_blue_verified === "boolean" ? p.is_blue_verified : p.verified;
   if (typeof verified !== "boolean") throw new Error("X verification unavailable");
   return verified;
+}
+
+export const stickerSchema = z.object({
+  label: z.string().trim().min(1).max(20),
+  glyph: z.enum(["spark", "diamond", "rocket", "heart", "bolt", "flag"]),
+  color: z.enum(["#a3ed00", "#a78bfa", "#38bdf8", "#fb7185", "#fbbf24"]),
+});
+export interface StickerView { id: string; communityId: string; ticker: string; label: string; glyph: string; color: string }
+export function starterStickers(c: {id:string;ticker:string}): StickerView[] {
+  const labels=["gm", "still here", "building", "community first", "let’s go", "we’re early"];
+  const glyphs=["spark", "diamond", "rocket", "heart", "bolt", "flag"];
+  const colors=["#a3ed00", "#a78bfa", "#38bdf8", "#fb7185", "#fbbf24"];
+  const seed=Array.from(c.id).reduce((n,ch)=>n+ch.charCodeAt(0),0);
+  return labels.map((label,i)=>({id:`preset:${i}`,communityId:c.id,ticker:c.ticker,label,glyph:glyphs[i],color:colors[(seed+i)%colors.length]}));
 }

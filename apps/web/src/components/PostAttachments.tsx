@@ -1,0 +1,32 @@
+"use client";
+import { useState } from 'react';
+import { useQuery,useMutation,useQueryClient } from '@tanstack/react-query';
+import { stickerSchema,type StickerView } from '@mention/shared';
+import { api } from '@/lib/api';
+
+const glyphs:Record<string,string>={spark:'M12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9Z',diamond:'M5 3H19L23 10 12 23 1 10ZM1 10H23M5 3 9 10 12 23 15 10 19 3',rocket:'M8 16 4 20 5 14M8 16 10 19 15 18M8 16 7 11 16 3 22 2 21 8 13 17ZM15 7H17V9H15Z',heart:'M12 21 2 11V5H6L12 10 18 5H22V11Z',bolt:'M13 1 3 14H10L9 23 21 9H14Z',flag:'M5 23V2H20V13H5M5 2H20V6H5M9 2V13M15 2V13'};
+export function CommunitySticker({sticker,small=false}:{sticker:StickerView;small?:boolean}){
+ return <span className={`inline-flex flex-col items-center justify-center rounded-xl border bg-ink p-3 ${small?'h-28 w-full':'my-3 h-44 w-44'}`} style={{borderColor:sticker.color+'50',color:sticker.color}}>
+  <span className="max-w-full truncate font-mono text-[10px] uppercase tracking-wider">${sticker.ticker}</span>
+  <svg viewBox="0 0 24 24" className={small?'my-2 h-8 w-8':'my-3 h-14 w-14'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="miter" aria-hidden="true"><path d={glyphs[sticker.glyph]??glyphs.spark}/></svg>
+  <span className="max-w-full break-words text-center text-xs font-semibold">{sticker.label}</span>
+ </span>;
+}
+export interface Attachments {mediaUrl:string;sticker:StickerView|null}
+export const emptyAttachments:Attachments={mediaUrl:'',sticker:null};
+export function AttachmentPicker({communityId,value,onChange}:{communityId?:string;value:Attachments;onChange:(v:Attachments)=>void}){
+ const [panel,setPanel]=useState<'gif'|'stickers'|null>(null);
+ const [url,setUrl]=useState('');const [error,setError]=useState('');const [creating,setCreating]=useState(false);
+ const [label,setLabel]=useState('gm');const [glyph,setGlyph]=useState('spark');const [color,setColor]=useState('#a3ed00');
+ const qc=useQueryClient();
+ const pack=useQuery({queryKey:['stickers',communityId],queryFn:()=>api<StickerView[]>(`/v1/communities/${communityId}/stickers`,{auth:false}),enabled:!!communityId&&panel==='stickers'});
+ const create=useMutation({mutationFn:()=>api<StickerView>(`/v1/communities/${communityId}/stickers`,{method:'POST',body:stickerSchema.parse({label,glyph,color})}),onSuccess:s=>{onChange({...value,sticker:s});setCreating(false);setPanel(null);qc.invalidateQueries({queryKey:['stickers',communityId]});}});
+ return <div className="my-3">
+  <div className="flex gap-2 text-xs"><button type="button" className="rounded-lg border hairline px-3 py-2 text-volt hover:bg-raised" onClick={()=>setPanel(panel==='gif'?null:'gif')}>GIF</button>{communityId&&<button type="button" className="rounded-lg border hairline px-3 py-2 text-volt hover:bg-raised" onClick={()=>setPanel(panel==='stickers'?null:'stickers')}>Community stickers</button>}</div>
+  {panel==='gif'&&<div className="mt-3 rounded-xl border hairline bg-surface p-3"><label className="block text-xs text-muted" htmlFor="gif-url">Paste a direct HTTPS GIF URL from GIPHY or Tenor</label><div className="mt-2 flex gap-2"><input id="gif-url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://media.giphy.com/…/giphy.gif" className="min-w-0 flex-1 rounded-lg border hairline bg-ink p-2 text-xs"/><button type="button" className="px-2 text-xs text-volt" onClick={()=>{try{const u=new URL(url);if(u.protocol!=='https:'||!(/\.gif$/i.test(u.pathname)))throw new Error();onChange({...value,mediaUrl:u.href});setPanel(null);setError('');}catch{setError('Use a direct HTTPS link ending in .gif.');}}}>Attach</button></div>{error&&<p role="alert" className="mt-2 text-xs text-down">{error}</p>}<p className="mt-2 text-[11px] text-muted">GIFs and stickers stay on Mentions.</p></div>}
+  {panel==='stickers'&&<div className="mt-3 rounded-xl border hairline bg-surface p-3"><div className="mb-3 flex items-center justify-between text-xs"><strong>Your community’s pack</strong><button type="button" onClick={()=>setCreating(!creating)} className="text-volt">{creating?'Back to pack':'+ Create sticker'}</button></div>
+   {creating?<div className="space-y-3"><input aria-label="Sticker caption" value={label} onChange={e=>setLabel(e.target.value)} maxLength={20} className="w-full rounded-lg border hairline bg-ink p-2 text-sm"/><div className="flex flex-wrap gap-2">{Object.keys(glyphs).map(g=><button type="button" aria-pressed={g===glyph} key={g} onClick={()=>setGlyph(g)} className={`rounded border hairline px-2 py-1 text-xs ${g===glyph?'text-volt':'text-muted'}`}>{g}</button>)}</div><div className="flex gap-2">{stickerSchema.shape.color.options.map(c=><button type="button" key={c} aria-label={`Color ${c}`} aria-pressed={c===color} onClick={()=>setColor(c)} className={`h-7 w-7 rounded-full ${c===color?'ring-2 ring-white ring-offset-2 ring-offset-black':''}`} style={{background:c}}/>)}</div><CommunitySticker small sticker={{id:'preview',communityId:communityId!,ticker:pack.data?.[0]?.ticker??'',label,glyph,color}}/><button type="button" disabled={create.isPending||!label.trim()} onClick={()=>create.mutate()} className="rounded-lg bg-volt px-3 py-2 text-xs font-semibold text-ink disabled:opacity-40">{create.isPending?'Saving…':'Save to community pack'}</button>{create.error&&<p role="alert" className="text-xs text-down">{create.error.message}</p>}</div>:<><div className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto">{pack.data?.map(s=><button type="button" key={s.id} onClick={()=>{onChange({...value,sticker:s});setPanel(null);}} aria-label={`Use ${s.label} sticker`}><CommunitySticker sticker={s} small/></button>)}</div>{pack.isLoading&&<p className="text-xs text-muted">Loading pack…</p>}{pack.isError&&<button type="button" onClick={()=>pack.refetch()} className="text-xs text-volt">Could not load pack. Retry</button>}</>}
+  </div>}
+  {(value.mediaUrl||value.sticker)&&<div className="mt-3 flex flex-wrap items-start gap-3">{value.mediaUrl&&<div><img src={value.mediaUrl} alt="GIF attachment preview" className="max-h-40 max-w-full rounded-lg" onError={()=>setError('GIF could not load. Try a different direct URL.')}/><button type="button" onClick={()=>onChange({...value,mediaUrl:''})} className="mt-1 text-xs text-muted">Remove GIF</button>{error&&<p className="text-xs text-down">{error}</p>}</div>}{value.sticker&&<div><CommunitySticker sticker={value.sticker}/><button type="button" onClick={()=>onChange({...value,sticker:null})} className="block text-xs text-muted">Remove sticker</button></div>}</div>}
+ </div>;
+}

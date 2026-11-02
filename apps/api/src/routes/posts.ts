@@ -1,7 +1,8 @@
+import { stickerPack } from "../lib/stickers.js";
 // Post mutations for both native ("n:<uuid>") and mirrored ("x:<uuid>") posts.
 // Counts update inside the same transaction as the like/repost row — v1 raced.
 import { z } from "zod";
-import { nativeToView, xToView, decorate } from "./feed.js";
+import { visiblePost, decorate } from "./feed.js";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
@@ -32,18 +33,6 @@ async function invalidateFeeds(communityId?: string | null) {
   await redis.del(...keys).catch(() => {});
 }
 
-async function visiblePost(source: "native" | "x", id: string) {
-  if (source === "native") {
-    const [r] = await db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).leftJoin(communities,eq(posts.communityId,communities.id)).where(and(eq(posts.id,id),eq(posts.hidden,false),or(eq(communities.status,"approved"),and(isNull(posts.communityId),eq(posts.authorId,OFFICIAL_ACCOUNT_ID)))));
-    if(!r)throw new HTTPException(404,{message:"Post not found"});
-    return nativeToView(r.p,r.u,r.c);
-  }
-  const [r]=await db.select({p:xPosts,c:communities}).from(xPosts).leftJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id)).leftJoin(communities,eq(xPostCommunities.communityId,communities.id)).where(and(eq(xPosts.id,id),eq(xPosts.hidden,false),or(eq(communities.status,"approved"),eq(xPosts.official,true)))).limit(1);
-  if(!r)throw new HTTPException(404,{message:"Post not found"});
-  const view=xToView(r.p,r.c?.id ?? "",r.c);
-  const [count]=await db.select({count:sql<number>`count(*)::int`}).from(xPostReplies).where(and(eq(xPostReplies.xPostId,id),eq(xPostReplies.hidden,false)));
-  return {...view,replies:view.replies+(count?.count??0)};
-}
 postsRoute.get("/:id",async c=>{
  const {source,id}=parseId(c.req.param("id"));
  const viewer=c.req.query("viewerId");if(viewer&&!z.string().uuid().safeParse(viewer).success)throw new HTTPException(400,{message:"Invalid viewer ID"});
@@ -75,7 +64,8 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
 
   const [comm] = body.communityId ? await db.select().from(communities).where(eq(communities.id, body.communityId)) : [];
   if (body.communityId && (!comm || comm.status !== "approved")) throw new HTTPException(404, { message: "community not found" });
-  if (!comm && (u.id !== OFFICIAL_ACCOUNT_ID || u.role !== "admin")) throw new HTTPException(403, { message: "Only the official account can publish sitewide posts" });
+  if (body.quotePostId) { const q=parseId(body.quotePostId); await visiblePost(q.source,q.id); }
+  if (!comm && !body.quotePostId && (u.id !== OFFICIAL_ACCOUNT_ID || u.role !== "admin")) throw new HTTPException(403, { message: "Only the official account can publish sitewide posts" });
 
   // must be a member (staff bypass, per v1 roles)
   if (!u.role && comm && comm.ownerId !== u.id) {
@@ -94,6 +84,10 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
     }
   }
 
+  const sticker=body.stickerId && comm ? (await stickerPack(comm)).find(s=>s.id===body.stickerId) : null;
+  if(body.stickerId&&!sticker)throw new HTTPException(400,{message:"Choose a sticker from this community"});
+  if(body.crosspostToX&&(body.quotePostId||body.mediaUrl||sticker))throw new HTTPException(400,{message:"Quotes and attachments are posted on Mentions only for now"});
+
   // Determine crosspost eligibility: user opted in AND has an active write connection
   let crosspostStatus: "skipped" | "pending" = "skipped";
   if (body.crosspostToX) {
@@ -107,6 +101,8 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
     authorId: u.id,
     content: body.content,
     mediaUrl: body.mediaUrl ?? null,
+    quotePostId: body.quotePostId ?? null,
+    stickerData: sticker ? JSON.stringify(sticker) : null,
     crosspostStatus,
   }).returning();
 
@@ -135,6 +131,7 @@ postsRoute.post("/:id/like", rateLimit("like", 60, 60), async (c) => {
       if (ins.length) await tx.update(xPosts).set({ nativeLikesCount: sql`${xPosts.nativeLikesCount} + 1` }).where(eq(xPosts.id, id));
     }
   });
+  await invalidateFeeds();
   return c.json({ ok: true });
 });
 
@@ -150,6 +147,7 @@ postsRoute.post("/:id/unlike", async (c) => {
       if (del.length) await tx.update(xPosts).set({ nativeLikesCount: sql`GREATEST(${xPosts.nativeLikesCount} - 1, 0)` }).where(eq(xPosts.id, id));
     }
   });
+  await invalidateFeeds();
   return c.json({ ok: true });
 });
 
@@ -158,6 +156,7 @@ postsRoute.post("/:id/repost", rateLimit("repost", 30, 60), async (c) => {
   requireNotBanned(c);
   const u = c.get("user");
   const { source, id } = parseId(c.req.param("id")!);
+  await visiblePost(source,id);
   await db.transaction(async (tx) => {
     if (source === "native") {
       const ins = await tx.insert(postReposts).values({ postId: id, userId: u.id }).onConflictDoNothing().returning();
@@ -167,6 +166,7 @@ postsRoute.post("/:id/repost", rateLimit("repost", 30, 60), async (c) => {
       if (ins.length) await tx.update(xPosts).set({ nativeRepostsCount: sql`${xPosts.nativeRepostsCount} + 1` }).where(eq(xPosts.id, id));
     }
   });
+  await invalidateFeeds();
   return c.json({ ok: true });
 });
 
@@ -182,6 +182,7 @@ postsRoute.post("/:id/unrepost", async (c) => {
       if (del.length) await tx.update(xPosts).set({ nativeRepostsCount: sql`GREATEST(${xPosts.nativeRepostsCount} - 1, 0)` }).where(eq(xPosts.id, id));
     }
   });
+  await invalidateFeeds();
   return c.json({ ok: true });
 });
 
@@ -199,7 +200,10 @@ postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", c
       await tx.update(posts).set({ repliesCount: sql`${posts.repliesCount} + 1` }).where(eq(posts.id, id));
     });
   } else {
-    await db.insert(xPostReplies).values({ xPostId: id, authorId: u.id, content });
+    await db.transaction(async tx=>{
+      await tx.insert(xPostReplies).values({ xPostId: id, authorId: u.id, content });
+      await tx.update(xPosts).set({nativeRepliesCount:sql`${xPosts.nativeRepliesCount} + 1`}).where(eq(xPosts.id,id));
+    });
   }
   await invalidateFeeds(parent.communityId);
   return c.json({ ok: true }, 201);
@@ -224,6 +228,7 @@ postsRoute.delete("/:id", async (c) => {
     await db.update(xPosts).set({ hidden: true }).where(eq(xPosts.id, id));
     await invalidateFeeds();
   }
+  await invalidateFeeds();
   return c.json({ ok: true });
 });
 

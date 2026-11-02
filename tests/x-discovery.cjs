@@ -8,6 +8,7 @@ assert.equal(mirror.matchingCommunities('$TEST is here',[community]).length,1);a
 assert.equal(mirror.matchingCommunities('$TESTING',[community]).length,0);assert.equal(mirror.matchingCommunities('TEST',[community]).length,0);
 assert.equal(mirror.matchingCommunities(ca,[community]).length,1);assert.equal(mirror.matchingCommunities(ca.toLowerCase(),[community]).length,0);assert.equal(mirror.matchingCommunities('a'+ca,[community]).length,0);
 assert.equal(mirror.matchingCommunities(`${ca} $OTHER`,[community,{id:'other',ticker:'OTHER',ca:'B'.repeat(32)}]).length,2);
+assert.equal(mirror.matchingCommunities('$TEST',[{...community,isExample:true}]).length,0,'Example community does not import ticker firehose');
 let cache=new Map(),responses=[],calls=[],persisted=[],fail=false;
 const redis={get:async k=>cache.get(k)??null,set:async(k,v)=>cache.set(k,v)};
 const db={select:()=>{let result;const q={from:()=>q,where:()=>{result=[community];return q},then:(resolve,reject)=>Promise.resolve(result).then(resolve,reject)};return q}};

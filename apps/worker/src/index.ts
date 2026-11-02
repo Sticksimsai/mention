@@ -72,7 +72,7 @@ observe(new Worker(QUEUES.SCHEDULER, async (job) => {
       return {enqueued:rows.length};
     }
     case "community-search": {
-      const rows=await db.execute(sql`SELECT id FROM communities WHERE status = 'approved'`);
+      const rows=await db.execute(sql`SELECT id FROM communities WHERE status = 'approved' AND is_example = false`);
       for(const row of rows as unknown as Array<{id:string}>)await searchQueue.add("search",{communityId:row.id},{jobId:`search-${row.id}`,attempts:3,backoff:{type:"exponential",delay:10000},removeOnComplete:true,removeOnFail:true});
       return {enqueued:rows.length};
     }

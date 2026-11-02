@@ -1,8 +1,9 @@
 import { communities, xPosts, xPostCommunities, posts, eq, sql } from "@mention/db";
 import { db, redis } from "./context.js";
-export interface MatchCommunity {id:string;ticker:string;ca:string}
+export interface MatchCommunity {id:string;ticker:string;ca:string;isExample?:boolean}
 export function matchingCommunities(text:string, rows:MatchCommunity[]) {
  return rows.flatMap(c=>{
+  if(c.isExample)return [];
   // Solana addresses are case-sensitive. Require the full base58 token.
   const ca=c.ca && text.split(/[^1-9A-HJ-NP-Za-km-z]+/).includes(c.ca);
   const ticker=/^[a-z0-9]{1,12}$/i.test(c.ticker)&&new RegExp(`(?:^|[^a-z0-9_])\\$${c.ticker}(?![a-z0-9_])`,"i").test(text);

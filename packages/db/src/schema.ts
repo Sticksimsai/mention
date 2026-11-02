@@ -83,6 +83,7 @@ export const communities = pgTable("communities", {
   postCooldownSecs: integer("post_cooldown_secs").notNull().default(0),
   // launch metadata — set when the token was launched through Tribes
   launchedViaTribes: boolean("launched_via_tribes").notNull().default(false),
+  isExample: boolean("is_example").notNull().default(false),
   creatorWallet: text("creator_wallet"),
   platformFeeShareBps: integer("platform_fee_share_bps"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -124,6 +125,8 @@ export const posts = pgTable("posts", {
   authorId: uuid("author_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   mediaUrl: text("media_url"),
+  quotePostId: text("quote_post_id"),
+  stickerData: text("sticker_data"),
   likesCount: integer("likes_count").notNull().default(0),
   repostsCount: integer("reposts_count").notNull().default(0),
   repliesCount: integer("replies_count").notNull().default(0),
@@ -192,6 +195,7 @@ export const xPosts = pgTable("x_posts", {
   globalPinned: boolean("global_pinned").notNull().default(false),
   nativeLikesCount: integer("native_likes_count").notNull().default(0),
   nativeRepostsCount: integer("native_reposts_count").notNull().default(0),
+  nativeRepliesCount: integer("native_replies_count").notNull().default(0),
   hidden: boolean("hidden").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -351,3 +355,13 @@ export const battleChallenges = pgTable("battle_challenges", {
   check("battle_draft_status", sql`${t.status} IN ('open','accepted','cancelled','expired')`),
   check("battle_positive_stakes", sql`${t.challengerStakeUnits} ~ '^[1-9][0-9]{0,17}$' AND ${t.opponentStakeUnits} ~ '^[1-9][0-9]{0,17}$'`),
 ]);
+
+export const communityStickers = pgTable("community_stickers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  label: text("label").notNull(),
+  glyph: text("glyph").notNull(),
+  color: text("color").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("idx_stickers_community").on(t.communityId)]);

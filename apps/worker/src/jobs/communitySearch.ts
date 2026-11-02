@@ -12,7 +12,7 @@ export function searchWindow(c:{ticker:string;ca:string},state:SearchState,now:n
 }
 export async function communitySearchJob(communityId:string){
  const [community]=await db.select().from(communities).where(eq(communities.id,communityId));
- if(!community||community.status!=="approved")return;
+ if(!community||community.status!=="approved"||community.isExample)return;
  const key=`x-search:${communityId}`;
  const saved=await redis.get(key);let state:SearchState=saved?JSON.parse(saved):{since:Math.floor(Date.now()/1000)-3600};
  const [account]=await db.select().from(users).where(eq(users.id,OFFICIAL_ACCOUNT_ID));

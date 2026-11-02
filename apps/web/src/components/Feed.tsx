@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { PostInteraction, QuotedPost } from "./PostInteraction";
+import { CommunitySticker } from "./PostAttachments";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNowStrict } from "date-fns";
 import Link from "next/link";
@@ -79,6 +82,8 @@ export function Feed({ communityId, author, scope }: {
 export function PostCard({ post }: { post: PostView }) {
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
+  const [menu,setMenu]=useState(false);
+  const [interaction,setInteraction]=useState<"quote"|"reply"|null>(null);
 
   const act = useMutation({
     mutationFn: ({ action }: { action: string }) =>
@@ -93,6 +98,8 @@ export function PostCard({ post }: { post: PostView }) {
 
   return (
     <article className="border-b hairline px-5 py-5 transition-colors hover:bg-surface/30 sm:px-6">
+      {post.repostedBy&&<p className="mb-3 pl-12 text-xs text-muted">↻ <Link href={`/u/${post.repostedBy.username}`} className="hover:text-volt">{post.repostedBy.name}</Link> reposted</p>}
+      {interaction&&<PostInteraction post={post} mode={interaction} onClose={()=>setInteraction(null)}/>}
       <div className="flex gap-3">
         {post.author.pfpUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -127,8 +134,10 @@ export function PostCard({ post }: { post: PostView }) {
             <img src={post.mediaUrl} alt="" className="mt-3 max-h-[480px] rounded-xl border hairline object-cover" />
           )}
 
+          {post.sticker&&<CommunitySticker sticker={post.sticker}/>}
+          {post.quotePostId&&<QuotedPost post={post.quotedPost}/>}
           {act.error && <p role="alert" className="mt-2 text-xs text-down">{act.error.message}</p>}
-          <div className="mt-4 flex items-center gap-6 text-xs text-muted">
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted">
             <button
               disabled={act.isPending}
               onClick={() => engage(post.likedByMe, "like", "unlike")}
@@ -139,13 +148,15 @@ export function PostCard({ post }: { post: PostView }) {
             </button>
             <button
               disabled={act.isPending}
-              onClick={() => engage(post.repostedByMe, "repost", "unrepost")}
+              onClick={() => authenticated?setMenu(!menu):login()}
+              aria-expanded={menu}
               aria-label={`Repost (${post.reposts})`}
               className={`inline-flex min-h-8 items-center gap-1.5 hover:text-up ${post.repostedByMe ? "text-up" : ""}`}
             >
               <PostIcon kind="repost" /> {post.reposts}
             </button>
-            <Link href={`/post/${encodeURIComponent(post.id)}`} aria-label={`View replies (${post.replies})`} className="inline-flex min-h-8 items-center gap-1.5 hover:text-volt"><PostIcon kind="reply" /> {post.replies}</Link>
+            <button onClick={()=>authenticated?setInteraction("reply"):login()} aria-label={`Reply (${post.replies})`} className="inline-flex min-h-8 items-center gap-1.5 hover:text-volt"><PostIcon kind="reply" /> {post.replies}</button>
+            <Link href={`/post/${encodeURIComponent(post.id)}`} className="text-[11px] hover:text-volt">View thread</Link>
             {me?.role && (
               <button
                 onClick={() => api(`/v1/posts/${post.id}`, { method: "DELETE" }).then(() => qc.invalidateQueries({ queryKey: ["feed"] }))}
@@ -155,6 +166,7 @@ export function PostCard({ post }: { post: PostView }) {
               </button>
             )}
           </div>
+          {menu&&<div className="mt-2 flex flex-wrap gap-2 rounded-xl border hairline bg-surface p-2 text-xs"><button disabled={act.isPending} className="rounded-lg px-3 py-2 hover:bg-raised" onClick={()=>{engage(post.repostedByMe,"repost","unrepost");setMenu(false);}}>{post.repostedByMe?"Undo repost":"Repost"}</button><button className="rounded-lg px-3 py-2 hover:bg-raised" onClick={()=>{setInteraction("quote");setMenu(false);}}>Quote post</button><button onClick={()=>setMenu(false)} className="ml-auto px-2 text-muted">Cancel</button></div>}
         </div>
       </div>
     </article>

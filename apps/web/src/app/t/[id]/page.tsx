@@ -13,14 +13,14 @@ import { Shell } from "@/components/Shell";
 import { Feed } from "@/components/Feed";
 import { Composer } from "@/components/Composer";
 import { TokenPulse } from "@/components/TokenPulse";
-import { api, shortCa } from "@/lib/api";
+import { api, fmtUsd, shortCa } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
 export default function TribePage() {
   const { id } = useParams<{ id: string }>();
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"feed" | "chart" | "trade" | "mentionmarkets">("feed");
+  const [selectedTab, setTab] = useState<"feed" | "chart" | "trade" | "mentionmarkets" | null>(null);
 
   const { data: tribe } = useQuery({
     queryKey: ["community", id],
@@ -46,11 +46,13 @@ export default function TribePage() {
   }
 
   const isMember = membership?.isMember ?? false;
+  const tab=selectedTab??(tribe.isExample?"chart":"feed");
 
   return (
     <Shell>
+      {tribe.isExample&&<div className="border-b hairline bg-surface px-5 py-3 text-xs leading-5 text-muted"><span className="mr-2 rounded bg-volt/10 px-2 py-1 font-semibold text-volt">EXAMPLE COMMUNITY</span>Live wrapped SOL chart. No token launched here. X discovery is off.</div>}
       {/* banner + pulse */}
-      <div className="relative h-44 bg-raised">
+      <div className="relative h-44 bg-raised" style={tribe.isExample?{background:"radial-gradient(ellipse at top right, #365923, transparent 70%), linear-gradient(135deg, #171c15, #111510)"}:undefined}>
         {tribe.bannerUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={tribe.bannerUrl} alt="" className="h-full w-full object-cover" />
@@ -100,12 +102,11 @@ export default function TribePage() {
           </button>
           {tribe.website && <> · <a className="hover:text-volt" href={tribe.website} target="_blank" rel="noreferrer">website</a></>}
           {tribe.telegram && <> · <a className="hover:text-volt" href={tribe.telegram} target="_blank" rel="noreferrer">telegram</a></>}
-          {" · "}
-          <a className="hover:text-volt" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a>
+          {!tribe.isExample&&<> · <a className="hover:text-volt" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a></>}
         </p>
 
         <div className="mt-4 flex gap-4 overflow-x-auto text-sm sm:gap-6">
-          {(["feed", "chart", "trade", "mentionmarkets"] as const).map((t) => (
+          {(["feed", "chart", "trade", "mentionmarkets"] as const).filter(t=>!tribe.isExample || (t!=="trade"&&t!=="mentionmarkets")).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -125,29 +126,22 @@ export default function TribePage() {
       )}
       {tab === "chart" && <ChartTab ca={tribe.ca} />}
       {tab === "mentionmarkets" && <CommunityBattles id={tribe.id} />}
-      {tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}
+      {!tribe.isExample && tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}
     </Shell>
   );
 }
 
 function ChartTab({ ca }: { ca: string }) {
-  const { data } = useQuery({
+  const { data,isLoading,isError,refetch } = useQuery({
     queryKey: ["token", ca],
     queryFn: () => api<TokenStats>(`/v1/token/${ca}/stats`, { auth: false }),
+    refetchInterval:15000,
   });
-  if (!data?.pairAddress) {
-    return (
-      <p className="px-5 py-10 text-center text-sm text-muted">
-        Chart appears once the token has an indexed pair. Early bonding-curve trading lives on{" "}
-        <a className="text-volt hover:underline" href={`https://pump.fun/coin/${ca}`} target="_blank" rel="noreferrer">pump.fun</a>.
-      </p>
-    );
-  }
-  return (
-    <iframe
-      title="chart"
-      src={`https://dexscreener.com/solana/${data.pairAddress}?embed=1&theme=dark&trades=0&info=0`}
-      className="h-[560px] w-full border-0"
-    />
-  );
+  if(isLoading)return <p className="p-8 text-sm text-muted">Loading live market data…</p>;
+  if (isError || !data?.pairAddress) return <div className="p-8 text-center text-sm text-muted"><p>Chart data is not available yet.</p><button className="mt-3 text-volt" onClick={()=>refetch()}>Retry</button></div>;
+  return <div className="p-3 sm:p-5">
+    <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{[["Price",fmtUsd(data.priceUsd)],["24h change",data.change24h===null?"—":`${data.change24h>=0?"+":""}${data.change24h.toFixed(2)}%`],["Pair volume · 24h",fmtUsd(data.volume24h)],["Pair liquidity",fmtUsd(data.liquidityUsd)]].map(([label,value])=><div key={label} className="rounded-xl border hairline bg-surface p-3"><p className="text-[10px] text-muted">{label}</p><p className="mt-2 font-mono text-sm font-semibold">{value}</p></div>)}</div>
+    <div className="overflow-hidden rounded-xl border hairline bg-surface"><div className="flex items-center justify-between border-b hairline px-4 py-3 text-xs"><span className="font-semibold">Price chart <span className="ml-2 font-normal text-muted">· Solana</span></span><a href={`https://dexscreener.com/solana/${data.pairAddress}`} target="_blank" rel="noreferrer" className="text-volt">Open chart ↗</a></div><iframe title="Live token price chart" src={`https://dexscreener.com/solana/${data.pairAddress}?embed=1&theme=dark&trades=0&info=0`} className="h-[560px] w-full border-0"/></div>
+    <p className="mt-3 text-[11px] leading-5 text-muted">Market data from DexScreener · highest-liquidity indexed pair · stats refresh every 15 seconds. If the embedded chart is blocked, use Open chart.</p>
+  </div>;
 }

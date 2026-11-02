@@ -14,7 +14,7 @@ async function fetchStats(ca: string): Promise<TokenStats> {
     const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ca}`, { signal: AbortSignal.timeout(6000) });
     if (r.ok) {
       const d: any = await r.json();
-      const pair = d?.pairs?.[0];
+      const pair = d?.pairs?.filter((p: any) => p.chainId === "solana" && p.baseToken?.address === ca).sort((a: any,b: any) => (b.liquidity?.usd ?? 0)-(a.liquidity?.usd ?? 0))[0];
       if (pair) {
         return {
           ...base,

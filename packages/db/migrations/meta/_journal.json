@@ -29,6 +29,13 @@
       "when": 1793622600000,
       "tag": "0003_official_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793622660000,
+      "tag": "0004_common_tattoo",
+      "breakpoints": true
     }
   ]
 }

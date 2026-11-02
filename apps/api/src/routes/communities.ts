@@ -1,3 +1,6 @@
+import { stickerPack } from "../lib/stickers.js";
+import { stickerSchema } from "@mention/shared";
+import { communityStickers } from "@mention/db";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
@@ -19,7 +22,7 @@ function toView(c: any, owner: any, isMember?: boolean): CommunityView {
     owner: { id: owner?.id, username: owner?.username ?? "", name: owner?.displayName ?? "", pfpUrl: owner?.pfpUrl ?? "" },
     website: c.website, telegram: c.telegram, xCommunityUrl: c.xCommunityUrl,
     membersCount: c.membersCount, pinned: c.pinned,
-    launchedViaTribes: c.launchedViaTribes,
+    launchedViaTribes: c.launchedViaTribes, isExample: c.isExample,
     isMember, createdAt: c.createdAt.toISOString?.() ?? c.createdAt,
   };
 }
@@ -210,4 +213,23 @@ communitiesRoute.post("/transfers/:transferId/accept", requireAuth, async (c) =>
       .values({ communityId: t.communityId, userId: u.id }).onConflictDoNothing();
   });
   return c.json({ ok: true });
+});
+
+// Each community has a branded starter pack and member-created stickers.
+communitiesRoute.get('/:id/stickers', async c => {
+ const [comm]=await db.select().from(communities).where(and(eq(communities.id,c.req.param('id')),eq(communities.status,'approved')));
+ if(!comm)throw new HTTPException(404,{message:'Community not found'});
+ return c.json(await stickerPack(comm));
+});
+communitiesRoute.post('/:id/stickers',requireAuth,rateLimit('sticker-create',5,3600),zValidator('json',stickerSchema),async c=>{
+ requireNotBanned(c);
+ const u=c.get('user');
+ const [comm]=await db.select().from(communities).where(and(eq(communities.id,c.req.param('id')),eq(communities.status,'approved')));
+ if(!comm)throw new HTTPException(404,{message:'Community not found'});
+ if(!u.role&&comm.ownerId!==u.id){
+  const [member]=await db.select().from(communityMembers).where(and(eq(communityMembers.communityId,comm.id),eq(communityMembers.userId,u.id)));
+  if(!member)throw new HTTPException(403,{message:'Join this community to create stickers'});
+ }
+ const [sticker]=await db.insert(communityStickers).values({...c.req.valid('json'),communityId:comm.id,createdBy:u.id}).returning();
+ return c.json({...sticker,ticker:comm.ticker},201);
 });

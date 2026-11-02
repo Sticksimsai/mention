@@ -16,7 +16,7 @@ export async function fetchTokenStats(ca: string): Promise<TokenStats> {
     });
     if (r.ok) {
       const d: any = await r.json();
-      const pair = d?.pairs?.[0];
+      const pair = d?.pairs?.filter((p: any) => p.chainId === "solana" && p.baseToken?.address === ca).sort((a: any,b: any) => (b.liquidity?.usd ?? 0)-(a.liquidity?.usd ?? 0))[0];
       if (pair) {
         return {
           ...base,
