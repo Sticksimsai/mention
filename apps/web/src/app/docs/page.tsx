@@ -6,15 +6,7 @@ import { Shell } from "@/components/Shell";
 
 const sections = ["Overview", "Launching", "X mirroring", "Trading", "Fees", "Rules & roles", "Arena"];
 const ids = ["overview", "launch", "mirroring", "trading", "fees", "rules", "arena"];
-const journey = [
-  { title: "Bring your identity", label: "Sign in", icon: "𝕏", detail: "Sign in with X. Your photo and handle become your identity on Mentions.", tag: "01 / YOUR ACCOUNT" },
-  { title: "Find your people", label: "Join", icon: "@", detail: "Explore token communities. Join the conversations you want to follow.", tag: "02 / YOUR COMMUNITIES" },
-  { title: "Keep the conversation moving", label: "Post", icon: "↗", detail: "Post in the community feed. Enable X posting separately to share a post on both platforms.", tag: "03 / YOUR VOICE" },
-  { title: "Explore the token", label: "Trade", icon: "⇄", detail: "Open the community’s Trade tab, review the details, and approve the transaction in your wallet.", tag: "04 / YOUR WALLET" },
-];
-
 export default function DocsPage() {
-  const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [active, setActive] = useState("overview");
   useEffect(() => {
@@ -24,11 +16,6 @@ export default function DocsPage() {
     motion.addEventListener("change", update);
     return () => motion.removeEventListener("change", update);
   }, []);
-  useEffect(() => {
-    if (!playing) return;
-    const timer = setInterval(() => setStep(s => (s+1)%journey.length), 5000);
-    return () => clearInterval(timer);
-  }, [playing]);
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top-b.boundingClientRect.top);
@@ -50,17 +37,6 @@ export default function DocsPage() {
           <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Your community.<br/><span className="text-muted">In the conversation.</span></h1>
           <p className="mt-5 max-w-xl text-sm leading-7 text-muted">Mentions brings token communities, social feeds, and Solana trading into one place. Start with your X identity. Find your people. Build from there.</p>
           <div className="mt-6 flex flex-wrap gap-3"><Link className="rounded-lg bg-volt px-4 py-2.5 text-sm font-semibold text-ink hover:bg-volt-deep" href="/explore">Explore communities ↗</Link><Link className="rounded-lg border hairline px-4 py-2.5 text-sm hover:bg-surface" href="/launch">Launch a token</Link></div>
-          <div className="docs-demo mt-8">
-            <div className="flex items-center justify-between gap-3 border-b hairline px-5 py-3"><span className="text-xs text-muted">How it works</span><button onClick={()=>setPlaying(p=>!p)} aria-pressed={playing} className="text-xs text-volt">{playing?"Pause animation":"Play animation"}</button></div>
-            <div className="grid grid-cols-4 border-b hairline" role="tablist" aria-label="Walkthrough steps">{journey.map((s,i)=><button role="tab" id={`step-${i}`} aria-selected={step===i} aria-controls="walkthrough" key={s.label} onKeyDown={e=>{ if(e.key==="ArrowRight" || e.key==="ArrowLeft") { e.preventDefault(); const next=(i+(e.key==="ArrowRight"?1:3))%4; setStep(next); setPlaying(false); document.getElementById(`step-${next}`)?.focus(); } }} onClick={()=>{setStep(i);setPlaying(false);}} className={`border-b-2 px-1 py-3 text-xs transition-colors ${step===i?"border-volt bg-volt/5 text-volt":"border-transparent text-muted hover:text-fg"}`}>{s.label}</button>)}</div>
-            <div id="walkthrough" role="tabpanel" aria-labelledby={`step-${step}`} className="min-h-[250px] p-5 sm:p-7">
-              <div key={step} className="docs-scene flex flex-col gap-6 sm:flex-row sm:items-center">
-                <div aria-hidden="true" className="docs-orbit"><span className="docs-orbit-dot"/><span className="font-display text-4xl text-volt">{journey[step].icon}</span></div>
-                <div className="flex-1"><p className="mb-3 font-mono text-[10px] tracking-widest text-volt">{journey[step].tag}</p><h2 className="text-xl font-semibold tracking-tight">{journey[step].title}</h2><p className="mt-3 text-sm leading-6 text-muted">{journey[step].detail}</p></div>
-              </div>
-            </div>
-            <div className="flex gap-1 px-5 pb-4" aria-hidden="true">{journey.map((_,i)=><span key={i} className={`h-1 flex-1 rounded-full ${i===step?"bg-volt":"bg-line"}`}/>)}</div>
-          </div>
         </section>
         <Doc id="launch" number="02" title="From an idea to a community" intro="Launching a token creates its community. You don’t need to set up a separate feed.">
           <div className="grid gap-3 sm:grid-cols-2">{[
