@@ -1,5 +1,7 @@
 "use client";
 
+import type { XVerification } from "@mention/shared";
+import { XVerifiedBadge } from "@/components/XVerifiedBadge";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +17,7 @@ import { useMe } from "@/lib/hooks";
 interface Community { id: string; name: string; ticker: string; pfpUrl: string; membersCount?: number; isOwner?: boolean }
 interface Profile {
   id: string; username: string; displayName: string; pfpUrl: string; bannerUrl: string; bio: string;
+  xVerification?: XVerification;
   createdAt: string; followers: number; following: number; tribes: number;
   postCount?: number; ownedTribes: Community[]; joinedCommunities?: Community[];
 }
@@ -28,11 +31,16 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const profile = useQuery({
     queryKey: ["profile", username],
+    refetchInterval: q => q.state.data?.xVerification?.status === "checking" ? 3000 : 60000,
     queryFn: () => api<Profile>(`/v1/users/${encodeURIComponent(username)}`, { auth: false }),
   });
   const save = useMutation({
     mutationFn: () => api("/v1/users/me", { method: "PATCH", body: { bio } }),
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["profile", username] }); setEditing(false); },
+  });
+  const refreshX = useMutation({
+    mutationFn: () => api<XVerification>("/v1/users/me/x-verification", { method: "POST" }),
+    onSuccess: v => { qc.setQueryData<Profile>(["profile", username], old => old ? { ...old, xVerification: v } : old); },
   });
   const p = profile.data;
   const own = Boolean(me && p && me.id === p.id);
@@ -42,7 +50,7 @@ export default function ProfilePage() {
   return <Shell>
     <header className="flex items-center gap-4 border-b hairline px-5 py-4">
       <Link href="/" aria-label="Back home" className="text-xl text-muted">←</Link>
-      <div className="min-w-0"><h1 className="truncate text-base font-semibold">{p.displayName}</h1><p className="text-[11px] text-muted">{own ? "Your profile" : `@${p.username}`}</p></div>
+      <div className="min-w-0"><h1 className="truncate text-base font-semibold">{p.displayName}{p.xVerification?.status === "verified" && <XVerifiedBadge />}</h1><p className="text-[11px] text-muted">{own ? "Your profile" : `@${p.username}`}</p></div>
       {own && <span className="ml-auto shrink-0 rounded-full border hairline px-2 py-1 text-[10px] text-muted"><span className="mr-1 text-volt">●</span>X connected</span>}
     </header>
     <div className="relative h-32 overflow-hidden bg-gradient-to-br from-[#26391a] via-[#3c5420] to-[#90ae42] sm:h-36">
@@ -59,8 +67,9 @@ export default function ProfilePage() {
         ) : <div className="-mt-10 grid h-20 w-20 place-items-center rounded-full border-4 border-ink bg-raised text-3xl text-volt">{p.displayName.slice(0, 1)}</div>}
         {own ? <button onClick={() => { setBio(p.bio); save.reset(); setEditing(true); }} className="mt-3 rounded-xl border hairline px-4 py-2 text-xs font-semibold hover:bg-surface">Edit profile</button> : <a href={`https://x.com/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer" className="mt-3 rounded-xl border hairline px-4 py-2 text-xs font-semibold">View on 𝕏 ↗</a>}
       </div>
-      <h2 className="mt-3 break-words text-2xl font-semibold tracking-tight">{p.displayName}</h2>
+      <h2 className="mt-3 break-words text-2xl font-semibold tracking-tight">{p.displayName}{p.xVerification?.status === "verified" && <XVerifiedBadge />}</h2>
       <a href={`https://x.com/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer" className="text-xs text-muted hover:text-volt">@{p.username} · 𝕏</a>
+      {own && <div className="mt-2 text-xs text-muted"><button disabled={refreshX.isPending || p.xVerification?.status === "checking"} onClick={() => refreshX.mutate()} className="hover:text-volt disabled:opacity-60">{refreshX.isPending || p.xVerification?.status === "checking" ? "Checking X verification…" : "Refresh X verification"}</button>{(refreshX.isError || p.xVerification?.status === "unavailable") && <p role="status" className="mt-1">Could not check your X badge right now. Please retry shortly.</p>}{p.xVerification?.status === "unverified" && <p className="mt-1">X verification is not showing in the latest provider response yet.</p>}</div>}
       {p.bio ? <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">{p.bio}</p> : own && <p className="mt-3 text-sm text-muted">Tell your community a little about yourself. <button onClick={() => { setBio(""); setEditing(true); }} className="text-volt">Add a bio</button></p>}
       <p className="mt-3 text-xs text-muted">Joined {new Date(p.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</p>
       <div className="mt-3 flex gap-5 text-xs text-muted"><span><strong className="mr-1 text-fg">{p.following.toLocaleString()}</strong>following on Mentions</span><span><strong className="mr-1 text-fg">{p.followers.toLocaleString()}</strong>followers on Mentions</span></div>

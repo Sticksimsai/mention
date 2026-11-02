@@ -7,6 +7,7 @@ import { z } from "zod";
 
 export const QUEUES = {
   /** Sync one user's recent tweets from SocialData (X→site mirror). */
+  X_PROFILE: "x-profile",
   TWEET_SYNC: "tweet-sync",
   /** Post one Tribes post to the author's X account (site→X mirror). */
   X_WRITEBACK: "x-writeback",
@@ -219,3 +220,15 @@ export interface MarketActivityView {
   battle: BattleView;
 }
 export type FeedItem = PostView | MarketActivityView;
+
+export interface XVerification { status: "verified" | "unverified" | "checking" | "unavailable"; checkedAt: string | null }
+export const xVerificationKey = (u: {id:string;username:string;xUserId:string|null}) => `x-verification:${u.id}:${u.xUserId || u.username.toLowerCase()}`;
+export function parseXVerification(profile: unknown, expected: {username:string;xUserId:string|null}): boolean {
+  if (!profile || typeof profile !== "object") throw new Error("Missing X profile");
+  const p = profile as Record<string, unknown>;
+  if (typeof p.screen_name !== "string" || p.screen_name.toLowerCase() !== expected.username.toLowerCase()) throw new Error("X profile identity mismatch");
+  if (expected.xUserId && p.id_str !== expected.xUserId) throw new Error("X account identity mismatch");
+  const verified = typeof p.is_blue_verified === "boolean" ? p.is_blue_verified : p.verified;
+  if (typeof verified !== "boolean") throw new Error("X verification unavailable");
+  return verified;
+}

@@ -10,6 +10,7 @@ export const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 const queueConn = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
 export const queues = {
+  xProfile: new Queue(QUEUES.X_PROFILE, { connection: queueConn }),
   xWriteback: new Queue(QUEUES.X_WRITEBACK, { connection: queueConn }),
   tokenStats: new Queue(QUEUES.TOKEN_STATS, { connection: queueConn }),
   tweetSync: new Queue(QUEUES.TWEET_SYNC, { connection: queueConn }),

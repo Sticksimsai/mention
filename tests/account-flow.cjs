@@ -35,6 +35,7 @@ function load(file, deps, globals = {}) {
     '@hono/zod-validator': {zValidator:()=>async(_,next)=>next()},
     '@mention/shared': {updateProfileSchema:{}},
     '@mention/db': {...tables,eq:(a,b)=>({eq:[a,b]}),and:(...args)=>({and:args}),count:()=>0,desc:x=>x},
+    '../lib/x-verification.js':{xVerification:async()=>({status:'unverified',checkedAt:null})},
     '../lib/db.js':{db}, '../env.js':{env:{SOLANA_RPC_URL:'https://rpc.example.invalid'}},
     '../lib/redis.js':{redis:{get:async()=>cache,set:async(_key,value)=>{cache=value}}},
     '../auth/middleware.js':{
@@ -69,6 +70,7 @@ function load(file, deps, globals = {}) {
     'next/link':{default:props=>React.createElement('a',props,props.children)},
     'next/navigation':{useParams:()=>({username:'maya'})},
     '@tanstack/react-query':{useQuery:()=>profileState,useMutation:()=>({}),useQueryClient:()=>({})},
+    '@/components/XVerifiedBadge':{XVerifiedBadge:()=>React.createElement('span',{'aria-label':'Verified on X'})},
     '@/components/Shell':{Shell:({children})=>React.createElement('main',null,children)},
     '@/components/Feed':{Feed:()=>React.createElement('div',null,'Public feed')},
     '@/components/WalletCard':{WalletCard:()=>React.createElement('div',null,'PRIVATE WALLET')},
@@ -79,6 +81,10 @@ function load(file, deps, globals = {}) {
   const Profile=load('apps/web/src/app/u/[username]/page.tsx',frontendDeps).default;
   let html=renderToStaticMarkup(React.createElement(Profile));
   assert(html.includes('Wallet &amp; activity'));assert(html.includes('Edit profile'));
+  profileState.data.xVerification={status:'verified',checkedAt:new Date().toISOString()};
+  html=renderToStaticMarkup(React.createElement(Profile));assert(html.includes('Verified on X'));
+  profileState.data.xVerification={status:'unverified',checkedAt:new Date().toISOString()};
+  html=renderToStaticMarkup(React.createElement(Profile));assert(!html.includes('Verified on X'));
   viewer={id:'someone-else'};
   html=renderToStaticMarkup(React.createElement(Profile));
   assert(!html.includes('Wallet &amp; activity'));assert(!html.includes('Edit profile'));assert(!html.includes('PRIVATE WALLET'));

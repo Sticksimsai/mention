@@ -15,7 +15,10 @@ import { xWritebackJob } from "./jobs/xWriteback.js";
 import { tokenStatsJob, warmAllTokenStats } from "./jobs/tokenStats.js";
 import { trendingJob } from "./jobs/trending.js";
 
+import { xProfileJob } from "./jobs/xProfile.js";
+
 const connection = queueConnection;
+new Worker<{userId:string}>(QUEUES.X_PROFILE, job => xProfileJob(job.data.userId), { connection, concurrency: 2, limiter: { max: 30, duration: 60_000 } });
 
 const tweetSyncQueue = new Queue(QUEUES.TWEET_SYNC, { connection });
 const tokenStatsQueue = new Queue(QUEUES.TOKEN_STATS, { connection });

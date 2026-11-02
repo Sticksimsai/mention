@@ -12,6 +12,8 @@ import { redis } from "../lib/redis.js";
 import { db } from "../lib/db.js";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 
+import { xVerification } from "../lib/x-verification.js";
+
 export const usersRoute = new Hono();
 
 // current user (also used by web to get viewerId for feed decoration)
@@ -61,6 +63,13 @@ usersRoute.get("/me/wallet", requireAuth, rateLimit("wallet-read", 30, 60), asyn
   } catch { throw new HTTPException(503, { message: "Solana balance is temporarily unavailable. Please retry." }); }
 });
 
+usersRoute.post("/me/x-verification", requireAuth, rateLimit("x-verification", 3, 60), async c => {
+  const [row] = await db.select().from(users).where(eq(users.id, c.get("user").id));
+  if (!row) throw new HTTPException(404);
+  c.header("Cache-Control", "private, no-store");
+  return c.json(await xVerification(row, true));
+});
+
 // public profile
 usersRoute.get("/:username", async (c) => {
   const username = c.req.param("username")!.toLowerCase();
@@ -80,6 +89,7 @@ usersRoute.get("/:username", async (c) => {
   return c.json({
     id: row.id, username: row.username, displayName: row.displayName,
     pfpUrl: row.pfpUrl, bannerUrl: row.bannerUrl, bio: row.bio,
+    xVerification: await xVerification(row),
     createdAt: row.createdAt,
     followers: followers?.n ?? 0, following: following?.n ?? 0, tribes: memberships?.n ?? 0,
     postCount: postCount?.n ?? 0,
