@@ -118,7 +118,7 @@ export default function TribePage() {
           <Feed communityId={tribe.id} />
         </>
       )}
-      {tab === "chart" && <CommunityChart ca={tribe.ca} ticker={tribe.ticker}/>}
+      {tab === "chart" && <CommunityChart ca={tribe.ca} ticker={tribe.ticker} pfpUrl={tribe.pfpUrl}/>}
       {tab === "stickers"&&<CommunityStickerPack communityId={tribe.id}/>}
       {tab === "mentionmarkets" && <CommunityBattles id={tribe.id} />}
       {!tribe.isExample && tab === "trade" && <TradeTab ca={tribe.ca} ticker={tribe.ticker} />}

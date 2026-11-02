@@ -48,5 +48,5 @@ export async function fetchTokenStats(ca: string): Promise<TokenStats> {
     }
   } catch { /* give up */ }
 
-  return base;
+  throw new Error("Token market providers unavailable");
 }

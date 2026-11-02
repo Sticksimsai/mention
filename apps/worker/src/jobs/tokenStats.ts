@@ -45,9 +45,14 @@ async function fetchStats(ca: string): Promise<TokenStats> {
 
 export async function tokenStatsJob(ca: string): Promise<void> {
   const stats = await fetchStats(ca);
+  // A failed lookup must not erase an existing pool or good market snapshot.
+  if (!stats.source) return;
+  const previous = await redis.get(`stale:token:${ca}`);
+  if (previous && JSON.parse(previous).pairAddress && !stats.pairAddress) return;
+  if (stats.pairAddress) await redis.set(`known-pool:${ca}`, stats.pairAddress, "EX", 2592000);
   const json = JSON.stringify(stats);
   await redis.set(`token:${ca}`, json, "EX", 30);
-  await redis.set(`stale:token:${ca}`, json, "EX", 1200);
+  await redis.set(`stale:token:${ca}`, json, "EX", 86400);
 }
 
 /** Warm stats for every approved tribe (scheduler fans this out). */

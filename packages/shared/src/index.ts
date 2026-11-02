@@ -263,6 +263,7 @@ export function starterStickers(c: {id:string;ticker:string;pfpUrl?:string}): St
 }
 
 export interface MarketChartView {
+ stale?:boolean; tokenImageUrl?:string|null;
  candles:{time:number;open:number;high:number;low:number;close:number;volume:number}[];
  trades:{id:string;signature:string;maker:string;side:'buy'|'sell';amount:number|null;usd:number|null;price:number|null;time:string}[];
  holders:number|null;holdersUpdatedAt:string|null;pairAddress:string|null;interval:string;updatedAt:string;errors:string[];

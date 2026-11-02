@@ -1,4 +1,4 @@
-import { marketChart } from "../lib/market-chart.js";
+import { resilientMarketChart } from "../lib/market-chart.js";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { TokenStats } from "@mention/shared";
@@ -66,5 +66,5 @@ tokenRoute.get("/:ca/stats", async (c) => {
 tokenRoute.get('/:ca/chart',async c=>{
  const ca=c.req.param('ca');if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ca))throw new HTTPException(400,{message:'Invalid token address'});
  const interval=c.req.query('interval')??'1m';if(!['1m','5m','15m','1h'].includes(interval))throw new HTTPException(400,{message:'Unsupported interval'});
- return c.json(await cached(`market-chart:${ca}:${interval}`,30,()=>marketChart(ca,interval)));
+ return c.json(await resilientMarketChart(ca,interval));
 });
