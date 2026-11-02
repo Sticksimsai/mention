@@ -95,8 +95,8 @@ communitiesRoute.post("/", requireAuth, rateLimit("community-create", 3, 3600),
     });
 
     // warm token stats + start mirroring the owner immediately
-    await queues.tokenStats.add("refresh", { ca: created.ca }, { jobId: `ts:${created.ca}` }).catch(() => {});
-    await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw:${u.username}:init` }).catch(() => {});
+    await queues.tokenStats.add("refresh", { ca: created.ca }, { jobId: `ts-${created.ca}` }).catch(() => {});
+    await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw-${u.username}-init` }).catch(() => {});
     return c.json(toView(created, { id: u.id, username: u.username, displayName: u.displayName, pfpUrl: u.pfpUrl }, true), 201);
   });
 
@@ -121,6 +121,7 @@ communitiesRoute.patch("/:id", requireAuth, zValidator("json", updateCommunitySc
   const nullable = { website: clean.website, telegram: clean.telegram, xCommunityUrl: clean.xCommunityUrl };
   const [updated] = await db.update(communities).set({
     ...set,
+    ...(body.postCooldownSecs !== undefined ? { postCooldownSecs: body.postCooldownSecs } : {}),
     ...("website" in clean ? { website: nullable.website } : {}),
     ...("telegram" in clean ? { telegram: nullable.telegram } : {}),
     ...("xCommunityUrl" in clean ? { xCommunityUrl: nullable.xCommunityUrl } : {}),
@@ -152,7 +153,7 @@ communitiesRoute.post("/:id/join", requireAuth, rateLimit("join", 30, 60), async
     }
   });
   // joining = this user's tweets get mirrored too
-  await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw:${u.username}:join` }).catch(() => {});
+  await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw-${u.username}-join` }).catch(() => {});
   return c.json({ ok: true });
 });
 

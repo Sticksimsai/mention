@@ -58,6 +58,8 @@ export async function xWritebackJob(postId: string, attemptsExhausted: boolean):
     .where(eq(posts.id, postId));
   if (!row || row.p.crosspostStatus !== "pending") return; // already handled / deleted
 
+  if(row.p.hidden){await db.update(posts).set({crosspostStatus:"skipped"}).where(eq(posts.id,postId));return;}
+
   const [conn] = await db.select().from(xConnections)
     .where(eq(xConnections.userId, row.p.authorId));
   if (!conn || !conn.writeEnabled) {

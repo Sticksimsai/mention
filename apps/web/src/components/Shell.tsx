@@ -36,8 +36,9 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
             <NavItem href="/mentionmarkets" icon={<ShieldIcon />}>mentionmarkets</NavItem>
             <NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem>
             {me && <NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem>}
+            {me && <NavItem href="/manage" icon={<GearIcon />}>Communities</NavItem>}
             {me && <NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem>}
-            {me?.role === "admin" && <NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}
+            {me?.role && <NavItem href="/admin" icon={<ShieldIcon />}>Site admin</NavItem>}
           </nav>
 
           <Link
@@ -65,7 +66,7 @@ export function Shell({ children, wide = false }: { children: React.ReactNode; w
         <MobileLink href="/explore" icon={<FlameIcon />} label="Explore" />
         <MobileLink href="/launch" icon={<RocketIcon />} label="Launch" />
         <MobileLink href="/mentionmarkets" icon={<ShieldIcon />} label="mentionmarkets" />
-        <details className="relative"><summary className="cursor-pointer list-none px-3 py-3 text-xs text-muted">More</summary><div className="absolute bottom-full right-0 mb-3 w-48 rounded-xl border hairline bg-ink p-2 shadow-xl"><NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem><NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>{me&&<><NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem><NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem></>}{me?.role==="admin"&&<NavItem href="/admin" icon={<ShieldIcon />}>Admin</NavItem>}</div></details>
+        <details className="relative"><summary className="cursor-pointer list-none px-3 py-3 text-xs text-muted">More</summary><div className="absolute bottom-full right-0 mb-3 w-48 rounded-xl border hairline bg-ink p-2 shadow-xl"><NavItem href="/docs" icon={<BookIcon />}>Docs</NavItem><NavItem href="/top" icon={<TrophyIcon />}>Leaderboard</NavItem>{me&&<><NavItem href={`/u/${me.username}`} icon={<UserIcon />}>Profile</NavItem><NavItem href="/settings" icon={<GearIcon />}>Settings</NavItem><NavItem href="/manage" icon={<GearIcon />}>Communities</NavItem></>}{me?.role&&<NavItem href="/admin" icon={<ShieldIcon />}>Site admin</NavItem>}</div></details>
       </nav>
       {/* ── right rail: search · top 10 · trending ── */}
       {!wide && <aside className="sticky top-0 hidden h-dvh w-[296px] shrink-0 space-y-5 overflow-y-auto px-5 py-6 lg:block xl:w-[312px]">

@@ -29,8 +29,9 @@ function load(file, deps, globals = {}) {
   const tables = Object.fromEntries(['users','follows','communities','communityMembers','xConnections','posts'].map(n=>[n, new Proxy({}, {get:(_,key)=>`${n}.${String(key)}`})]));
   const results = [[{id:'viewer',username:'maya',displayName:'Maya',createdAt:new Date(),pfpUrl:'',bannerUrl:'',bio:''}], [{n:7}], [{n:4}], [{n:2}], [{id:'owned',name:'Owned',ticker:'OWN',pfpUrl:''}], [{id:'joined',name:'Joined',ticker:'JOIN',pfpUrl:'',membersCount:12,ownerId:'viewer'}], [{n:5}]];
   const conditions=[];
-  const db = { select: () => { const result=results.shift(); const chain = new Proxy({}, { get: (_,prop) => prop==='then' ? (resolve,reject)=>Promise.resolve(result).then(resolve,reject) : (...args)=>{if(prop==='where')conditions.push(args[0]);return chain;} }); return chain; } };
-  const route = load('apps/api/src/routes/users.ts', {
+  let followWrites=0;
+  const db = { insert:()=>({values:()=>({onConflictDoNothing:async()=>{followWrites++}})}), delete:()=>({where:async()=>{followWrites++}}), select: () => { const result=results.shift(); const chain = new Proxy({}, { get: (_,prop) => prop==='then' ? (resolve,reject)=>Promise.resolve(result).then(resolve,reject) : (...args)=>{if(prop==='where')conditions.push(args[0]);return chain;} }); return chain; } };
+  const innerRoute = load('apps/api/src/routes/users.ts', {
     'hono': {Hono}, 'hono/http-exception': {HTTPException},
     '@hono/zod-validator': {zValidator:()=>async(_,next)=>next()},
     '@mention/shared': {updateProfileSchema:{}},
@@ -48,6 +49,7 @@ function load(file, deps, globals = {}) {
       Connection:class {async getBalance(){rpcReads++;if(rpcFails)throw Error('down');return 1500000000}async getSignaturesForAddress(){if(historyFails)throw Error('down');return [{signature:'tx',blockTime:123,err:null}]}},
     },
   }).usersRoute;
+  const route=new Hono();route.use("*",async(c,next)=>next());route.route("/",innerRoute);route.onError((e,c)=>c.json({error:e.message},e.status??500));
   assert.equal((await route.request('http://local/me/wallet?address=valid-address')).status,401);
   const headers={authorization:'Bearer test'};
   assert.equal((await route.request('http://local/me/wallet?address=bad',{headers})).status,400);
@@ -59,6 +61,18 @@ function load(file, deps, globals = {}) {
   cache=null;rpcFails=true;assert.equal((await route.request('http://local/me/wallet?address=valid-address',{headers})).status,503);
   data=await (await route.request('http://local/maya')).json();assert.equal(data.followers,7);assert.equal(data.tribes,2);assert.equal(data.postCount,5);assert.equal(data.joinedCommunities[0].isOwner,true);assert.equal('ownerId' in data.joinedCommunities[0],false);
   assert(conditions.some(c=>JSON.stringify(c).includes('posts.hidden')),'Hidden posts excluded from statistics');
+  const profileData=data;
+  results.push([{id:'other'}],[{followerId:'viewer',followeeId:'other'}]);
+  data=await (await route.request('http://local/maya/follow-status',{headers})).json();assert.equal(data.following,true);
+  assert.equal((await route.request('http://local/maya/follow-status')).status,401);
+  results.push([{id:'other'}]);assert.equal((await route.request('http://local/maya/follow',{method:'POST',headers})).status,200);assert.equal(followWrites,1);
+  results.push([{id:'viewer'}]);assert.equal((await route.request('http://local/self/follow',{method:'POST',headers})).status,400);assert.equal(followWrites,1);
+  results.push([{id:'other'}]);assert.equal((await route.request('http://local/maya/unfollow',{method:'POST',headers})).status,200);assert.equal(followWrites,2);
+  results.push([{id:'other'}],[{id:'viewer',username:'viewer',displayName:'Viewer',pfpUrl:''}]);
+  data=await (await route.request('http://local/maya/connections?type=followers')).json();assert.equal(data.items[0].username,'viewer');assert.equal(data.nextOffset,null);
+  assert.equal((await route.request('http://local/maya/connections?type=bad')).status,400);
+  console.log('PASS: follow status auth, follow/unfollow, self-follow refusal, public connection list and validation.');
+  data=profileData;
   const webRequire = require('node:module').createRequire(require('node:path').resolve('apps/web/package.json'));
   const React = webRequire('react');
   const {renderToStaticMarkup} = webRequire('react-dom/server');
@@ -70,6 +84,7 @@ function load(file, deps, globals = {}) {
     'next/link':{default:props=>React.createElement('a',props,props.children)},
     'next/navigation':{useParams:()=>({username:'maya'})},
     '@tanstack/react-query':{useQuery:()=>profileState,useMutation:()=>({}),useQueryClient:()=>({})},
+    '@/components/ProfileConnections':{FollowButton:()=>React.createElement('button',null,'Follow'),ProfileConnections:()=>null},
     '@/components/XVerifiedBadge':{XVerifiedBadge:()=>React.createElement('span',{'aria-label':'Verified on X'})},
     '@/components/Shell':{Shell:({children})=>React.createElement('main',null,children)},
     '@/components/Feed':{Feed:()=>React.createElement('div',null,'Public feed')},

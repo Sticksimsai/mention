@@ -5,12 +5,12 @@ import { nativeToView, xToView, decorate } from "./feed.js";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { createPostSchema, createReplySchema } from "@mention/shared";
+import { createPostSchema, createReplySchema, OFFICIAL_ACCOUNT_ID } from "@mention/shared";
 import {
   posts, postLikes, postReposts, postReplies,
   xPosts, xPostLikes, xPostReposts, xPostReplies, xPostCommunities,
   communities, communityMembers, xConnections, users,
-  eq, and, sql, desc,
+  eq, and, or, isNull, sql, desc,
 } from "@mention/db";
 import { db } from "../lib/db.js";
 import { redis, queues } from "../lib/redis.js";
@@ -26,21 +26,21 @@ function parseId(raw: string): { source: "native" | "x"; id: string } {
   throw new HTTPException(400, { message: "bad post id" });
 }
 
-async function invalidateFeeds(communityId?: string) {
-  const keys = ["feed:global"];
-  if (communityId) keys.push(`feed:${communityId}`);
+async function invalidateFeeds(communityId?: string | null) {
+  const keys = ["feed:global", "feed:v3:markets:global", "feed:v3:posts:global"];
+  if (communityId) keys.push(`feed:${communityId}`, `feed:v3:markets:${communityId}`, `feed:v3:posts:${communityId}`);
   await redis.del(...keys).catch(() => {});
 }
 
 async function visiblePost(source: "native" | "x", id: string) {
   if (source === "native") {
-    const [r] = await db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).innerJoin(communities,eq(posts.communityId,communities.id)).where(and(eq(posts.id,id),eq(posts.hidden,false),eq(communities.status,"approved")));
+    const [r] = await db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).leftJoin(communities,eq(posts.communityId,communities.id)).where(and(eq(posts.id,id),eq(posts.hidden,false),or(eq(communities.status,"approved"),and(isNull(posts.communityId),eq(posts.authorId,OFFICIAL_ACCOUNT_ID)))));
     if(!r)throw new HTTPException(404,{message:"Post not found"});
     return nativeToView(r.p,r.u,r.c);
   }
-  const [r]=await db.select({p:xPosts,c:communities}).from(xPosts).innerJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id)).innerJoin(communities,eq(xPostCommunities.communityId,communities.id)).where(and(eq(xPosts.id,id),eq(xPosts.hidden,false),eq(communities.status,"approved"))).limit(1);
+  const [r]=await db.select({p:xPosts,c:communities}).from(xPosts).leftJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id)).leftJoin(communities,eq(xPostCommunities.communityId,communities.id)).where(and(eq(xPosts.id,id),eq(xPosts.hidden,false),or(eq(communities.status,"approved"),eq(xPosts.official,true)))).limit(1);
   if(!r)throw new HTTPException(404,{message:"Post not found"});
-  const view=xToView(r.p,r.c.id,r.c);
+  const view=xToView(r.p,r.c?.id ?? "",r.c);
   const [count]=await db.select({count:sql<number>`count(*)::int`}).from(xPostReplies).where(and(eq(xPostReplies.xPostId,id),eq(xPostReplies.hidden,false)));
   return {...view,replies:view.replies+(count?.count??0)};
 }
@@ -73,11 +73,12 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   const u = c.get("user");
   const body = c.req.valid("json");
 
-  const [comm] = await db.select().from(communities).where(eq(communities.id, body.communityId));
-  if (!comm) throw new HTTPException(404, { message: "community not found" });
+  const [comm] = body.communityId ? await db.select().from(communities).where(eq(communities.id, body.communityId)) : [];
+  if (body.communityId && (!comm || comm.status !== "approved")) throw new HTTPException(404, { message: "community not found" });
+  if (!comm && (u.id !== OFFICIAL_ACCOUNT_ID || u.role !== "admin")) throw new HTTPException(403, { message: "Only the official account can publish sitewide posts" });
 
   // must be a member (staff bypass, per v1 roles)
-  if (!u.role) {
+  if (!u.role && comm && comm.ownerId !== u.id) {
     const [m] = await db.select().from(communityMembers)
       .where(and(eq(communityMembers.communityId, comm.id), eq(communityMembers.userId, u.id)));
     if (!m) throw new HTTPException(403, { message: "join the community to post" });
@@ -102,7 +103,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   }
 
   const [post] = await db.insert(posts).values({
-    communityId: comm.id,
+    communityId: comm?.id ?? null,
     authorId: u.id,
     content: body.content,
     mediaUrl: body.mediaUrl ?? null,
@@ -111,12 +112,12 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
 
   if (crosspostStatus === "pending") {
     await queues.xWriteback.add("post", { postId: post.id }, {
-      jobId: `xw:${post.id}`,
+      jobId: `xw-${post.id}`,
       attempts: 5,
       backoff: { type: "exponential", delay: 10_000 },
     });
   }
-  await invalidateFeeds(comm.id);
+  await invalidateFeeds(comm?.id);
   return c.json({ id: `n:${post.id}`, crosspostStatus }, 201);
 });
 
@@ -210,10 +211,10 @@ postsRoute.delete("/:id", async (c) => {
   const { source, id } = parseId(c.req.param("id")!);
   if (source === "native") {
     const [p] = await db.select({ p: posts, c: communities })
-      .from(posts).innerJoin(communities, eq(posts.communityId, communities.id))
+      .from(posts).leftJoin(communities, eq(posts.communityId, communities.id))
       .where(eq(posts.id, id));
     if (!p) throw new HTTPException(404, { message: "not found" });
-    const allowed = p.p.authorId === u.id || p.c.ownerId === u.id || u.role !== null;
+    const allowed = p.p.authorId === u.id || p.c?.ownerId === u.id || u.role !== null;
     if (!allowed) throw new HTTPException(403, { message: "not allowed" });
     await db.delete(posts).where(eq(posts.id, id));
     await invalidateFeeds(p.p.communityId);
@@ -232,10 +233,11 @@ postsRoute.post("/:id/pin", async (c) => {
   const { source, id } = parseId(c.req.param("id")!);
   if (source !== "native") throw new HTTPException(400, { message: "only native posts can be pinned" });
   const [p] = await db.select({ p: posts, c: communities })
-    .from(posts).innerJoin(communities, eq(posts.communityId, communities.id))
+    .from(posts).leftJoin(communities, eq(posts.communityId, communities.id))
     .where(eq(posts.id, id));
   if (!p) throw new HTTPException(404, { message: "not found" });
-  if (p.c.ownerId !== u.id && u.role !== "admin") throw new HTTPException(403, { message: "owner or admin only" });
+  if (!p.p.communityId) throw new HTTPException(400, { message: "Use the sitewide pin control for official posts" });
+  if (p.c?.ownerId !== u.id && u.role !== "admin") throw new HTTPException(403, { message: "owner or admin only" });
   await db.update(posts).set({ pinned: !p.p.pinned }).where(eq(posts.id, id));
   await invalidateFeeds(p.p.communityId);
   return c.json({ pinned: !p.p.pinned });

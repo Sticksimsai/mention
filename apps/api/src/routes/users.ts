@@ -70,6 +70,26 @@ usersRoute.post("/me/x-verification", requireAuth, rateLimit("x-verification", 3
   return c.json(await xVerification(row, true));
 });
 
+// Public connection lists expose only public profile fields.
+usersRoute.get("/:username/connections", async c => {
+ const kind=c.req.query("type")??"followers", offset=Number(c.req.query("offset")??0);
+ if(!["followers","following"].includes(kind)||!Number.isSafeInteger(offset)||offset<0||offset>100000)throw new HTTPException(400,{message:"Invalid connection query"});
+ const [target]=await db.select({id:users.id}).from(users).where(eq(users.username,c.req.param("username")!.toLowerCase()));
+ if(!target)throw new HTTPException(404,{message:"Profile not found"});
+ const outgoing=kind==="following";
+ const rows=await db.select({id:users.id,username:users.username,displayName:users.displayName,pfpUrl:users.pfpUrl}).from(follows)
+ .innerJoin(users,eq(outgoing?follows.followeeId:follows.followerId,users.id))
+ .where(eq(outgoing?follows.followerId:follows.followeeId,target.id)).orderBy(desc(follows.createdAt),users.id).limit(51).offset(offset);
+ return c.json({items:rows.slice(0,50),nextOffset:rows.length>50?offset+50:null});
+});
+usersRoute.get("/:username/follow-status",requireAuth,async c=>{
+ c.header("Cache-Control","private, no-store");
+ const [target]=await db.select({id:users.id}).from(users).where(eq(users.username,c.req.param("username")!.toLowerCase()));
+ if(!target)throw new HTTPException(404,{message:"Profile not found"});
+ const [row]=await db.select().from(follows).where(and(eq(follows.followerId,c.get("user").id),eq(follows.followeeId,target.id)));
+ return c.json({following:Boolean(row)});
+});
+
 // public profile
 usersRoute.get("/:username", async (c) => {
   const username = c.req.param("username")!.toLowerCase();

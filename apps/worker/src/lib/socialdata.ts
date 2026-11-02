@@ -58,9 +58,9 @@ export async function sdGet(jobName: string, path: string): Promise<any> {
 }
 
 /** Latest tweets for a handle since a tweet id. */
-export async function fetchUserTweets(jobName: string, username: string, sinceId?: string | null) {
-  const q = encodeURIComponent(`from:${username}${sinceId ? ` since_id:${sinceId}` : ""}`);
-  return sdGet(jobName, `/twitter/search?query=${q}&type=Latest`);
+export async function fetchUserTweets(jobName: string, username: string, sinceId?: string | null, cursor?: string) {
+  const q = encodeURIComponent(`from:${username}${sinceId ? ` since_id:${sinceId}` : " within_time:1h"}`);
+  return sdGet(jobName, `/twitter/search?query=${q}&type=Latest${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
 }
 
 export async function fetchUserProfile(jobName: string, username: string) {

@@ -6,6 +6,7 @@ import { z } from "zod";
 // cron→edge-function sync.
 
 export const QUEUES = {
+  COMMUNITY_SEARCH: "community-search",
   /** Sync one user's recent tweets from SocialData (X→site mirror). */
   X_PROFILE: "x-profile",
   TWEET_SYNC: "tweet-sync",
@@ -44,10 +45,12 @@ export const createCommunitySchema = z.object({
 
 export const updateCommunitySchema = createCommunitySchema
   .omit({ ticker: true, ca: true })
-  .partial();
+  .partial().extend({ postCooldownSecs: z.number().int().min(0).max(86400).optional() });
+
+export const OFFICIAL_ACCOUNT_ID = "b4104538-3fc4-4e4c-b877-47590f603528";
 
 export const createPostSchema = z.object({
-  communityId: z.string().uuid(),
+  communityId: z.string().uuid().optional(),
   content: z.string().min(1).max(4000),
   mediaUrl: z.string().url().optional().nullable(),
   /** mirror this post to the author's X account */
@@ -109,6 +112,8 @@ export interface PostView {
   replies: number;
   views: number;
   pinned: boolean;
+  globalPinned?: boolean;
+  official?: boolean;
   likedByMe?: boolean;
   repostedByMe?: boolean;
   tweetUrl?: string;      // mirrored posts, and native posts after write-back

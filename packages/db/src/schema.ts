@@ -120,7 +120,7 @@ export const xPostStatusEnum = pgEnum("x_post_status", [
 
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: "cascade" }),
+  communityId: uuid("community_id").references(() => communities.id, { onDelete: "cascade" }),
   authorId: uuid("author_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   mediaUrl: text("media_url"),
@@ -130,6 +130,7 @@ export const posts = pgTable("posts", {
   viewsCount: integer("views_count").notNull().default(0),
   pinned: boolean("pinned").notNull().default(false),
   hidden: boolean("hidden").notNull().default(false),
+  globalPinned: boolean("global_pinned").notNull().default(false),
   // site→X mirror
   crosspostStatus: xPostStatusEnum("crosspost_status").notNull().default("skipped"),
   xTweetId: text("x_tweet_id"),
@@ -187,6 +188,8 @@ export const xPosts = pgTable("x_posts", {
   repliesCount: integer("replies_count").notNull().default(0),
   viewsCount: bigint("views_count", { mode: "number" }).notNull().default(0),
   // native engagement on the mirrored tweet (likes made on Tribes itself)
+  official: boolean("official").notNull().default(false),
+  globalPinned: boolean("global_pinned").notNull().default(false),
   nativeLikesCount: integer("native_likes_count").notNull().default(0),
   nativeRepostsCount: integer("native_reposts_count").notNull().default(0),
   hidden: boolean("hidden").notNull().default(false),

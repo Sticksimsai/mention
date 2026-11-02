@@ -15,6 +15,7 @@ import { usersRoute } from "./routes/users.js";
 import { xRoute } from "./routes/x.js";
 import { launchRoute } from "./routes/launch.js";
 import { tradeRoute } from "./routes/trade.js";
+import { managementRoute } from "./routes/management.js";
 import { adminRoute } from "./routes/admin.js";
 import { searchRoute } from "./routes/search.js";
 
@@ -65,6 +66,7 @@ app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);
 app.route("/v1/battles", battlesRoute);
 app.route("/v1/admin", adminRoute);
+app.route("/v1/manage", managementRoute);
 app.route("/v1/search", searchRoute);
 
 app.onError((err, c) => {

@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
-export function Composer({ communityId }: { communityId: string }) {
+export function Composer({ communityId }: { communityId?: string }) {
   const { authenticated, login, me } = useMe();
   const [content, setContent] = useState("");
   const [toX, setToX] = useState(true);
@@ -38,7 +38,7 @@ export function Composer({ communityId }: { communityId: string }) {
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Say it here, it lands on X too"
+        placeholder={communityId ? "Post to your community" : "Share an official update with everyone on Mentions"}
         rows={2}
         maxLength={280}
         className="w-full resize-none bg-transparent text-[13px] outline-none placeholder:text-muted"

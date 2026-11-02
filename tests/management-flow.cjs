@@ -1,0 +1,45 @@
+// Permissions and feed semantics against an in-memory relational test double.
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const r=require('node:module').createRequire(path.resolve('apps/api/package.json')),ts=require('../apps/web/node_modules/typescript');
+function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:n=>mocks[n]??r(n),Date,console,Set,Map});return module.exports;}
+const shared=load('packages/shared/src/index.ts'),{Hono}=r('hono'),{HTTPException}=r('hono/http-exception');
+const names=['posts','xPosts','xPostCommunities','users','communities','communityMembers','modAuditLog','bannedUsers','postLikes','postReposts','xPostLikes','xPostReposts'];
+const tables=Object.fromEntries(names.map(n=>[n,new Proxy({table:n},{get:(t,k)=>k==='table'?n:{table:n,col:k}})]));
+const data=Object.fromEntries(names.map(n=>[n,[]]));
+const val=(x,row)=>x&&typeof x==='object'&&typeof x.col==='string'?row[x.table]?.[x.col]:x;
+const orm={...tables,eq:(a,b)=>row=>val(a,row)===val(b,row),and:(...ps)=>row=>ps.filter(Boolean).every(p=>p(row)),or:(...ps)=>row=>ps.filter(Boolean).some(p=>p(row)),isNull:a=>row=>val(a,row)==null,lt:(a,b)=>row=>val(a,row)<val(b,row),inArray:(a,vs)=>row=>vs.includes(val(a,row)),desc:x=>x,sql:()=>()=>false};
+const db={select:(selection)=>{let rows=[],base,sort,limit=Infinity;const q={from:t=>(base=t.table,rows=data[base].map(row=>({[base]:row})),q),where:p=>(rows=rows.filter(p??(()=>true)),q),orderBy:k=>(sort=k,q),limit:n=>(limit=n,q),innerJoin:(t,p)=>{rows=rows.flatMap(row=>data[t.table].map(v=>({...row,[t.table]:v})).filter(p));return q},leftJoin:(t,p)=>{rows=rows.flatMap(row=>{const matches=data[t.table].map(v=>({...row,[t.table]:v})).filter(p);return matches.length?matches:[{...row,[t.table]:null}]});return q},then:(resolve,reject)=>{if(sort)rows.sort((a,b)=>val(sort,a)<val(sort,b)?1:-1);return Promise.resolve(rows.slice(0,limit).map(row=>selection?Object.fromEntries(Object.entries(selection).map(([k,x])=>[k,typeof x.col==='string'?val(x,row):row[x.table]])):row[base])).then(resolve,reject)}};return q},update:t=>({set:body=>({where:async pred=>{for(const row of data[t.table])if(pred({[t.table]:row}))Object.assign(row,body)}})}),insert:t=>({values:async row=>{data[t.table].push(row)}}),transaction:async fn=>fn(db)};
+let user={id:'ordinary',role:null};
+const middleware={requireAuth:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);c.set('user',user);await next()},requireStaff:(c,roles=['admin','moderator'])=>{if(!roles.includes(c.get('user').role))throw new HTTPException(403)},requireNotBanned:()=>{}};
+const redis={get:async()=>null,set:async()=>{},del:async()=>{}};
+const feed=load('apps/api/src/routes/feed.ts',{'@mention/shared':shared,'@mention/db':orm,'../lib/db.js':{db},'../lib/redis.js':{redis},'../lib/market-activity.js':{marketActivity:async()=>[]}});
+const mgmt=load('apps/api/src/routes/management.ts',{'@mention/db':orm,'../lib/db.js':{db},'../lib/redis.js':{redis},'../auth/middleware.js':middleware,'./feed.js':feed});
+const app=new Hono();app.route('/manage',mgmt.managementRoute);app.route('/feed',feed.feedRoute);app.onError((e,c)=>c.json({error:e.message},e.status??500));
+const cid='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',pid='33333333-3333-4333-8333-333333333333',global='44444444-4444-4444-8444-444444444444';
+const stamp=n=>new Date(Date.now()-n*1000);const native=(id,authorId,communityId,n,extra={})=>({id,authorId,communityId,content:id,createdAt:stamp(n),hidden:false,pinned:false,globalPinned:false,...extra});
+data.users.push({id:'owner',username:'owner'},{id:shared.OFFICIAL_ACCOUNT_ID,username:'tradementions'});data.communities.push({id:cid,ownerId:'owner',status:'approved'},{id:other,ownerId:'else',status:'pending'});data.posts.push(native(pid,'owner',cid,10),native(global,shared.OFFICIAL_ACCOUNT_ID,null,20));
+const req=(url,method='GET',body,auth=true)=>app.request('http://test'+url,{method,headers:{...(auth?{authorization:'test'}:{}),'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+(async()=>{
+ assert.equal((await req('/manage/overview','GET',null,false)).status,401);
+ assert.equal((await req('/manage/posts')).status,403);
+ assert.equal((await req('/manage/community/'+cid)).status,403);
+ assert.equal((await req('/manage/posts/n:'+pid,'PATCH',{globalPinned:true})).status,403);
+ user={id:'owner',role:null};assert.equal((await req('/manage/community/'+cid)).status,200);assert.equal((await req('/manage/community/'+other)).status,403);
+ assert.equal((await req('/manage/posts/n:'+pid,'PATCH',{pinned:true})).status,200);assert.equal(data.posts[0].pinned,true);
+ assert.equal((await req('/manage/posts/n:'+pid,'PATCH',{pinned:true,globalPinned:true})).status,403,'Mixed request cannot escalate owner privileges');
+ assert.equal((await req('/manage/community/'+cid+'/posts/'+global+'/hide','POST',{hidden:true})).status,404);
+ assert.equal((await req('/manage/community/'+cid+'/posts/'+pid+'/hide','POST',{hidden:true})).status,200);assert.equal(data.posts[0].hidden,true);
+ user={id:'mod',role:'moderator'};assert.equal((await req('/manage/posts/n:'+global,'PATCH',{globalPinned:true})).status,200);
+ assert.equal((await req('/manage/posts/n:'+global,'PATCH',{unknown:true})).status,400);
+ data.xPosts.push({id:'xofficial',authorUsername:'tradementions',official:true,hidden:false,globalPinned:false,tweetCreatedAt:stamp(5)});
+ let response=await req('/feed?scope=joined&viewerId=ordinary');assert.equal(response.status,200);let items=(await response.json()).items;
+ assert(items.some(x=>x.id==='n:'+global),'Official native update reaches empty joined feed');assert(items.some(x=>x.id==='x:xofficial'),'Official X update reaches empty joined feed');assert.equal(items[0].id,'n:'+global,'Older global pin leads first page');assert(!items.some(x=>x.id==='n:'+pid),'Hidden native post excluded');
+ response=await req('/feed?author=owner');items=(await response.json()).items;assert.equal(items.length,0,'Global pins never leak onto another profile');
+ data.posts[0].hidden=false;data.posts.push(native('bad','owner',other,1));
+ items=(await (await req('/feed?communityId='+cid)).json()).items;assert(items.some(x=>x.id==='n:'+pid));assert(!items.some(x=>x.id==='n:'+global),'Sitewide posts do not contaminate community scope');
+ items=(await (await req('/feed')).json()).items;assert(!items.some(x=>x.id==='n:bad'),'Pending community posts excluded');
+ const more=Array.from({length:35},(_,i)=>native('p'+i,'owner',cid,30+i));data.posts.push(...more);items=await (await req('/feed')).json();assert(items.nextCursor);assert.equal(items.items[0].id,'n:'+global);assert.equal(items.nextCursor,items.items.at(-1).createdAt);
+ const cursor=items.nextCursor;items=(await (await req('/feed?cursor='+encodeURIComponent(cursor))).json()).items;assert(!items.some(x=>x.id==='n:'+global),'Older pages do not re-inject pin');
+ assert(data.modAuditLog.length>=3,'Changes are audited');
+ console.log('PASS: anonymous and ordinary-user denial, owner isolation, mixed privilege denial, community hide/pin, global moderation, audit writes, official native/X reach, profile isolation, approval visibility, pins and pagination.');
+})().catch(e=>{console.error(e);process.exitCode=1});

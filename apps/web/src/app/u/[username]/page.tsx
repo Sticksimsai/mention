@@ -1,6 +1,7 @@
 "use client";
 
 import type { XVerification } from "@mention/shared";
+import { FollowButton, ProfileConnections } from "@/components/ProfileConnections";
 import { XVerifiedBadge } from "@/components/XVerifiedBadge";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -65,14 +66,14 @@ export default function ProfilePage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={p.pfpUrl} alt={`${p.displayName}'s X avatar`} className="-mt-10 h-20 w-20 rounded-full border-4 border-ink object-cover sm:h-24 sm:w-24" />
         ) : <div className="-mt-10 grid h-20 w-20 place-items-center rounded-full border-4 border-ink bg-raised text-3xl text-volt">{p.displayName.slice(0, 1)}</div>}
-        {own ? <button onClick={() => { setBio(p.bio); save.reset(); setEditing(true); }} className="mt-3 rounded-xl border hairline px-4 py-2 text-xs font-semibold hover:bg-surface">Edit profile</button> : <a href={`https://x.com/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer" className="mt-3 rounded-xl border hairline px-4 py-2 text-xs font-semibold">View on 𝕏 ↗</a>}
+        {own ? <button onClick={() => { setBio(p.bio); save.reset(); setEditing(true); }} className="mt-3 rounded-xl border hairline px-4 py-2 text-xs font-semibold hover:bg-surface">Edit profile</button> : <div className="mt-3 flex flex-wrap items-start justify-end gap-2"><FollowButton username={p.username} id={p.id}/><a href={`https://x.com/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer" className="rounded-xl border hairline px-4 py-2 text-xs font-semibold">View on 𝕏 ↗</a></div>}
       </div>
       <h2 className="mt-3 break-words text-2xl font-semibold tracking-tight">{p.displayName}{p.xVerification?.status === "verified" && <XVerifiedBadge />}</h2>
       <a href={`https://x.com/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer" className="text-xs text-muted hover:text-volt">@{p.username} · 𝕏</a>
       {own && <div className="mt-2 text-xs text-muted"><button disabled={refreshX.isPending || p.xVerification?.status === "checking"} onClick={() => refreshX.mutate()} className="hover:text-volt disabled:opacity-60">{refreshX.isPending || p.xVerification?.status === "checking" ? "Checking X verification…" : "Refresh X verification"}</button>{(refreshX.isError || p.xVerification?.status === "unavailable") && <p role="status" className="mt-1">Could not check your X badge right now. Please retry shortly.</p>}{p.xVerification?.status === "unverified" && <p className="mt-1">X verification is not showing in the latest provider response yet.</p>}</div>}
       {p.bio ? <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">{p.bio}</p> : own && <p className="mt-3 text-sm text-muted">Tell your community a little about yourself. <button onClick={() => { setBio(""); setEditing(true); }} className="text-volt">Add a bio</button></p>}
       <p className="mt-3 text-xs text-muted">Joined {new Date(p.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</p>
-      <div className="mt-3 flex gap-5 text-xs text-muted"><span><strong className="mr-1 text-fg">{p.following.toLocaleString()}</strong>following on Mentions</span><span><strong className="mr-1 text-fg">{p.followers.toLocaleString()}</strong>followers on Mentions</span></div>
+      <ProfileConnections username={p.username} followers={p.followers} following={p.following}/>
     </section>
     <section className="grid grid-cols-3 gap-2 px-5 pb-6 sm:px-6" aria-label="Profile stats">
       <Stat label="Communities joined" value={p.tribes} />

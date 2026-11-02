@@ -2,6 +2,7 @@
 
 // Community page — header banner with the live mcap pulse, join, bio with
 // token info + CA, embedded chart, trade box, and the merged feed.
+import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -84,6 +85,7 @@ export default function TribePage() {
           </button>
         </div>
 
+        {(me?.id===tribe.owner.id || me?.role) && <Link href={`/manage/${tribe.id}`} className="mt-4 inline-block rounded-xl border hairline px-3 py-2 text-xs text-volt">Manage community →</Link>}
         <h1 className="mt-3 font-display text-xl font-medium">{tribe.name}</h1>
         <p className="text-sm text-muted">
           ${tribe.ticker} · {tribe.membersCount} members · led by{" "}
@@ -117,7 +119,7 @@ export default function TribePage() {
 
       {tab === "feed" && (
         <>
-          {isMember && <Composer communityId={tribe.id} />}
+          {(isMember || me?.role || me?.id===tribe.owner.id) && <Composer communityId={tribe.id} />}
           <Feed communityId={tribe.id} />
         </>
       )}

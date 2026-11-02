@@ -34,7 +34,8 @@ export function Feed({ communityId, author, scope }: {
     refetchInterval: communityId || author ? 20_000 : 8_000,
   });
 
-  const items = feed.data?.pages.flatMap((p) => p.items) ?? [];
+  const allItems = feed.data?.pages.flatMap((p) => p.items) ?? [];
+  const items = allItems.filter((p,i)=>allItems.findIndex(other=>other.id===p.id)===i);
 
   if (feed.isLoading) return <FeedSkeleton />;
   if (feed.isError) return <div className="px-6 py-12 text-center"><p className="text-sm text-muted">Could not load posts.</p><button onClick={() => feed.refetch()} className="mt-3 text-sm text-volt">Try again</button></div>;
@@ -117,6 +118,8 @@ export function PostCard({ post }: { post: PostView }) {
                 from 𝕏
               </a>
             )}
+            {post.source === "native" && post.author.id === me?.id && post.crosspostStatus === "pending" && <span className="text-[11px] text-muted">Queued for X</span>}
+            {post.source === "native" && post.author.id === me?.id && post.crosspostStatus === "failed" && <span className="text-[11px] text-down">X cross-post failed</span>}
             {post.source === "native" && post.crosspostStatus === "posted" && post.tweetUrl && (
               <a href={post.tweetUrl} target="_blank" rel="noreferrer"
                  className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] text-muted hover:text-fg"
@@ -124,6 +127,9 @@ export function PostCard({ post }: { post: PostView }) {
                 on 𝕏 ↗
               </a>
             )}
+            {post.official && <span className="text-[11px] text-volt">Official Mentions</span>}
+            {post.globalPinned && <span className="text-[11px] text-volt">Pinned sitewide</span>}
+            {me?.role && <Link href="/admin" className="text-[11px] text-muted hover:text-volt">Moderate</Link>}
             {post.pinned && <span className="text-[11px] text-volt">pinned</span>}
           </div>
 
