@@ -2,9 +2,25 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createRequire}=require('node:module');
 const r=createRequire(path.resolve('apps/api/package.json')),ts=r('typescript'),web3=r('@solana/web3.js'),sdk=r('@pump-fun/pump-sdk'),BN=r('bn.js');
 function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:n=>mocks[n]??r(n),Buffer,console});return module.exports;}
+// Serialize RPC requests and back off rate-limited reads; sends are never retried here.
+let rpcQueue=Promise.resolve();
+function pacedFetch(u,o){
+ const task=rpcQueue.then(async()=>{
+  const method=JSON.parse(o.body).method;
+  for(let attempt=0;;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,1200));
+   const response=await fetch(u,{...o,signal:AbortSignal.timeout(20000)});
+   if(response.status!==429||method==='sendTransaction'||attempt>=5)return response;
+   await response.text();
+   console.log('RPC rate limit; pausing before read retry');
+   await new Promise(resolve=>setTimeout(resolve,Math.min(30000,2000*2**attempt)));
+  }
+ });
+ rpcQueue=task.then(()=>undefined,()=>undefined);return task;
+}
 (async()=>{
  if(process.env.RUN_DEVNET_TESTS!=='true')throw Error('Set RUN_DEVNET_TESTS=true to run the test-only rehearsal');
- const c=new web3.Connection(process.env.DEVNET_RPC_URL||'https://api.devnet.solana.com',{commitment:'confirmed',disableRetryOnRateLimit:true,fetch:(u,o)=>fetch(u,{...o,signal:AbortSignal.timeout(20000)})});
+ const c=new web3.Connection(process.env.DEVNET_RPC_URL||'https://api.devnet.solana.com',{commitment:'confirmed',disableRetryOnRateLimit:true,fetch:pacedFetch});
  if(await c.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('DEVNET ONLY: wrong genesis');
  const {payer,dir}=require('./local-state.cjs').context(web3.Keypair);
  const balance=await c.getBalance(payer.publicKey);if(balance<1e9)throw Error(`Need at least 1 test SOL on devnet at ${payer.publicKey.toBase58()}. Never send mainnet SOL.`);
