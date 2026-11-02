@@ -18,4 +18,4 @@ ESCROW_BINARY="$ESCROW_BINARY" node contracts/harness/escrow.cjs
 solana --url "$DEVNET_RPC_URL" --keypair "$DEVNET_KEYPAIR" address
 solana --url "$DEVNET_RPC_URL" --keypair "$DEVNET_KEYPAIR" balance
 solana --url "$DEVNET_RPC_URL" --keypair "$DEVNET_KEYPAIR" program deploy "$ESCROW_BINARY" --program-id "$DEVNET_PROGRAM_KEYPAIR" --max-len "$(wc -c < "$ESCROW_BINARY")"
-solana --url "$DEVNET_RPC_URL" program show "$(cat contracts/mention-escrow/program-id.txt)"
+solana --url "$DEVNET_RPC_URL" --keypair "$DEVNET_KEYPAIR" program show "$(cat contracts/mention-escrow/program-id.txt)"
