@@ -1,4 +1,4 @@
-// Resume existing DEVNET fixture only. Never creates/funds a new round.
+// Resume existing DEVNET fixture. --test-unmatched explicitly adds missing refund coverage.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{createRequire}=require('node:module');
 const r=createRequire(path.resolve('contracts/harness/package.json'));
 const {Connection,PublicKey,Keypair,Transaction,ComputeBudgetProgram,SYSVAR_CLOCK_PUBKEY}=r('@solana/web3.js');
@@ -32,7 +32,33 @@ const base58=bytes=>{let n=BigInt('0x'+Buffer.from(bytes).toString('hex')),s='',
  return {...t,round:address};}
  async function now(){const a=await c.getAccountInfo(SYSVAR_CLOCK_PUBKEY);if(!a||a.data.length<40)throw Error('Missing clock');return Number(a.data.readBigInt64LE(32));}
  async function send(label,instructions,signers=[]){const bh=await c.getLatestBlockhash();const tx=new Transaction({...bh,feePayer:payer.publicKey}).add(ComputeBudgetProgram.setComputeUnitLimit({units:600000}),...instructions);tx.sign(payer,...signers);const signature=base58(tx.signature);record({label,signature,status:'signed-before-send'});await c.sendRawTransaction(tx.serialize(),{skipPreflight:false,maxRetries:0});for(let i=0;i<60;i++){const s=(await c.getSignatureStatuses([signature],{searchTransactionHistory:true})).value[0];if(s?.err)throw Error('Failed transaction: '+signature);if(s&&['confirmed','finalized'].includes(s.confirmationStatus)){record({label,signature,status:'confirmed'});console.log('Confirmed '+label);return;}await sleep(2000)}throw Error('Unknown confirmation: '+signature);}
- for(const [label,address] of [['funded',saved.funded],['unmatched',saved.unmatched]]){
+
+ // Opt-in missing coverage test. Persist nonce/terms before sending, and reuse on retry.
+ let unmatchedPlan=events.find(e=>e.label==='unmatched-test-plan');
+ if(process.argv.includes('--test-unmatched')){
+ const original=await state(new PublicKey(saved.unmatched));
+ if(original)throw Error('Original unmatched round exists; recover it without --test-unmatched first');
+ const funded=await state(new PublicKey(saved.funded));
+ if(!funded||!funded.claimedA||(funded.fundedB&&!funded.claimedB))throw Error('Recover funded round before starting missing coverage test');
+ const sourceA=spl.getAssociatedTokenAddressSync(funded.mintA,payer.publicKey,false,funded.tokenA);
+ if(!unmatchedPlan){
+ const nonce=crypto.randomBytes(32),start=Math.ceil(((await now())+180)/60)*60;
+ unmatchedPlan={label:'unmatched-test-plan',nonce:nonce.toString('hex'),round:client.roundAddress(program,payer.publicKey,nonce).toBase58(),start,balanceBefore:(await c.getTokenAccountBalance(sourceA)).value.amount};
+ record(unmatchedPlan);
+ }
+ const address=new PublicKey(unmatchedPlan.round);
+ if(!await state(address)){
+ if(events.some(e=>e.label==='unmatched-test-initialize'&&e.status==='confirmed'))throw Error('Confirmed initialization account unavailable; do not repeat');
+ if(await now()>unmatchedPlan.start-60)throw Error('Unsent test plan expired. Keep evidence and request reconciliation; no new round created.');
+ const terms={...funded,sourceA,nonce:Buffer.from(unmatchedPlan.nonce,'hex'),start:unmatchedPlan.start,duration:600};
+ const initialized=client.initialize(program,terms);
+ if(!initialized.round.equals(address))throw Error('Planned address mismatch');
+ await send('unmatched-test-initialize',[initialized.ix]);
+ }
+ }
+ const unmatchedAddress=unmatchedPlan?unmatchedPlan.round:saved.unmatched;
+
+ for(const [label,address] of [['funded',saved.funded],['unmatched',unmatchedAddress]]){
  const pk=new PublicKey(address);let t=await state(pk);if(!t){console.log(label+': never created; skipping');continue;}
  if(t.status===0){const ready=t.fundedB?t.end:t.start;while(await now()<ready){console.log(label+': waiting for on-chain deadline');await sleep(15000);}
  // A late oracle response must refund, never manufacture a winner after the deadline.
@@ -44,8 +70,16 @@ const base58=bytes=>{let n=BigInt('0x'+Buffer.from(bytes).toString('hex')),s='',
  const ata=spl.getAssociatedTokenAddressSync(mint,recipient,false,token);
  await send(label+'-recover-claim-'+side,[spl.createAssociatedTokenAccountIdempotentInstruction(payer.publicKey,ata,recipient,mint,token),client.claim(program,t,t,side,ata)]);}
  t=await state(pk);if(!t.claimedA||(t.fundedB&&!t.claimedB))throw Error('Incomplete claims');
+ if(label==='unmatched'&&unmatchedPlan){
+ if(t.status!==3||t.fundedB)throw Error('Expected unmatched refund state');
+ const source=spl.getAssociatedTokenAddressSync(t.mintA,payer.publicKey,false,t.tokenA);
+ const balance=(await c.getTokenAccountBalance(source)).value.amount;
+ if(balance!==unmatchedPlan.balanceBefore)throw Error('Refund balance differs from pre-deposit balance');
+ record({label:'unmatched-test-passed',round:address,network:'devnet',passed:true,refundedUnits:t.amountA.toString(),balanceAfter:balance});
+ console.log(JSON.stringify(events.at(-1),null,2));
+ }
  record({label:label+'-recovery-completed',round:address,status:t.status,claimedA:!!t.claimedA,claimedB:!!t.claimedB,network:'devnet'});console.log(JSON.stringify(events.at(-1),null,2));
  }
- console.log('Existing rounds recovered. This does not mark the omitted unmatched-round test as passed.');
+ console.log(events.some(e=>e.label==='unmatched-test-passed')?'Funded recovery and separate unmatched refund checks completed.':'Existing rounds recovered; omitted unmatched coverage remains pending.');
  } finally {fs.unlinkSync(lock);}
 })().catch(e=>{console.error(e.message);process.exitCode=1});
