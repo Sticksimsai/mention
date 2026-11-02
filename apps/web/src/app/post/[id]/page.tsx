@@ -10,7 +10,9 @@ import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 interface Reply {id:string;content:string;createdAt:string;author:{username:string;name:string;pfpUrl:string}}
 export default function ThreadPage(){
- const {id}=useParams<{id:string}>();const {me,login}=useMe();const qc=useQueryClient();const [content,setContent]=useState("");
+ const {id:routeId}=useParams<{id:string}>();
+ // Next may retain the encoded colon in a dynamic route parameter.
+ const id=routeId.replace(/^([nx])%3a/i,"$1:");const {me,login}=useMe();const qc=useQueryClient();const [content,setContent]=useState("");
  const post=useQuery({queryKey:["post",id,me?.id],queryFn:()=>api<PostView>(`/v1/posts/${encodeURIComponent(id)}${me?`?viewerId=${me.id}`:""}`,{auth:false})});
  const replies=useQuery({queryKey:["replies",id],enabled:!!post.data,queryFn:()=>api<Reply[]>(`/v1/posts/${encodeURIComponent(id)}/replies`,{auth:false}),refetchInterval:20000});
  const send=useMutation({mutationFn:()=>{const parsed=createReplySchema.safeParse({content:content.trim()});if(!parsed.success)throw new Error(parsed.error.issues[0].message);return api(`/v1/posts/${encodeURIComponent(id)}/replies`,{method:"POST",body:parsed.data});},onSuccess:()=>{setContent("");qc.invalidateQueries({queryKey:["replies",id]});qc.invalidateQueries({queryKey:["post",id]});qc.invalidateQueries({queryKey:["feed"]});}});

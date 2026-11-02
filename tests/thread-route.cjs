@@ -1,0 +1,8 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const r=require('node:module').createRequire(path.resolve('apps/web/package.json')),ts=r('typescript'),React=r('react'),{renderToStaticMarkup}=r('react-dom/server');
+const calls=[];let routeId='x%3A39045512-531e-4469-89af-0ac46041a72d';
+const mocks={'next/link':{default:({children})=>children},'next/navigation':{useParams:()=>({id:routeId})},'@tanstack/react-query':{useQueryClient:()=>({}),useQuery:q=>{if(q.enabled!==false)q.queryFn();return{}},useMutation:()=>({})},'@mention/shared':{},'@/components/Shell':{Shell:({children})=>children},'@/components/Feed':{PostCard:()=>null},'@/lib/api':{api:url=>{calls.push(url);return Promise.resolve({})}},'@/lib/hooks':{useMe:()=>({})}};
+const moduleObject={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('apps/web/src/app/post/[id]/page.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{module:moduleObject,exports:moduleObject.exports,require:n=>mocks[n]??r(n),Date,console});
+renderToStaticMarkup(React.createElement(moduleObject.exports.default));assert.equal(calls[0],'/v1/posts/x%3A39045512-531e-4469-89af-0ac46041a72d');assert(!calls[0].includes('%253A'));
+routeId='n:11111111-1111-4111-8111-111111111111';renderToStaticMarkup(React.createElement(moduleObject.exports.default));assert.equal(calls.at(-1),'/v1/posts/n%3A11111111-1111-4111-8111-111111111111');
+console.log('PASS: encoded mirrored-post route and plain native-post route encode exactly once.');

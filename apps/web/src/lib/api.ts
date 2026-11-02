@@ -26,11 +26,12 @@ export async function api<T>(
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   });
   if (!res.ok) {
-    let msg = res.statusText;
+    let msg = res.statusText || `Request failed (${res.status})`;
+    const text = await res.text();
     try {
-      const data = (await res.json()) as any;
+      const data = JSON.parse(text);
       msg = data.error ?? data.message ?? msg;
-    } catch {}
+    } catch { if (text && !text.trim().startsWith("<")) msg = text.slice(0, 200); }
     throw new ApiError(res.status, msg);
   }
   return res.json() as Promise<T>;
