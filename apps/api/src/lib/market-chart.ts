@@ -43,7 +43,13 @@ export async function marketChart(ca:string,interval:string):Promise<MarketChart
  const frame=frames[interval]??frames['1m'];
  const stats=await cached(`token:${ca}`,15,()=>fetchTokenStats(ca)).catch(()=>null);
  const known=await redis.get(`known-pool:${ca}`).catch(()=>null);
- const pairAddress=stats?.pairAddress||known;
+ let pairAddress=known||stats?.pairAddress;
+ if(!pairAddress){
+  const discovered=await marketResource(`pool-discovery:${ca}`,300,()=>gecko(`/networks/solana/tokens/${encodeURIComponent(ca)}/pools`));
+  const pools=(discovered.data?.data??[]).filter((p:any)=>[p.relationships?.base_token?.data?.id,p.relationships?.quote_token?.data?.id].includes(`solana_${ca}`)&&/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p.attributes?.address??''));
+  pools.sort((a:any,b:any)=>Number(b.attributes.reserve_in_usd??0)-Number(a.attributes.reserve_in_usd??0));
+  pairAddress=pools[0]?.attributes?.address;
+ }
  if(!pairAddress)throw new Error('Pool lookup temporarily unavailable. Retrying automatically.');
  const pool=encodeURIComponent(pairAddress),token=encodeURIComponent(ca);
  const [candles,trades,info]=await Promise.allSettled([
