@@ -26,6 +26,9 @@ function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.tra
  const addresses=[...new Map(ixs.flatMap(ix=>[ix.programId,...ix.keys.map(k=>k.pubkey)]).map(k=>[k.toBase58(),k])).values()];
  const [create,table]=web3.AddressLookupTableProgram.createLookupTable({authority:payer.publicKey,payer:payer.publicKey,recentSlot:await c.getSlot('finalized')});await send([create]);
  for(let i=0;i<addresses.length;i+=20)await send([web3.AddressLookupTableProgram.extendLookupTable({lookupTable:table,authority:payer.publicKey,payer:payer.publicKey,addresses:addresses.slice(i,i+20)})]);
+ const lookup=(await c.getAddressLookupTable(table)).value;if(!lookup)throw Error('Devnet lookup table unavailable');
+ for(let i=0;i<20&&(await c.getSlot())<=lookup.state.lastExtendedSlot;i++)await new Promise(r=>setTimeout(r,500));
+ if((await c.getSlot())<=lookup.state.lastExtendedSlot)throw Error('Lookup table has not activated yet; no launch submitted');
  const env={PUMP_LOOKUP_TABLE:table.toBase58()};
  const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'./pump-sdk.js':sdk,'@mention/shared':shared,'./money.js':{connection:c},'../env.js':{env}});
  const built=await buildLaunch({...args,mint,mode,quoteAsset:'SOL',devBuyBps:bps});

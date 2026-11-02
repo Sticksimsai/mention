@@ -27,11 +27,12 @@ node scripts/devnet/probe.cjs
 RUN_DEVNET_TESTS=true DEVNET_LAUNCH_MODE=fair node scripts/devnet/launch.cjs
 RUN_DEVNET_TESTS=true DEVNET_LAUNCH_MODE=creator node scripts/devnet/launch.cjs
 RUN_DEVNET_TESTS=true bash scripts/devnet/deploy-escrow.sh
+RUN_DEVNET_TESTS=true node scripts/devnet/escrow.cjs
 ```
 
 The launch script reuses the production launch builder with a devnet connection, creates a devnet lookup table, signs with the isolated test wallet, records signatures before sending, and verifies actual supply/developer token balance. Its connection and deployment scripts reject other genesis hashes. Public metadata must be deployed before launch rehearsal. A recorded ambiguous signature must be reconciled before any rerun. The deployment script reruns the executable tests before uploading the program.
 
-After deployment, run the escrow client against public devnet with test mints, wait for real clock deadlines, and record deposit, settlement and refund signatures. The local clock-based tests do not replace this step.
+The public escrow rehearsal script creates test mints, funds a round, refunds a separate unmatched round, waits for real clock deadlines, and settles using explicitly synthetic volume totals. It records signatures before sending and checks final token balances. It refuses to restart when an evidence file already exists, requiring reconciliation first. The local clock-based tests do not replace this step.
 
 ## Before mainnet
 
