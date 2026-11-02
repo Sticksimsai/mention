@@ -7,7 +7,7 @@ async function gecko(path:string){
  const base=key?(plan==='pro'?'https://pro-api.coingecko.com/api/v3/onchain':'https://api.coingecko.com/api/v3/onchain'):'https://api.geckoterminal.com/api/v2';
  const headers:Record<string,string>={accept:'application/json'};if(key)headers[plan==='pro'?'x-cg-pro-api-key':'x-cg-demo-api-key']=key;
  const res=await fetch(base+path,{headers,signal:AbortSignal.timeout(10000)});
- if(!res.ok)throw new Error('Market data is temporarily unavailable');
+ if(!res.ok){console.warn('market provider HTTP',res.status,new URL(base).hostname);throw new Error('Market data is temporarily unavailable');}
  return res.json();
 }
 export function parseCandles(rows:unknown):MarketChartView['candles']{
@@ -24,6 +24,7 @@ export async function marketChart(ca:string,interval:string):Promise<MarketChart
   cached(`trades:${ca}`,30,()=>gecko(`/networks/solana/pools/${pool}/trades`)),
   cached(`token-info:${ca}`,300,()=>gecko(`/networks/solana/tokens/${token}/info`)),
  ]);
+ for(const result of [candles,trades,info])if(result.status==='rejected')console.warn('market provider failure',result.reason instanceof Error?result.reason.message:'unknown');
  const candlesData=candles.status==='fulfilled'?candles.value as any:null,tradesData=trades.status==='fulfilled'?trades.value as any:null,infoData=info.status==='fulfilled'?info.value as any:null;
  const attrs=infoData?.data?.attributes;const holders=attrs?.holders?.count;
  return {candles:parseCandles(candlesData?.data?.attributes?.ohlcv_list),trades:(tradesData?.data??[]).slice(0,50).flatMap((row:any)=>{
