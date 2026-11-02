@@ -31,7 +31,7 @@ export async function makeReactionGif({label,color,ticker='',pfpUrl,style=0}:{la
   }
   ctx.fillStyle=color;for(let j=0;j<4;j++){const x=45+j*135, y=100+j*80+Math.sin(phase+j)*18;ctx.globalAlpha=.25;ctx.fillRect(x,y,7,7);}ctx.globalAlpha=1;
   const pixels=ctx.getImageData(0,0,500,500).data;if(!palette)palette=quantize(pixels,128);gif.writeFrame(applyPalette(pixels,palette),500,500,{palette:frame===0?palette:undefined,delay:80,repeat:0});
-  await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+  await new Promise<void>(resolve=>setTimeout(resolve,0));
  }
  gif.finish();return new Blob([new Uint8Array(gif.bytes())],{type:'image/gif'});
 }
