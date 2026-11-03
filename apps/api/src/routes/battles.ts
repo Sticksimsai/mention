@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { battleChallenges, communities, communityMembers, eq, and, or, desc, sql, inArray, ilike } from "@mention/db";
+import { marketRounds, battleChallenges, communities, communityMembers, eq, and, or, desc, sql, inArray, ilike } from "@mention/db";
 import { battleChallengeSchema, BATTLE_RULES_VERSION, tokenAmountUnits, type BattleView, type BattleCoin } from "@mention/shared";
 import { db } from "../lib/db.js";
 import { hash } from "../lib/money.js";
@@ -70,6 +70,9 @@ battlesRoute.post("/:id/:action",requireAuth,rateLimit("battle-action",20,60),as
  const body=z.object({acknowledgeDraft:z.literal(true),rulesVersion:z.literal(BATTLE_RULES_VERSION)}).safeParse(await c.req.json());
  if(!body.success)throw new HTTPException(400,{message:"Acknowledge the current draft terms. No funds will be locked."});
  const result=await db.transaction(async tx=>{
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"terms:"+id}))`);
+  const [connected]=await tx.select().from(marketRounds).where(eq(marketRounds.id,id));
+  if(connected)throw new HTTPException(409,{message:"Devnet terms are frozen. Use the escrow refund controls; cancelling a proposal cannot undo escrow."});
   const [row]=await tx.select().from(battleChallenges).where(eq(battleChallenges.id,id)).for("update");
   if(!row)throw new HTTPException(404,{message:"Challenge not found"});
   const coins=await tx.select().from(communities).where(inArray(communities.id,[row.challengerId,row.opponentId])).for("share");

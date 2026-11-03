@@ -16,7 +16,7 @@ const proposal={id:ID,challengerId:A,opponentId:B,challengerAmount:'100',opponen
 for(const durationSecs of [600,1800,3600])assert(shared.battleChallengeSchema.safeParse({...proposal,durationSecs}).success);
 for(const patch of [{durationSecs:60},{opponentId:A},{acknowledgeDraft:false},{challengerAmount:'0'}])assert(!shared.battleChallengeSchema.safeParse({...proposal,...patch}).success);
 const {HTTPException}=r('hono/http-exception');
-const tableNames=['battleChallenges','communities','communityMembers'];
+const tableNames=['marketRounds','battleChallenges','communities','communityMembers'];
 const tables=Object.fromEntries(tableNames.map(n=>[n,new Proxy({},{get:(_,k)=>`${n}.${String(k)}`})]));
 let results=[],updates=[],inserts=[];
 function chain(result){const c=new Proxy({},{get:(_,key)=>key==='then'?(resolve,reject)=>Promise.resolve(result).then(resolve,reject):()=>c});return c;}
@@ -27,7 +27,7 @@ const route=new (r('hono').Hono)();route.use('*',async(c,next)=>next());route.ro
 route.onError((err,c)=>c.json({error:err.message},err.status??500));
 const coins=[{id:A,name:'Alpha',ticker:'ALPHA',ownerId:'owner-a',status:'approved',ca:'a'},{id:B,name:'Beta',ticker:'BETA',ownerId:'owner-b',status:'approved',ca:'b'}];
 const row={id:ID,challengerId:A,opponentId:B,createdBy:'owner-a',challengerStakeUnits:'100000000',opponentStakeUnits:'200000000',durationSecs:600,status:'open',rulesVersion:shared.BATTLE_RULES_VERSION,createdAt:new Date(),expiresAt:new Date(Date.now()+86400000),acceptedAt:null};
-const send=(action,body={acknowledgeDraft:true,rulesVersion:shared.BATTLE_RULES_VERSION},auth=true)=>route.request(`http://test/${ID}/${action}`,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:'test'}:{})},body:JSON.stringify(body)});
+const send=(action,body={acknowledgeDraft:true,rulesVersion:shared.BATTLE_RULES_VERSION},auth=true)=>{if(results.length)results.unshift([]);return route.request(`http://test/${ID}/${action}`,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:'test'}:{})},body:JSON.stringify(body)});};
 (async()=>{
  assert.equal((await send('accept',undefined,false)).status,401);
  assert.equal((await send('accept',{acknowledgeDraft:false})).status,400);
@@ -40,6 +40,7 @@ const send=(action,body={acknowledgeDraft:true,rulesVersion:shared.BATTLE_RULES_
  results=[[{...row,status:'accepted'}],coins,coins];user='owner-a';assert.equal((await send('cancel')).status,200);assert.equal(updates.at(-1).status,'cancelled');
  results=[[row],coins];user='stranger';assert.equal((await send('cancel')).status,403);
  results=[[row],[coins[0],{...coins[1],ownerId:'owner-a'}]];user='owner-a';assert.equal((await send('accept')).status,409);
+ results=[[{id:ID}]];const frozen=await route.request(`http://test/${ID}/cancel`,{method:'POST',headers:{authorization:'test','content-type':'application/json'},body:JSON.stringify({acknowledgeDraft:true,rulesVersion:shared.BATTLE_RULES_VERSION})});assert.equal(frozen.status,409,'Frozen escrow terms cannot be cancelled as a draft');
  // Proposal authorization and valid creation.
  const create=()=>route.request('http://test/',{method:'POST',headers:{authorization:'test','content-type':'application/json'},body:JSON.stringify(proposal)});
  results=[[],coins];user='stranger';assert.equal((await create()).status,403);assert.equal(inserts.length,0);

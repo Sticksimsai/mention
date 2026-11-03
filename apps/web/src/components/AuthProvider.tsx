@@ -17,12 +17,13 @@ export interface AuthState {
   fundWallet: () => Promise<void>;
   exportWallet: () => Promise<void>;
   signTransaction: (transaction: string) => Promise<string>;
+  signDevnetTransaction: (transaction: string) => Promise<string>;
 }
 const unavailable = async () => { throw new Error("Wallet services are unavailable. Please try again shortly."); };
 const stub: AuthState = {
   ready: true, authenticated: false, available: false, userId: null, walletAddress: null,
   login: () => {}, logout: async () => {}, getAccessToken: async () => null,
-  createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable, signTransaction: unavailable,
+  createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable, signTransaction: unavailable, signDevnetTransaction: unavailable,
 };
 const AuthCtx = createContext<AuthState>(stub);
 export const useAuth = () => useContext(AuthCtx);
@@ -72,6 +73,12 @@ function PrivyBridge({ children }: { children: ReactNode }) {
       const wallet = wallets.find(w => w.address === walletAddress);
       if (!wallet) throw new Error("Your embedded wallet is still connecting. Please retry.");
       const { signedTransaction } = await signTransaction({ transaction: Uint8Array.from(atob(transaction), c => c.charCodeAt(0)), wallet, chain: "solana:mainnet" });
+      return btoa(String.fromCharCode(...signedTransaction));
+    },
+    signDevnetTransaction: async (transaction) => {
+      const wallet = wallets.find(w => w.address === walletAddress);
+      if (!wallet) throw new Error("Your embedded wallet is still connecting. Please retry.");
+      const { signedTransaction } = await signTransaction({ transaction: Uint8Array.from(atob(transaction), c => c.charCodeAt(0)), wallet, chain: "solana:devnet" });
       return btoa(String.fromCharCode(...signedTransaction));
     },
     exportWallet: async () => { if (walletAddress) await exportWallet({ address: walletAddress }); },

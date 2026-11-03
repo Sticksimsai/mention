@@ -81,3 +81,61 @@ The developer bought 2% of supply, then the same transaction placed half of thos
 ## Before mainnet
 
 Keep production execution gates closed. Complete remaining end-to-end checks, connect the verified atomic 50%-of-dev-buy reserve to its website flow, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
+
+## Website connection — 2026-11-03
+
+The devnet integration adds signed reserve ownership proofs, immutable round terms,
+reserve funding and acceptance, and permissionless refund/claim reviews. Wallet
+transactions are stored before broadcast; an unknown signature blocks replacement.
+Production launch and mainnet wagering switches remain disabled.
+
+A separately configured API worker samples fixed GeckoTerminal pools twice, at least
+60 seconds apart after the window closes. Only identical, complete observations
+can authorize a **devnet-only provider attestation** when settlement is enabled.
+This is not consensus-finalized volume and does not exclude wash trading. Test
+mints use explicitly disclosed mainnet community pools as proxy data. Missing or
+revised data cannot select a winner; on-chain deadlines permit refunds.
+
+Configuration on the API service only:
+- `MARKETS_DEVNET_ENABLED=true`
+- `MARKETS_DEVNET_TESTERS`: comma-separated internal user UUID allowlist
+- `MARKETS_DEVNET_PROGRAM_ID`: deployed devnet program
+- `MARKETS_DEVNET_RPC_URL`: devnet RPC, genesis checked before execution
+- `MARKETS_DEVNET_ORACLE_SEED`: separate 32-byte base64 seed, secret in Render
+- `MARKETS_DEVNET_SETTLEMENT_ENABLED=true`: explicit devnet worker signing switch
+
+The oracle needs devnet SOL for fees and destination token account rent. It never
+uses the production platform wallet. Rotating it will pause existing rounds with
+the previous oracle; their deadline refunds remain available.
+
+### Connect a local test reserve
+Open the community's mentionmarkets section while signed in as its owner. Supply
+the devnet mint, the fixed live pool containing the community CA, and reserve owner
+address. Review the memo transaction. Embedded wallets sign explicitly on devnet.
+For a reserve owned by a local test keypair, download the unsigned review and run:
+
+```sh
+cd ~/mention
+git pull --ff-only
+node scripts/devnet/sign-market.cjs ~/Downloads/mentions-devnet-review.json
+```
+
+`DEVNET_KEYPAIR` must point to the existing local test keypair. This helper checks
+RPC genesis, reserve ownership, reconstructs allowed instructions, and requests
+explicit approval before signing. It writes a `.signed.txt` file without sending
+anything. Paste that signed transaction into the same website review. Never paste
+private keys. Unsigned reviews expire with their blockhash; prepare again if needed.
+
+Both independent community owners must connect reserves and accept a proposal.
+Freeze the terms, then fund A followed by B before the fixed start. The UI shows
+finalized escrow state, the oracle, sources, amounts and deadlines. Use Recover
+once to expire an eligible open round, then again to claim returned tokens.
+A successful reserve launch alone does not establish website end-to-end acceptance.
+
+Validation for the website integration: API/web TypeScript checks, canonical escrow
+instruction comparisons, reserve and round decoding, fixed recipient checks,
+transaction persistence/ambiguity tests, draft-state regression tests, and volume
+evidence tests passed. The local production Next build encountered the execution
+environment's `uv_resident_set_memory` ENOENT; Render's build is the deployment gate.
+Full signed-in, two-owner website acceptance remains outstanding. Funding stays
+blocked while the devnet settlement switch is off; reserve proof can proceed.

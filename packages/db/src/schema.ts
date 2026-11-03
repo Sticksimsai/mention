@@ -378,3 +378,35 @@ export const xWriteAttempts = pgTable("x_write_attempts", {
   createdAt: timestamp("created_at", {withTimezone:true}).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", {withTimezone:true}).notNull().defaultNow(),
 });
+
+// Isolated devnet rehearsal state. Never used by production money_operations.
+export const marketLinks = pgTable("market_devnet_links", {
+ communityId: uuid("community_id").primaryKey().references(()=>communities.id),
+ userId: uuid("user_id").notNull().references(()=>users.id),
+ details: text("details").notNull(),
+ updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+});
+export const marketRounds = pgTable("market_devnet_rounds", {
+ id: uuid("id").primaryKey().references(()=>battleChallenges.id),
+ terms: text("terms").notNull(),
+ chainState: text("chain_state").notNull().default('null'),
+ observation: text("observation"),
+ error: text("error"),
+ closedAt: timestamp("closed_at",{withTimezone:true}),
+ createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+ updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+});
+export const marketActions = pgTable("market_devnet_actions", {
+ id: uuid("id").primaryKey().defaultRandom(),
+ scope: text("scope").notNull(), kind: text("kind").notNull(),
+ userId: uuid("user_id").references(()=>users.id),
+ details: text("details").notNull(),
+ transaction: text("transaction").notNull(),
+ signedTransaction: text("signed_transaction"),
+ signature: text("signature"),
+ lastValidBlockHeight: integer("last_valid_block_height").notNull(),
+ status: text("status").notNull().default("prepared"),
+ error: text("error"),
+ createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+ updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[index("market_devnet_action_scope").on(t.scope,t.createdAt)]);

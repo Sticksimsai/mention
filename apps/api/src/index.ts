@@ -25,6 +25,8 @@ import { earningsRoute, processApprovedPayouts } from "./routes/earnings.js";
 import { battlesRoute } from "./routes/battles.js";
 
 import {readinessRoute} from "./routes/readiness.js";
+import {marketExecutionRoute} from "./routes/market-execution.js";
+import {processDevnetMarkets} from "./lib/market-worker.js";
 const app = new Hono();
 
 app.use("*", logger());
@@ -69,6 +71,7 @@ app.route("/v1/launch", launchRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);
 app.route("/v1/battles", battlesRoute);
+app.route("/v1/devnet-markets", marketExecutionRoute);
 app.route("/v1/readiness",readinessRoute);
 app.route("/v1/admin", adminRoute);
 app.route("/v1/manage", managementRoute);
@@ -86,3 +89,5 @@ serve({ fetch: app.fetch, port: env.PORT }, (info) => {
 
 // Opt-in executor: approval records and explicit budgets are required before any payout.
 if (env.PAYOUTS_ENABLED) setInterval(() => processApprovedPayouts().catch(() => console.error("Payout reconciliation failed")), 15_000).unref();
+
+if(process.env.MARKETS_DEVNET_ENABLED==="true")setInterval(()=>processDevnetMarkets().catch(()=>console.error("Devnet markets reconciliation unavailable")),30000).unref();
