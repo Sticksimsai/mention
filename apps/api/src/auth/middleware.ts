@@ -102,7 +102,10 @@ export function rateLimit(bucket: string, max: number, windowSecs: number) {
     const key = `rl:${bucket}:${id}:${Math.floor(Date.now() / (windowSecs * 1000))}`;
     const n = await redis.incr(key);
     if (n === 1) await redis.expire(key, windowSecs);
-    if (n > max) throw new HTTPException(429, { message: "rate limited" });
+    if (n > max) {
+      const retryAfter = Math.max(1, windowSecs - Math.floor(Date.now() / 1000) % windowSecs);
+      throw new HTTPException(429, { res: new Response(`Too many attempts. Try again in ${retryAfter} seconds.`, { status: 429, headers: { "Retry-After": String(retryAfter) } }) });
+    }
     return next();
   };
 }

@@ -7,7 +7,7 @@ import { zValidator } from "@hono/zod-validator";
 import { communityIdentifier, createCommunitySchema, updateCommunitySchema, type CommunityView } from "@mention/shared";
 import {
   communities, communityMembers, users, transferRequests,
-  eq, and, desc, sql,
+  eq, and, desc, sql, inArray,
 } from "@mention/db";
 import { env } from "../env.js";
 import { db } from "../lib/db.js";
@@ -42,7 +42,7 @@ communitiesRoute.get("/", async (c) => {
     rows = ids.length
       ? await db.select({ c: communities, o: users })
           .from(communities).innerJoin(users, eq(communities.ownerId, users.id))
-          .where(and(eq(communities.status, "approved"), sql`${communities.id} = ANY(${ids})`))
+          .where(and(eq(communities.status, "approved"), inArray(communities.id, ids)))
       : [];
     rows.sort((a, b) => ids.indexOf(a.c.id) - ids.indexOf(b.c.id));
   } else {

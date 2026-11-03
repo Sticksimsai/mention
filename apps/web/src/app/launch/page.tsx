@@ -22,7 +22,7 @@ interface Launch {
     totalSupplyUnits?: string; maxQuoteUnits?: string; quoteDecimals?: number; quoteSymbol?: string;
   };
 }
-interface Config { communityWebsiteOrigin: string; enabled: boolean; platformFeeShareBps: number; tradeFeeBps: number; maxDevBuyBps: number }
+interface Config { unavailableReasons?: Partial<Record<Mode, string | null>>; communityWebsiteOrigin: string; enabled: boolean; platformFeeShareBps: number; tradeFeeBps: number; maxDevBuyBps: number }
 const DEFAULT_IMAGE = "/brand/mention-still.webp";
 const MODES: { id: Mode; title: string; caption: string }[] = [
   { id: "fair", title: "Fair start", caption: "No developer buy. SOL pair. Creator fees shared with you." },
@@ -58,7 +58,7 @@ export default function LaunchPage() {
     let active = true;
     setOp(null); setImage(null); setBanner({url:""}); setError("");
     const id = localStorage.getItem(storageKey);
-    if (id && auth.authenticated) api<Launch>(`/v1/launch/${id}`).then(r => { if (active) setOp(r); }).catch(() => { if (active) setError("Could not load your previous launch. Check recent launches before starting another."); });
+    if (id && auth.authenticated) api<Launch>(`/v1/launch/${id}`).then(r => { if (active) setOp(r); }).catch(e => { if (!active) return; if (e instanceof ApiError && e.status === 404) { localStorage.removeItem(storageKey); setOp(null); } else setError("Could not load your previous launch. Check recent launches before starting another."); });
     return () => { active = false; };
   }, [storageKey, auth.authenticated]);
   useEffect(() => {
@@ -100,11 +100,12 @@ export default function LaunchPage() {
     } catch (e) {
       // A definite rejected request can be edited; a transport failure keeps the intent for recovery.
       if (e instanceof ApiError && e.status >= 400 && e.status < 500) { setOp(null); localStorage.removeItem(storageKey); }
-      else try { setOp(await api<Launch>(`/v1/launch/${id}`)); } catch { /* retain the same pending ID */ }
+      else try { setOp(await api<Launch>(`/v1/launch/${id}`)); } catch (recoveryError) { if (e instanceof ApiError && recoveryError instanceof ApiError && recoveryError.status === 404) { setOp(null); localStorage.removeItem(storageKey); } /* Transport failures keep the intent for recovery. */ }
       throw e;
     }
   }
   function selectMode(next: Mode) { setMode(next); if (next !== "holders") setPairId("SOL"); if (next === "fair") setDevBuyBps(0); }
+  const unavailable = config.data?.unavailableReasons?.[mode];
   const shown = op?.details;
   const selectedMode = shown?.mode ?? mode;
   const pair = LAUNCH_PAIRS.find(p => p.id === (shown?.quoteAsset ?? pairId))!;
@@ -156,8 +157,9 @@ export default function LaunchPage() {
         <section className="launch-step"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-sm font-semibold">Developer buy</h2><span className="text-sm font-semibold text-volt">{devBuyBps / 100}% of supply</span></div><input aria-label="Developer buy percentage" type="range" min="0" max={MAX_DEV_BUY_BPS} step="25" value={devBuyBps} disabled={mode === "fair"} onChange={e => setDevBuyBps(Number(e.target.value))} className="my-4 w-full accent-[#a8ef00] disabled:opacity-30" /><div className="flex justify-between text-[10px] text-muted"><span>0% · no initial buy</span><span>2% maximum</span></div><p className="mt-3 text-xs leading-relaxed text-muted">{mode === "fair" ? "Fair start keeps the developer buy at zero. Choose Creator launch or Holder rewards to add a buy." : `Optional. Paid from your wallet in ${pair.symbol}. The review shows the token amount and maximum cost, with 1% input-price slippage.`}</p></section>
 
         {mode === "battle" && <div className="rounded-xl border border-volt/25 bg-volt/5 p-4 text-sm leading-6"><p className="ui-heading text-volt">mentionmarkets preview</p><p className="text-muted">Planned split: 50% of purchased developer tokens to the community wager reserve, 50% to the developer. For a 20,000,000-token purchase, that is 10,000,000 tokens each. At the maximum 2% buy, the reserve and developer each receive 1% of total supply. This mode remains unavailable while reserve integration is tested on devnet.</p><Link href="/mentionmarkets" className="mt-2 inline-block text-volt">Explore community matchups →</Link></div>}
+        {unavailable && mode !== "battle" && <p role="alert" className="rounded-xl border hairline bg-surface p-4 text-sm text-muted">{unavailable}</p>}
         {config.data && !config.data.enabled && <p className="rounded-xl border hairline bg-surface p-4 text-xs leading-relaxed text-muted">Draft your launch now. Transaction execution is not open yet; your wallet will only be charged after launch access is enabled and you approve.</p>}
-        {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !auth.walletAddress ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your Mentions wallet</button> : <div className="space-y-3"><button disabled={busy || mode === "battle" || !config.data?.enabled || !f.name.trim() || !f.ticker.trim()} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button><button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button></div>}
+        {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !auth.walletAddress ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your Mentions wallet</button> : <div className="space-y-3"><button disabled={busy || !!unavailable || mode === "battle" || !config.data?.enabled || !f.name.trim() || !f.ticker.trim()} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button><button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button></div>}
       </> : <section className="space-y-4 rounded-2xl border hairline p-5"><h2 className="text-sm font-semibold">Launch status <span className="ml-2 capitalize text-volt">{op.status.replaceAll("_", " ")}</span></h2><p className="break-all text-xs leading-relaxed text-muted">Mint: {op.details.ca}<br />{op.details.mode === "holders" ? "Fee destination: eligible holders via Pump" : `Fee recipient: ${op.details.creatorWallet}`}</p>
         {op.details.website && <div className="rounded-xl bg-surface p-4 text-xs leading-6"><p className="text-muted">Website · locked</p><p className="break-all text-volt">{op.details.website}</p>{op.details.twitterUrl && <><p className="mt-2 text-muted">X / Twitter</p><p className="break-all">{op.details.twitterUrl}</p></>}</div>}
         {op.details.estimatedCostLamports !== undefined && <p className="text-sm">Estimated {op.details.funding === "creator" ? "wallet SOL debit" : "platform cost"}: {(op.details.estimatedCostLamports / 1e9).toFixed(6)} SOL <span className="block mt-1 text-xs text-muted">Includes rent, network costs and a SOL developer buy, if selected. Token-pair buys also spend the pair asset below.</span></p>}
