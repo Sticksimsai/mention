@@ -104,6 +104,7 @@ export default function TribePage() {
             {shortCa(tribe.ca)} ⧉
           </button>
           {tribe.website && <> · <a className="hover:text-volt" href={tribe.website} target="_blank" rel="noreferrer">website</a></>}
+          {tribe.twitterUrl && <> · <a className="hover:text-volt" href={tribe.twitterUrl} target="_blank" rel="noreferrer">X / Twitter</a></>}
           {tribe.telegram && <> · <a className="hover:text-volt" href={tribe.telegram} target="_blank" rel="noreferrer">telegram</a></>}
           {!tribe.isExample&&<> · <a className="hover:text-volt" href={`https://pump.fun/coin/${tribe.ca}`} target="_blank" rel="noreferrer">pump.fun</a></>}
         </p>

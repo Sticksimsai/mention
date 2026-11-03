@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const {createRequire}=require('node:module'),r=createRequire(path.resolve('apps/api/package.json'));
 const ts=require('../apps/web/node_modules/typescript'),BN=r('bn.js'),web3=r('@solana/web3.js'),sdk=r('@pump-fun/pump-sdk');
-function load(file,mocks){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:name=>mocks[name]??r(name),Buffer,console});return module.exports;}
+function load(file,mocks){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:name=>mocks[name]??(name.startsWith(".")?load(path.resolve(path.dirname(file),name.replace(/\.js$/,".ts")),{}):r(name)),Buffer,console});return module.exports;}
 const shared=load('packages/shared/src/index.ts',{});
 assert.equal(shared.devBuyUnits(1000000000000000n,200),20000000000000n);
 for(const bps of [-1,201,NaN,1.5,Infinity])assert.throws(()=>shared.devBuyUnits(1000000000000000n,bps));
@@ -10,6 +10,9 @@ assert.equal(shared.devBuyUnits(1001n,200),20n,'Round down, never above 2%');
 assert.equal(shared.launchOptionsSchema.safeParse({mode:'fair',devBuyBps:1}).success,false);
 assert.equal(shared.launchOptionsSchema.safeParse({mode:'creator',quoteAsset:'SPCX'}).success,false);
 assert.equal(shared.launchOptionsSchema.safeParse({mode:'holders',quoteAsset:'SPCX',devBuyBps:200}).success,true);
+assert(shared.xProfileUrlSchema.safeParse('https://x.com/tradementions').success);
+assert(shared.xProfileUrlSchema.safeParse('https://twitter.com/tradementions').success);
+for(const bad of ['https://x.com.evil.test/account','javascript:alert(1)','https://example.com/account'])assert(!shared.xProfileUrlSchema.safeParse(bad).success);
 const payer=web3.Keypair.generate(),mint=web3.Keypair.generate(),creator=web3.Keypair.generate().publicKey;
 const tokenProgram=new web3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),token2022=new web3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 const global={createV2Enabled:true,isHolderRewardEnabled:true,creatorFeeConfigurable:false,feeRecipient:creator,feeRecipients:Array(7).fill(creator),reservedFeeRecipients:Array(8).fill(creator),buybackFeeRecipients:Array(8).fill(creator),tokenTotalSupply:new BN('1000000000000000'),initialVirtualTokenReserves:new BN('1073000000000000'),initialRealTokenReserves:new BN('793100000000000'),initialVirtualSolReserves:new BN('30000000000'),initialVirtualQuoteReserves:new BN('30000000000'),feeBasisPoints:new BN(100),creatorFeeBasisPoints:new BN(0),buybackBasisPoints:new BN(0),whitelistedQuoteMints:[]};

@@ -1,5 +1,5 @@
 "use client";
-import { communityHref } from "@mention/shared";
+import { communityHref, communitySlugPreview } from "@mention/shared";
 
 import {BannerEditor} from "@/components/BannerEditor";
 import { useEffect, useRef, useState } from "react";
@@ -17,12 +17,12 @@ interface Launch {
   id: string; status: string; signature?: string; error?: string; transaction?: string;
   details: {
     name: string; ticker: string; description: string; creatorWallet: string; imageUrl: string; ca: string;
-    estimatedCostLamports?: number; platformFeeShareBps: number; communityId?: string; communitySlug?: string; funding?: string;
+    estimatedCostLamports?: number; platformFeeShareBps: number; communityId?: string; communitySlug?: string; website?: string; twitterUrl?: string; funding?: string;
     mode?: Mode; quoteAsset?: Pair; devBuyBps?: number; devBuyTokenUnits?: string;
     totalSupplyUnits?: string; maxQuoteUnits?: string; quoteDecimals?: number; quoteSymbol?: string;
   };
 }
-interface Config { enabled: boolean; platformFeeShareBps: number; tradeFeeBps: number; maxDevBuyBps: number }
+interface Config { communityWebsiteOrigin: string; enabled: boolean; platformFeeShareBps: number; tradeFeeBps: number; maxDevBuyBps: number }
 const DEFAULT_IMAGE = "/brand/mention-still.webp";
 const MODES: { id: Mode; title: string; caption: string }[] = [
   { id: "fair", title: "Fair start", caption: "No developer buy. SOL pair. Creator fees shared with you." },
@@ -40,7 +40,7 @@ const primary = "rounded-xl bg-volt px-5 py-3 text-sm font-semibold text-ink tra
 
 export default function LaunchPage() {
   const auth = useAuth();
-  const [f, setF] = useState({ name: "", ticker: "", description: "", website: "", telegram: "", creatorWallet: "" });
+  const [f, setF] = useState({ name: "", ticker: "", description: "", twitterUrl: "", telegram: "", creatorWallet: "" });
   const [image, setImage] = useState<{ id: string; url: string } | null>(null);
   const [banner,setBanner]=useState<{url:string;id?:string}>({url:""});
   const [mode, setMode] = useState<Mode>("fair");
@@ -95,7 +95,7 @@ export default function LaunchPage() {
     localStorage.setItem(storageKey, id);
     setOp({ id, status: "preparing", details });
     try {
-      setOp(await api<Launch>("/v1/launch/prepare", { method: "POST", body: { ...f, id, imageId: selectedImage.id, bannerId:banner.id, fundingWallet: auth.walletAddress, creatorWallet: details.creatorWallet, website: f.website || null, telegram: f.telegram || null, mode, quoteAsset: pairId, devBuyBps, devBuySol: 0 } }));
+      setOp(await api<Launch>("/v1/launch/prepare", { method: "POST", body: { ...f, id, imageId: selectedImage.id, bannerId:banner.id, fundingWallet: auth.walletAddress, creatorWallet: details.creatorWallet, twitterUrl: f.twitterUrl || null, telegram: f.telegram || null, mode, quoteAsset: pairId, devBuyBps, devBuySol: 0 } }));
       recent.refetch();
     } catch (e) {
       // A definite rejected request can be edited; a transport failure keeps the intent for recovery.
@@ -150,7 +150,7 @@ export default function LaunchPage() {
           <label className="block text-xs font-medium text-muted">Description<textarea maxLength={2000} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} rows={3} className={inputClass} /></label>
           <BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>
           <div className="rounded-xl border hairline p-4"><label className="block text-sm font-medium">Token image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || !auth.authenticated} onChange={e => { const file = e.target.files?.[0]; if (file) run(async () => { await saveImage(file); }); }} className="mt-3 block w-full text-xs text-muted" /></label><p className="mt-3 text-xs text-muted">The Mentions image is preset. Upload PNG, JPEG or WebP up to 2 MB to replace it.{!auth.authenticated && " Sign in to upload."}</p>{image && <button type="button" onClick={() => setImage(null)} className="mt-2 text-xs text-volt">Use default image</button>}</div>
-          <details className="text-sm"><summary className="cursor-pointer text-muted">Links & creator fee recipient</summary><div className="mt-4 space-y-4">{field("website", "Website (optional)")}{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to your Mentions wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
+          <details className="text-sm"><summary className="cursor-pointer text-muted">Links & creator fee recipient</summary><div className="mt-4 space-y-4">{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">Leave blank to use your connected X profile.</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to your Mentions wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
         </section>
 
         <section className="launch-step"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-sm font-semibold">Developer buy</h2><span className="text-sm font-semibold text-volt">{devBuyBps / 100}% of supply</span></div><input aria-label="Developer buy percentage" type="range" min="0" max={MAX_DEV_BUY_BPS} step="25" value={devBuyBps} disabled={mode === "fair"} onChange={e => setDevBuyBps(Number(e.target.value))} className="my-4 w-full accent-[#a8ef00] disabled:opacity-30" /><div className="flex justify-between text-[10px] text-muted"><span>0% · no initial buy</span><span>2% maximum</span></div><p className="mt-3 text-xs leading-relaxed text-muted">{mode === "fair" ? "Fair start keeps the developer buy at zero. Choose Creator launch or Holder rewards to add a buy." : `Optional. Paid from your wallet in ${pair.symbol}. The review shows the token amount and maximum cost, with 1% input-price slippage.`}</p></section>
@@ -159,6 +159,7 @@ export default function LaunchPage() {
         {config.data && !config.data.enabled && <p className="rounded-xl border hairline bg-surface p-4 text-xs leading-relaxed text-muted">Draft your launch now. Transaction execution is not open yet; your wallet will only be charged after launch access is enabled and you approve.</p>}
         {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !auth.walletAddress ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your Mentions wallet</button> : <div className="space-y-3"><button disabled={busy || mode === "battle" || !config.data?.enabled || !f.name.trim() || !f.ticker.trim()} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button><button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button></div>}
       </> : <section className="space-y-4 rounded-2xl border hairline p-5"><h2 className="text-sm font-semibold">Launch status <span className="ml-2 capitalize text-volt">{op.status.replaceAll("_", " ")}</span></h2><p className="break-all text-xs leading-relaxed text-muted">Mint: {op.details.ca}<br />{op.details.mode === "holders" ? "Fee destination: eligible holders via Pump" : `Fee recipient: ${op.details.creatorWallet}`}</p>
+        {op.details.website && <div className="rounded-xl bg-surface p-4 text-xs leading-6"><p className="text-muted">Website · locked</p><p className="break-all text-volt">{op.details.website}</p>{op.details.twitterUrl && <><p className="mt-2 text-muted">X / Twitter</p><p className="break-all">{op.details.twitterUrl}</p></>}</div>}
         {op.details.estimatedCostLamports !== undefined && <p className="text-sm">Estimated {op.details.funding === "creator" ? "wallet SOL debit" : "platform cost"}: {(op.details.estimatedCostLamports / 1e9).toFixed(6)} SOL <span className="block mt-1 text-xs text-muted">Includes rent, network costs and a SOL developer buy, if selected. Token-pair buys also spend the pair asset below.</span></p>}
         {op.details.devBuyTokenUnits && <div className="rounded-xl bg-surface p-4 text-sm"><p>Developer buy: {units(op.details.devBuyTokenUnits)} tokens ({(op.details.devBuyBps ?? 0) / 100}%)</p><p className="mt-2 text-muted">Maximum buy cost: {units(op.details.maxQuoteUnits, op.details.quoteDecimals)} {op.details.quoteSymbol}</p></div>}
         {op.signature && <a href={`https://solscan.io/tx/${op.signature}`} target="_blank" rel="noreferrer" className="block text-sm text-volt">View transaction ↗</a>}{op.error && <p className="text-sm text-down">{op.error}</p>}

@@ -9,6 +9,7 @@ import {
   communities, communityMembers, users, transferRequests,
   eq, and, desc, sql,
 } from "@mention/db";
+import { env } from "../env.js";
 import { db } from "../lib/db.js";
 import { redis, queues } from "../lib/redis.js";
 import { requireAuth, requireNotBanned, requireStaff, rateLimit } from "../auth/middleware.js";
@@ -20,7 +21,7 @@ function toView(c: any, owner: any, isMember?: boolean): CommunityView {
     id: c.id, slug: c.slug, name: c.name, ticker: c.ticker, ca: c.ca,
     bannerUrl: c.bannerUrl, pfpUrl: c.pfpUrl, details: c.details,
     owner: { id: owner?.id, username: owner?.username ?? "", name: owner?.displayName ?? "", pfpUrl: owner?.pfpUrl ?? "" },
-    website: c.website, telegram: c.telegram, xCommunityUrl: c.xCommunityUrl,
+    website: c.website, twitterUrl: c.twitterUrl, telegram: c.telegram, xCommunityUrl: c.xCommunityUrl,
     membersCount: c.membersCount, pinned: c.pinned,
     launchedViaTribes: c.launchedViaTribes, isExample: c.isExample,
     isMember, createdAt: c.createdAt.toISOString?.() ?? c.createdAt,
@@ -83,6 +84,7 @@ communitiesRoute.post("/", requireAuth, rateLimit("community-create", 3, 3600),
         ca: body.ca,
         details: body.details,
         website: body.website ?? null,
+        twitterUrl: body.twitterUrl ?? null,
         telegram: body.telegram ?? null,
         xCommunityUrl: body.xCommunityUrl ?? null,
         bannerUrl: body.bannerUrl ?? "",
@@ -122,10 +124,11 @@ communitiesRoute.patch("/:id", requireAuth, zValidator("json", updateCommunitySc
   for (const [k, v] of Object.entries(clean)) {
     if (["pfpUrl", "bannerUrl", "details", "name"].includes(k)) { if (v !== null) set[k] = v; }
   }
-  const nullable = { website: clean.website, telegram: clean.telegram, xCommunityUrl: clean.xCommunityUrl };
+  const nullable = { twitterUrl: clean.twitterUrl, website: comm.launchedViaTribes ? new URL(`/t/${comm.slug}`,env.WEB_ORIGIN).href : clean.website, telegram: clean.telegram, xCommunityUrl: clean.xCommunityUrl };
   const [updated] = await db.update(communities).set({
     ...set,
     ...(body.postCooldownSecs !== undefined ? { postCooldownSecs: body.postCooldownSecs } : {}),
+    ...("twitterUrl" in clean ? { twitterUrl: nullable.twitterUrl } : {}),
     ...("website" in clean ? { website: nullable.website } : {}),
     ...("telegram" in clean ? { telegram: nullable.telegram } : {}),
     ...("xCommunityUrl" in clean ? { xCommunityUrl: nullable.xCommunityUrl } : {}),

@@ -77,6 +77,7 @@ export const communities = pgTable("communities", {
   details: text("details").notNull().default(""),
   ownerId: uuid("owner_id").notNull().references(() => users.id),
   website: text("website"),
+  twitterUrl: text("twitter_url"),
   telegram: text("telegram"),
   xCommunityUrl: text("x_community_url"),
   membersCount: integer("members_count").notNull().default(1),
@@ -412,3 +413,11 @@ export const marketActions = pgTable("market_devnet_actions", {
  createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
  updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
 },t=>[index("market_devnet_action_scope").on(t.scope,t.createdAt)]);
+
+// Reserve public addresses before token metadata is published. Never recycle them.
+export const communityUrlReservations = pgTable("community_url_reservations", {
+  slug: text("slug").primaryKey(),
+  ca: text("ca").notNull().unique(),
+  operationId: uuid("operation_id").notNull().unique().references(() => moneyOperations.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

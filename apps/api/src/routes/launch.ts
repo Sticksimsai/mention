@@ -8,18 +8,18 @@ import { communities, communityMembers, moneyOperations, launchImages, eq, and, 
 import { db } from "../lib/db.js";
 import { env } from "../env.js";
 import { buildLaunch } from "../lib/launch-builder.js";
-import { LAUNCH_PAIRS, MAX_DEV_BUY_BPS, launchOptionsSchema } from "@mention/shared";
+import { LAUNCH_PAIRS, MAX_DEV_BUY_BPS, launchOptionsSchema, xProfileUrlSchema } from "@mention/shared";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
 import { address, connection, hash, platformKeypair, ownOperation, publicOperation, refreshOperation, broadcast, type Operation } from "../lib/money.js";
 
 export const launchRoute=new Hono();
-const input=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(32),ticker:z.string().regex(/^[A-Za-z0-9]{1,12}$/),description:z.string().max(2000),imageId:z.string().uuid(),bannerId:z.string().uuid().optional(),fundingWallet:z.string().min(32).max(44),creatorWallet:z.string().min(32).max(44),website:z.string().url().nullable().optional(),telegram:z.string().url().nullable().optional(),devBuySol:z.literal(0).default(0)}).and(launchOptionsSchema);
+const input=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(32),ticker:z.string().regex(/^[A-Za-z0-9]{1,12}$/),description:z.string().max(2000),imageId:z.string().uuid(),bannerId:z.string().uuid().optional(),fundingWallet:z.string().min(32).max(44),creatorWallet:z.string().min(32).max(44),twitterUrl:xProfileUrlSchema.nullable().optional(),telegram:z.string().url().nullable().optional(),devBuySol:z.literal(0).default(0)}).and(launchOptionsSchema);
 launchRoute.get("/images/:id",async c=>{
  const id=z.string().uuid().safeParse(c.req.param("id"));if(!id.success)throw new HTTPException(404);
  const [image]=await db.select().from(launchImages).where(eq(launchImages.id,id.data));if(!image)throw new HTTPException(404);
  c.header("Content-Type",image.mime);c.header("X-Content-Type-Options","nosniff");c.header("Cache-Control","public, max-age=31536000, immutable");return c.body(new Uint8Array(Buffer.from(image.data,"base64")));
 });
-launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,devBuyEnabled:true,battleExecutionEnabled:false,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
+launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,communityWebsiteOrigin:env.WEB_ORIGIN,devBuyEnabled:true,battleExecutionEnabled:false,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
 launchRoute.use("*",requireAuth);
 launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:3_000_000}),zValidator("json",z.object({data:z.string().max(2_800_000)})),async c=>{
  requireNotBanned(c);const raw=c.req.valid("json").data;const match=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw);
@@ -42,15 +42,19 @@ launchRoute.post("/prepare",rateLimit("launch",2,3600),zValidator("json",input),
  if(body.bannerId&&!banner)throw new HTTPException(400,{message:"Upload your community banner first"});
  const mint=Keypair.generate(), payer=address(body.fundingWallet);
  const creator=body.mode==="holders"?payer:platformKeypair().publicKey;
- const details={...body,bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
+ const details={...body,communitySlug:"",website:"",twitterUrl:body.twitterUrl || `https://x.com/${user.username}`,bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
  await db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(721931)`);
   const names=await tx.select({id:communities.id}).from(communities).where(eq(communities.name,body.name));if(names.length)throw new HTTPException(409,{message:"Community name is already taken"});
   const pending=await tx.execute(sql`SELECT id FROM money_operations WHERE kind='launch' AND status NOT IN ('failed','expired') AND details::jsonb->>'name'=${body.name}`);if(pending.length)throw new HTTPException(409,{message:"A launch with this name already exists"});
   await tx.insert(moneyOperations).values({id:body.id,userId:user.id,kind:"launch",requestHash:digest,details:JSON.stringify(details)});
+  const [reserved]=await tx.execute(sql`SELECT mentions_reserve_community_slug(${body.id}::uuid, ${body.name}, ${body.ticker}, ${details.ca}) AS slug`);
+  details.communitySlug=String(reserved.slug);
+  details.website=new URL(`/t/${details.communitySlug}`,env.WEB_ORIGIN).href;
+  await tx.update(moneyOperations).set({details:JSON.stringify(details)}).where(eq(moneyOperations.id,body.id));
  });
  try{
-  const form=new FormData();form.append("file",new Blob([new Uint8Array(Buffer.from(image.data,"base64"))],{type:image.mime}),"token");form.append("name",body.name);form.append("symbol",body.ticker.toUpperCase());form.append("description",body.description);form.append("showName","true");form.append("twitter",`https://x.com/${user.username}`);if(body.website)form.append("website",body.website);if(body.telegram)form.append("telegram",body.telegram);
+  const form=new FormData();form.append("file",new Blob([new Uint8Array(Buffer.from(image.data,"base64"))],{type:image.mime}),"token");form.append("name",body.name);form.append("symbol",body.ticker.toUpperCase());form.append("description",body.description);form.append("showName","true");form.append("twitter",details.twitterUrl);form.append("website",details.website);if(body.telegram)form.append("telegram",body.telegram);
   const ipfs=await fetch("https://pump.fun/api/ipfs",{method:"POST",body:form,signal:AbortSignal.timeout(20000)});if(!ipfs.ok)throw new Error("Token image publishing failed");const metadata=await ipfs.json() as {metadataUri:string};if(!metadata.metadataUri)throw new Error("Missing metadata URI");
   const built=await buildLaunch({...body,mint,payer,creator,uri:metadata.metadataUri});
   const {transaction,lastValidBlockHeight,...review}=built;
@@ -68,7 +72,7 @@ async function finish(op:Operation){
  return db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${op.id}))`);
   const [old]=await tx.select().from(communities).where(eq(communities.ca,d.ca));let community=old;
-  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
+  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,twitterUrl:d.twitterUrl,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
   const [done]=await tx.update(moneyOperations).set({status:"complete",details:JSON.stringify({...d,communityId:community.id,communitySlug:community.slug}),updatedAt:new Date()}).where(eq(moneyOperations.id,op.id)).returning();return done;
  });
 }

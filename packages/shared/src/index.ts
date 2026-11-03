@@ -1,6 +1,6 @@
 import { MENTIONS_GIFS } from "./sticker-pack.js";
 export { MENTIONS_GIFS } from "./sticker-pack.js";
-export { communityHref, communityIdentifier } from "./community-url.js";
+export { communityHref, communityIdentifier, communitySlugPreview } from "./community-url.js";
 import { z } from "zod";
 
 // ────────────────────────── queues ──────────────────────────
@@ -34,12 +34,15 @@ export interface MediaMirrorJob { xPostId: string; remoteUrl: string }
 
 // ────────────────────────── API payload schemas ──────────────────────────
 
+export const xProfileUrlSchema = z.string().trim().regex(/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[A-Za-z0-9_]{1,15}\/?$/, "Enter an X profile URL, such as https://x.com/yourname");
+
 export const createCommunitySchema = z.object({
   name: z.string().min(2).max(50),
   ticker: z.string().min(1).max(12).regex(/^[A-Za-z0-9]+$/),
   ca: z.string().min(32).max(44).regex(/^[1-9A-HJ-NP-Za-km-z]+$/, "must be a Solana address"),
   details: z.string().max(2000).default(""),
   website: z.string().url().optional().nullable(),
+  twitterUrl: xProfileUrlSchema.optional().nullable(),
   telegram: z.string().max(200).optional().nullable(),
   xCommunityUrl: z.string().url().optional().nullable(),
   bannerUrl: z.string().url().optional().nullable(),
@@ -80,6 +83,7 @@ export const launchTokenSchema = z.object({
   description: z.string().max(2000).default(""),
   imageUrl: z.string().url(),
   website: z.string().url().optional().nullable(),
+  twitterUrl: xProfileUrlSchema.optional().nullable(),
   telegram: z.string().max(200).optional().nullable(),
   /** launcher's wallet — receives their share of creator fees */
   creatorWallet: z.string().min(32).max(44),
@@ -148,6 +152,7 @@ export interface CommunityView {
   details: string;
   owner: AuthorView;
   website: string | null;
+  twitterUrl?: string | null;
   telegram: string | null;
   xCommunityUrl: string | null;
   membersCount: number;

@@ -13,3 +13,10 @@ export function communityIdentifier(value: string): { kind: 'id' | 'slug'; value
   }
   return null;
 }
+
+/** Draft preview only; the database reserves the final collision-safe address at review. */
+export function communitySlugPreview(name: string, ticker = ""): string {
+  const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const base = (clean(name) || clean(ticker) || "your-token").slice(0, 72).replace(/-+$/, "");
+  return communityIdentifier(base)?.kind === "id" ? `community-${base}` : base;
+}
