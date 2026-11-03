@@ -4,14 +4,15 @@ const fs=require('node:fs'),path=require('node:path'),{createRequire}=require('n
 const r=createRequire(path.resolve(__dirname,'../apps/api/package.json'));
 const {Connection,PublicKey,Keypair,AddressLookupTableProgram,Transaction,TransactionMessage}=r('@solana/web3.js');
 const {OnlinePumpSdk,PUMP_SDK}=r('@pump-fun/pump-sdk');const BN=r('bn.js');
-const MAINNET='5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+const MAINNET='5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
 (async()=>{
  const execute=process.argv.includes('--execute');
  const keyPath=process.env.MAINNET_KEYPAIR;
  const signer=execute?Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(keyPath||'', 'utf8')))):null;
  const payer=signer?.publicKey||new PublicKey(process.env.SETUP_WALLET||'11111111111111111111111111111111');
  const c=new Connection(process.env.SOLANA_RPC_URL||'https://api.mainnet-beta.solana.com',{commitment:'finalized',disableRetryOnRateLimit:true});
- if(await c.getGenesisHash()!==MAINNET)throw Error('Expected Solana MAINNET. No transaction sent.');
+ const genesis=await c.getGenesisHash();
+ if(genesis!==MAINNET)throw Error('Expected Solana MAINNET; RPC returned genesis '+genesis+'. No transaction sent.');
  const sdk=new OnlinePumpSdk(c),global=await sdk.fetchGlobal();
  const mint=Keypair.generate().publicKey;
  // Pump shared accounts are reusable across launches. Include both create and buy paths.
