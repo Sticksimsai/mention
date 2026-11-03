@@ -12,7 +12,7 @@ Legacy SPL Token and Token-2022 mints are supported. Freeze authority is forbidd
 
 ## What is not connected
 
-The launch reserve is still NOT wired: automatic custody of 1% of purchased developer tokens and reserve-to-round funding require a separate, tested atomic launch integration. Do not describe the draft reserve shown by the site as deposited funds. Spectator wagering and probability/odds pricing are also separate work.
+The reserve candidate adds custody of 50% of purchased developer tokens and owner-authorized reserve-to-round funding. The launch builder can append the deposit atomically in an explicitly devnet-only rehearsal; public reserve launch execution remains disabled until verified. Do not describe the draft reserve shown by the site as deposited funds. Spectator wagering and probability/odds pricing are also separate work.
 
 ## Build and test
 
@@ -30,3 +30,13 @@ npm test
 The harness loads the actual Solana executable into LiteSVM with signature checks enabled and executes SPL token CPIs. Fixtures supply initial mint/account state; Clock is advanced only for local testing. This does not establish successful public devnet deployment or production readiness.
 
 An upgradeable deployment has an additional trust boundary: its upgrade authority can replace the code. Mainnet authority ownership, multisig controls and any freeze policy must be reviewed separately. This development program ID is not a mainnet release.
+
+## Reserve candidate (2026-11-03 correction)
+
+Reserve mode locks **50% of purchased developer tokens**, rounded down; the developer retains the remainder. At a 2% supply buy this is 1% of supply each. This is not a fee or an additional purchase. Standard fair/creator launches keep their existing behavior.
+
+`initialize_reserve` creates a mint-specific reserve PDA and token vault, checks the source ATA balance against the declared purchase, enforces the 2% cap, and deposits half with a checked transfer. The launch builder appends it after token creation and the exact-token buy in the same transaction. A failed deposit rolls back the launch. The on-chain reserve instruction can also be called separately on an eligible existing holding; it does not by itself prove that a purchase occurred in that transaction.
+
+`initialize_from_reserve` and `accept_from_reserve` require the reserve owner's signature and transfer directly into the existing round's constrained token vaults. There is no general-purpose withdraw instruction. Winner payouts and timeout refunds follow the original round rules; refunds return to the depositor wallet, not automatically into the reserve. Reserve owners still choose counterparties and the oracle: colluding owners/oracles can arrange wagers that return their stakes, so this is not a trustless permanent token lock. Upgrade authority remains a separate trust boundary.
+
+The Round account layout and existing instructions remain compatible. The local executable suite covers reserve deposits, unauthorized spending, duplicate initialization, overspending, winner payouts, refunds and atomic rollback. Public devnet still needs the program upgrade and a `DEVNET_LAUNCH_MODE=reserve` rehearsal. Do not enable public execution based solely on these local tests.

@@ -6,8 +6,8 @@ function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.tra
 const shared=load('packages/shared/src/index.ts');
 const buy=shared.devBuyUnits(1_000_000_000_000000n,200);
 assert.equal(buy,20_000_000_000000n);
-assert.equal(shared.battleReserveSplit(buy).reserve,200_000_000000n);
-for(const n of [0n,1n,99n,100n,101n,buy]){const s=shared.battleReserveSplit(n);assert.equal(s.developer+s.reserve,n);assert(s.reserve*100n<=n);}
+assert.equal(shared.battleReserveSplit(buy).reserve,10_000_000_000000n);
+for(const n of [0n,1n,99n,100n,101n,buy]){const s=shared.battleReserveSplit(n);assert.equal(s.developer+s.reserve,n);assert(s.reserve===n/2n);}
 assert.throws(()=>shared.battleReserveSplit(-1n));
 for(const a of ['0','-1','1e5','NaN','1.0000001','1000000000000','.5','01'])assert.throws(()=>shared.tokenAmountUnits(a));
 assert.equal(shared.tokenAmountUnits('0.000001'),1n);assert.equal(shared.tokenAmountUnits('100.5'),100500000n);
@@ -49,5 +49,5 @@ const send=(action,body={acknowledgeDraft:true,rulesVersion:shared.BATTLE_RULES_
  response=await route.request('http://test/config');assert.equal((await response.json()).executionEnabled,false);
  results=[coins.slice(0,1)];data=await (await route.request(`http://test/community/${A}/reserve`)).json();assert.equal(data.availableUnits,null);assert.equal(data.lockedUnits,null);
  assert.equal((await route.request('http://test/not-a-uuid')).status,400);
- console.log('PASS: exact 1% reserve, 2% dev cap, integer rounding, duration/amount validation, owner permissions, expiry, rule versions, accept/cancel state, idempotent proposals and acceptance, duplicate pair rejection, explicit unfunded reserve.');
+ console.log('PASS: exact 50% reserve, 2% dev cap, integer rounding, duration/amount validation, owner permissions, expiry, rule versions, accept/cancel state, idempotent proposals and acceptance, duplicate pair rejection, explicit unfunded reserve.');
 })().catch(e=>{console.error(e);process.exitCode=1});

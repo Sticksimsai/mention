@@ -12,6 +12,23 @@ const GRACE: i64 = 900;
 #[program]
 pub mod mention_escrow {
  use super::*;
+ pub fn initialize_reserve(ctx: Context<InitializeReserve>, purchased:u64) -> Result<()> {
+  safe_mint(&ctx.accounts.mint)?;
+  // The launch builder includes creation, exact-token buy and this instruction atomically.
+  // Enforce the observed starting balance, cap and split again on-chain.
+  require!(purchased>=2&&purchased<=ctx.accounts.mint.supply/50,EscrowError::InvalidReserve);
+  require!(ctx.accounts.source.amount==purchased,EscrowError::InvalidReserve);
+  let amount=purchased/2;
+  let reserve=&mut ctx.accounts.reserve;
+  reserve.owner=ctx.accounts.owner.key();reserve.mint=ctx.accounts.mint.key();
+  reserve.token_program=ctx.accounts.token_program.key();reserve.vault=ctx.accounts.vault.key();
+  reserve.purchased=purchased;reserve.deposited=amount;reserve.bump=ctx.bumps.reserve;
+  token_interface::transfer_checked(CpiContext::new(ctx.accounts.token_program.to_account_info(),TransferChecked {
+   from:ctx.accounts.source.to_account_info(),mint:ctx.accounts.mint.to_account_info(),to:ctx.accounts.vault.to_account_info(),authority:ctx.accounts.owner.to_account_info()
+  }),amount,ctx.accounts.mint.decimals)?;
+  ctx.accounts.vault.reload()?;
+  require!(ctx.accounts.vault.amount==amount,EscrowError::TransferMismatch);Ok(())
+ }
  pub fn initialize(ctx: Context<Initialize>, nonce: [u8;32], terms: Terms) -> Result<()> {
   let now=Clock::get()?.unix_timestamp;
   terms.validate(now)?;
@@ -36,6 +53,32 @@ pub mod mention_escrow {
   require!(ctx.accounts.vault_a.amount==terms.amount_a,EscrowError::TransferMismatch);
   Ok(())
  }
+ pub fn initialize_from_reserve(ctx: Context<InitializeFromReserve>, nonce: [u8;32], terms: Terms) -> Result<()> {
+  let now=Clock::get()?.unix_timestamp;
+  terms.validate(now)?;
+  require_keys_neq!(ctx.accounts.owner_a.key(),terms.owner_b,EscrowError::InvalidTerms);
+  require_keys_neq!(ctx.accounts.mint_a.key(),ctx.accounts.mint_b.key(),EscrowError::InvalidTerms);
+  safe_mint(&ctx.accounts.mint_a)?;safe_mint(&ctx.accounts.mint_b)?;
+  let r=&mut ctx.accounts.round;
+  r.owner_a=ctx.accounts.owner_a.key();r.owner_b=terms.owner_b;
+  r.beneficiary_a=terms.beneficiary_a;r.beneficiary_b=terms.beneficiary_b;
+  r.mint_a=ctx.accounts.mint_a.key();r.mint_b=ctx.accounts.mint_b.key();
+  r.token_program_a=ctx.accounts.token_program_a.key();r.token_program_b=ctx.accounts.token_program_b.key();
+  r.vault_a=ctx.accounts.vault_a.key();r.vault_b=ctx.accounts.vault_b.key();
+  r.oracle=terms.oracle;r.pool_a=terms.pool_a;r.pool_b=terms.pool_b;r.rules_hash=terms.rules_hash;
+  r.nonce=nonce;r.bump=ctx.bumps.round;r.amount_a=terms.amount_a;r.amount_b=terms.amount_b;
+  r.start=terms.start;r.end=terms.start.checked_add(terms.duration).ok_or(EscrowError::Overflow)?;
+  r.deadline=r.end.checked_add(GRACE).ok_or(EscrowError::Overflow)?;
+  r.status=OPEN;r.funded_b=false;r.claimed_a=false;r.claimed_b=false;
+  let mint_key=ctx.accounts.mint_a.key();
+  let seeds:&[&[u8]]=&[b"reserve",mint_key.as_ref(),&[ctx.accounts.reserve.bump]];
+  token_interface::transfer_checked(CpiContext::new_with_signer(ctx.accounts.token_program_a.to_account_info(),TransferChecked {
+   from:ctx.accounts.reserve_vault.to_account_info(),mint:ctx.accounts.mint_a.to_account_info(),to:ctx.accounts.vault_a.to_account_info(),authority:ctx.accounts.reserve.to_account_info()
+  },&[seeds]),terms.amount_a,ctx.accounts.mint_a.decimals)?;
+  ctx.accounts.vault_a.reload()?;
+  require!(ctx.accounts.vault_a.amount==terms.amount_a,EscrowError::TransferMismatch);
+  Ok(())
+ }
  pub fn accept(ctx: Context<Accept>) -> Result<()> {
   let r=&mut ctx.accounts.round;
   require!(r.status==OPEN&&!r.funded_b&&Clock::get()?.unix_timestamp<r.start,EscrowError::NotOpen);
@@ -44,6 +87,20 @@ pub mod mention_escrow {
   token_interface::transfer_checked(CpiContext::new(ctx.accounts.token_program_b.to_account_info(),TransferChecked {
    from:ctx.accounts.source_b.to_account_info(),mint:ctx.accounts.mint_b.to_account_info(),to:ctx.accounts.vault_b.to_account_info(),authority:ctx.accounts.owner_b.to_account_info()
   }),r.amount_b,ctx.accounts.mint_b.decimals)?;
+  ctx.accounts.vault_b.reload()?;
+  require!(ctx.accounts.vault_b.amount.checked_sub(before)==Some(r.amount_b),EscrowError::TransferMismatch);
+  r.funded_b=true;Ok(())
+ }
+ pub fn accept_from_reserve(ctx: Context<AcceptFromReserve>) -> Result<()> {
+  let r=&mut ctx.accounts.round;
+  require!(r.status==OPEN&&!r.funded_b&&Clock::get()?.unix_timestamp<r.start,EscrowError::NotOpen);
+  safe_mint(&ctx.accounts.mint_b)?;
+  let before=ctx.accounts.vault_b.amount;
+  let mint_key=ctx.accounts.mint_b.key();
+  let seeds:&[&[u8]]=&[b"reserve",mint_key.as_ref(),&[ctx.accounts.reserve.bump]];
+  token_interface::transfer_checked(CpiContext::new_with_signer(ctx.accounts.token_program_b.to_account_info(),TransferChecked {
+   from:ctx.accounts.reserve_vault.to_account_info(),mint:ctx.accounts.mint_b.to_account_info(),to:ctx.accounts.vault_b.to_account_info(),authority:ctx.accounts.reserve.to_account_info()
+  },&[seeds]),r.amount_b,ctx.accounts.mint_b.decimals)?;
   ctx.accounts.vault_b.reload()?;
   require!(ctx.accounts.vault_b.amount.checked_sub(before)==Some(r.amount_b),EscrowError::TransferMismatch);
   r.funded_b=true;Ok(())
@@ -126,12 +183,36 @@ pub struct Initialize<'info> {
  pub associated_token_program:Program<'info,AssociatedToken>,pub system_program:Program<'info,System>,
 }
 #[derive(Accounts)]
+#[instruction(nonce:[u8;32])]
+pub struct InitializeFromReserve<'info> {
+ #[account(mut)] pub owner_a:Signer<'info>,
+ #[account(init,payer=owner_a,space=8+Round::INIT_SPACE,seeds=[b"round",owner_a.key().as_ref(),&nonce],bump)] pub round:Box<Account<'info,Round>>,
+ #[account(mint::token_program=token_program_a)] pub mint_a:Box<InterfaceAccount<'info,Mint>>,
+ #[account(mint::token_program=token_program_b)] pub mint_b:Box<InterfaceAccount<'info,Mint>>,
+ #[account(seeds=[b"reserve",mint_a.key().as_ref()],bump=reserve.bump,constraint=reserve.owner==owner_a.key(),constraint=reserve.mint==mint_a.key(),constraint=reserve.token_program==token_program_a.key(),constraint=reserve.vault==reserve_vault.key())] pub reserve:Box<Account<'info,Reserve>>,
+ #[account(mut,token::mint=mint_a,token::authority=reserve,token::token_program=token_program_a)] pub reserve_vault:Box<InterfaceAccount<'info,TokenAccount>>,
+ #[account(init,payer=owner_a,associated_token::mint=mint_a,associated_token::authority=round,associated_token::token_program=token_program_a)] pub vault_a:Box<InterfaceAccount<'info,TokenAccount>>,
+ #[account(init,payer=owner_a,associated_token::mint=mint_b,associated_token::authority=round,associated_token::token_program=token_program_b)] pub vault_b:Box<InterfaceAccount<'info,TokenAccount>>,
+ pub token_program_a:Interface<'info,TokenInterface>,pub token_program_b:Interface<'info,TokenInterface>,
+ pub associated_token_program:Program<'info,AssociatedToken>,pub system_program:Program<'info,System>,
+}
+#[derive(Accounts)]
 pub struct Accept<'info> {
  pub owner_b:Signer<'info>,
  #[account(mut,seeds=[b"round",round.owner_a.as_ref(),&round.nonce],bump=round.bump,has_one=owner_b,has_one=mint_b,has_one=vault_b,has_one=token_program_b)] pub round:Box<Account<'info,Round>>,
  #[account(mint::token_program=token_program_b)] pub mint_b:InterfaceAccount<'info,Mint>,
  #[account(mut,token::mint=mint_b,token::authority=owner_b,token::token_program=token_program_b)] pub source_b:InterfaceAccount<'info,TokenAccount>,
  #[account(mut,token::mint=mint_b,token::authority=round,token::token_program=token_program_b)] pub vault_b:InterfaceAccount<'info,TokenAccount>,
+ pub token_program_b:Interface<'info,TokenInterface>,
+}
+#[derive(Accounts)]
+pub struct AcceptFromReserve<'info> {
+ pub owner_b:Signer<'info>,
+ #[account(mut,seeds=[b"round",round.owner_a.as_ref(),&round.nonce],bump=round.bump,has_one=owner_b,has_one=mint_b,has_one=vault_b,has_one=token_program_b)] pub round:Box<Account<'info,Round>>,
+ #[account(mint::token_program=token_program_b)] pub mint_b:Box<InterfaceAccount<'info,Mint>>,
+ #[account(seeds=[b"reserve",mint_b.key().as_ref()],bump=reserve.bump,constraint=reserve.owner==owner_b.key(),constraint=reserve.mint==mint_b.key(),constraint=reserve.token_program==token_program_b.key(),constraint=reserve.vault==reserve_vault.key())] pub reserve:Box<Account<'info,Reserve>>,
+ #[account(mut,token::mint=mint_b,token::authority=reserve,token::token_program=token_program_b)] pub reserve_vault:Box<InterfaceAccount<'info,TokenAccount>>,
+ #[account(mut,token::mint=mint_b,token::authority=round,token::token_program=token_program_b)] pub vault_b:Box<InterfaceAccount<'info,TokenAccount>>,
  pub token_program_b:Interface<'info,TokenInterface>,
 }
 #[derive(Accounts)]
@@ -165,4 +246,24 @@ pub enum EscrowError {
  #[msg("Stake was already claimed or never funded")] AlreadyClaimed,
  #[msg("Wrong mint, vault or token program")] WrongAccount,
  #[msg("Destination does not belong to the beneficiary")] WrongRecipient,
+ #[msg("Invalid reserve purchase amount or starting balance")] InvalidReserve,
+}
+
+// One reserve per mint. There is no generic withdraw or administrator drain instruction.
+// Owner signatures approve each wager; refunds go to the stored depositor as in normal rounds.
+#[account]
+#[derive(InitSpace)]
+pub struct Reserve {
+ pub owner:Pubkey,pub mint:Pubkey,pub token_program:Pubkey,pub vault:Pubkey,
+ pub purchased:u64,pub deposited:u64,pub bump:u8,
+}
+#[derive(Accounts)]
+pub struct InitializeReserve<'info> {
+ #[account(mut)] pub owner:Signer<'info>,
+ #[account(mint::token_program=token_program)] pub mint:Box<InterfaceAccount<'info,Mint>>,
+ #[account(init,payer=owner,space=8+Reserve::INIT_SPACE,seeds=[b"reserve",mint.key().as_ref()],bump)] pub reserve:Box<Account<'info,Reserve>>,
+ #[account(mut,associated_token::mint=mint,associated_token::authority=owner,associated_token::token_program=token_program)] pub source:Box<InterfaceAccount<'info,TokenAccount>>,
+ #[account(init,payer=owner,associated_token::mint=mint,associated_token::authority=reserve,associated_token::token_program=token_program)] pub vault:Box<InterfaceAccount<'info,TokenAccount>>,
+ pub token_program:Interface<'info,TokenInterface>,
+ pub associated_token_program:Program<'info,AssociatedToken>,pub system_program:Program<'info,System>,
 }

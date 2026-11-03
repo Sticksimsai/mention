@@ -18,8 +18,10 @@ class Online {
  async fetchGlobal(){return global;} async fetchFeeConfig(){return null;} async fetchQuoteControl(){return quoteControl;}
  async resolveQuoteMint(){return {quoteTokenProgram:tokenProgram,decimals:9};} async fetchQuoteTransferFee(){return null;}
 }
-let table,amount=0n,tamper=false;
+let table,amount=0n,tamper=false,reserveMode=false,reserveTamper=false,genesis="EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
+const reserveLib=load("apps/api/src/lib/launch-reserve.ts",{}),reserveProgram=web3.Keypair.generate().publicKey;
 const connection={
+ getGenesisHash:async()=>genesis,getAccountInfo:async()=>({executable:true}),
  getLatestBlockhash:async()=>({blockhash:web3.Keypair.generate().publicKey.toBase58(),lastValidBlockHeight:300}),
  getAddressLookupTable:async()=>({value:table}),getBalance:async()=>10000000000,
  simulateTransaction:async tx=>{
@@ -29,12 +31,19 @@ const connection={
    assert.equal(buy?.data.readBigUInt64LE(8)??0n,amount,'Exact output cap must be encoded in the on-chain instruction');
    assert(tx.message.staticAccountKeys[0].equals(payer.publicKey));
    const m=Buffer.alloc(82);m.writeBigUInt64LE(BigInt(global.tokenTotalSupply.toString()),36);m[44]=6;
-   const a=Buffer.alloc(165);mint.publicKey.toBuffer().copy(a,0);payer.publicKey.toBuffer().copy(a,32);a.writeBigUInt64LE(tamper?amount+1n:amount,64);
-   return {value:{err:null,accounts:[{lamports:9900000000},{owner:token2022.toBase58(),data:[m.toString('base64'),'base64']},amount?{owner:token2022.toBase58(),data:[a.toString('base64'),'base64']}:null]}};
+   const a=Buffer.alloc(165);mint.publicKey.toBuffer().copy(a,0);payer.publicKey.toBuffer().copy(a,32);a.writeBigUInt64LE(tamper?amount+1n:reserveMode?amount-amount/2n:amount,64);
+   let extra=[];
+   if(reserveMode){
+    const deposit=reserveLib.reserveDeposit(reserveProgram,payer.publicKey,mint.publicKey,amount);
+    const ix=instructions.at(-1);assert(ix.programId.equals(reserveProgram));assert(ix.data.equals(deposit.instruction.data),'Deposit is encoded after the buy in the same transaction');
+    const v=Buffer.alloc(165);mint.publicKey.toBuffer().copy(v);deposit.reserve.toBuffer().copy(v,32);v.writeBigUInt64LE(reserveTamper?amount/2n-1n:amount/2n,64);
+    extra=[{owner:token2022.toBase58(),data:[v.toString('base64'),'base64']}];
+   }
+   return {value:{err:null,accounts:[{lamports:9900000000},{owner:token2022.toBase58(),data:[m.toString('base64'),'base64']},amount?{owner:token2022.toBase58(),data:[a.toString('base64'),'base64']}:null,...extra]}};
  },
 };
 const env={PUMP_LOOKUP_TABLE:web3.Keypair.generate().publicKey.toBase58()};
-const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'@mention/shared':shared,'./money.js':{connection},'../env.js':{env},'./pump-sdk.js':{...sdk,OnlinePumpSdk:Online}});
+const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'./launch-reserve.js':load('apps/api/src/lib/launch-reserve.ts',{}),'@mention/shared':shared,'./money.js':{connection},'../env.js':{env},'./pump-sdk.js':{...sdk,OnlinePumpSdk:Online}});
 (async()=>{
  await assert.rejects(buildLaunch({mint,payer:payer.publicKey,creator,name:"Battle",ticker:"BTL",uri:"https://example.invalid",mode:"battle",quoteAsset:"SOL",devBuyBps:200}),/unavailable until escrow/);
  for(const quoteAsset of ['SOL','SPCX','QQQX','SPYX'])for(const devBuyBps of [0,200]){
@@ -50,6 +59,19 @@ const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'@mention/shared'
   assert.equal(result.devBuyTokenUnits,amount.toString());assert.equal(result.quoteMint,pair.mint);
   if(devBuyBps){tamper=true;await assert.rejects(buildLaunch(args),/2% supply cap/);tamper=false;}
  }
+
+ reserveMode=true;amount=20000000000000n;
+ const reserveArgs={mint,payer:payer.publicKey,creator,name:'Reserve test',ticker:'RSRV',uri:'https://example.invalid/test',mode:'battle',quoteAsset:'SOL',devBuyBps:200,devnetReserveProgram:reserveProgram};
+ const reserveIxs=await sdk.PUMP_SDK.createV2AndBuyV2Instructions({mint:mint.publicKey,user:payer.publicKey,creator,name:reserveArgs.name,symbol:reserveArgs.ticker,uri:reserveArgs.uri,mayhemMode:false,holderReward:false,quoteMint:new web3.PublicKey(shared.LAUNCH_PAIRS[0].mint),quoteTokenProgram:tokenProgram,global,amount:new BN(amount.toString()),quoteAmount:new BN('1000000000'),slippage:0});
+ reserveIxs.push(reserveLib.reserveDeposit(reserveProgram,payer.publicKey,mint.publicKey,amount).instruction);
+ const reserveAddresses=[...new Map(reserveIxs.flatMap(i=>[i.programId,...i.keys.map(k=>k.pubkey)]).map(k=>[k.toBase58(),k])).values()];
+ table=new web3.AddressLookupTableAccount({key:new web3.PublicKey(env.PUMP_LOOKUP_TABLE),state:{deactivationSlot:18446744073709551615n,lastExtendedSlot:1,lastExtendedSlotStartIndex:0,addresses:reserveAddresses}});
+ const result=await buildLaunch(reserveArgs);assert.equal(result.reserveTokenUnits,'10000000000000');assert.equal(result.developerRetainedUnits,'10000000000000');assert.equal(result.devBuyTokenUnits,'20000000000000');
+ assert.equal(shared.battleReserveSplit(amount).reserve.toString(),result.reserveTokenUnits);
+ reserveTamper=true;await assert.rejects(buildLaunch(reserveArgs),/50% split/);reserveTamper=false;
+ genesis='mainnet';await assert.rejects(buildLaunch(reserveArgs),/DEVNET ONLY/);
+ assert.throws(()=>reserveLib.reserveDeposit(reserveProgram,payer.publicKey,mint.publicKey,1n),/at least 2/);
+ console.log('PASS: atomic reserve instruction ordering, exact 50/50 simulated split, tampered vault rejection and mainnet guard');
  assert.equal(new Set(shared.LAUNCH_PAIRS.map(p=>p.mint)).size,shared.LAUNCH_PAIRS.length);
  console.log('PASS: 2% boundaries, fair-start rules, pair/mode restrictions, exact-output SDK instructions, quote mints, partial signing, transaction size with lookup table, simulated cap enforcement. No RPC or funds used.');
 })().catch(e=>{console.error(e);process.exitCode=1});

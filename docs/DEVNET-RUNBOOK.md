@@ -51,7 +51,7 @@ DEVNET_LAUNCH_MODE=fair node scripts/devnet/launch.cjs
 DEVNET_LAUNCH_MODE=creator node scripts/devnet/launch.cjs
 ```
 
-These create actual devnet test tokens through the production launch builder: no developer buy, then exactly 2% developer buy. They do not implement the separate 1%-of-purchased-tokens escrow reserve. Holder rewards are excluded because the inspected devnet configuration disables them.
+These create actual devnet test tokens through the production launch builder: no developer buy, then exactly 2% developer buy. They do not implement the separate 50%-of-purchased-tokens escrow reserve. Holder rewards are excluded because the inspected devnet configuration disables them.
 
 ## Evidence and interruptions
 

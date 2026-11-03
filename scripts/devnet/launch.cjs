@@ -24,7 +24,9 @@ function pacedFetch(u,o){
  if(await c.getGenesisHash()!=='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG')throw Error('DEVNET ONLY: wrong genesis');
  const {payer,dir}=require('./local-state.cjs').context(web3.Keypair);
  const balance=await c.getBalance(payer.publicKey);if(balance<1e9)throw Error(`Need at least 1 test SOL on devnet at ${payer.publicKey.toBase58()}. Never send mainnet SOL.`);
- const mode=process.env.DEVNET_LAUNCH_MODE||'creator';if(!['fair','creator'].includes(mode))throw Error('Devnet rehearsal supports fair or creator mode');const bps=mode==='fair'?0:200;const test=mode==='fair'?'fair-no-buy':'creator-2-percent';
+ const mode=process.env.DEVNET_LAUNCH_MODE||'creator';if(!['fair','creator','reserve'].includes(mode))throw Error('Devnet rehearsal supports fair, creator or reserve mode');const bps=mode==='fair'?0:200;const test=mode==='fair'?'fair-no-buy':mode==='reserve'?'reserve-half-of-dev-buy':'creator-2-percent';
+ const reserveLib=load('apps/api/src/lib/launch-reserve.ts');
+ const reserveProgram=mode==='reserve'?new web3.PublicKey(fs.readFileSync('contracts/mention-escrow/program-id.txt','utf8').trim()):undefined;
  const file=path.join(dir,'launch-evidence.json'),evidence=fs.existsSync(file)?JSON.parse(fs.readFileSync(file)):[];
  const record=event=>{evidence.push({...event,at:new Date().toISOString()});fs.writeFileSync(file,JSON.stringify(evidence,null,2));};
  async function send(instructions){const bh=await c.getLatestBlockhash();const tx=new web3.Transaction({...bh,feePayer:payer.publicKey}).add(...instructions);tx.sign(payer);return submit(tx.serialize());}
@@ -39,6 +41,8 @@ function pacedFetch(u,o){
  const uri='https://getmentions.xyz/devnet/metadata.json';const meta=await fetch(uri);if(!meta.ok||!(await meta.json()).name)throw Error('Test metadata is not published yet');
  const args={mint,user:payer.publicKey,payer:payer.publicKey,creator:payer.publicKey,name:'Mentions Devnet Rehearsal',ticker:'MTEST',symbol:'MTEST',uri,mayhemMode:false,holderReward:false,quoteMint,quoteTokenProgram:resolved.quoteTokenProgram};
  const ixs=amount.isZero()?[await sdk.PUMP_SDK.createV2Instruction({...args,mint:mint.publicKey})]:await sdk.PUMP_SDK.createV2AndBuyV2Instructions({...args,mint:mint.publicKey,global,amount,quoteAmount:quote.muln(101).addn(99).divn(100),slippage:0});
+ const deposit=reserveProgram?reserveLib.reserveDeposit(reserveProgram,payer.publicKey,mint.publicKey,BigInt(amount.toString())):null;
+ if(deposit)ixs.push(deposit.instruction);
  const addresses=[...new Map(ixs.flatMap(ix=>[ix.programId,...ix.keys.map(k=>k.pubkey)]).map(k=>[k.toBase58(),k])).values()];
  const [create,table]=web3.AddressLookupTableProgram.createLookupTable({authority:payer.publicKey,payer:payer.publicKey,recentSlot:await c.getSlot('finalized')});await send([create]);
  for(let i=0;i<addresses.length;i+=20)await send([web3.AddressLookupTableProgram.extendLookupTable({lookupTable:table,authority:payer.publicKey,payer:payer.publicKey,addresses:addresses.slice(i,i+20)})]);
@@ -46,12 +50,14 @@ function pacedFetch(u,o){
  for(let i=0;i<20&&(await c.getSlot())<=lookup.state.lastExtendedSlot;i++)await new Promise(r=>setTimeout(r,500));
  if((await c.getSlot())<=lookup.state.lastExtendedSlot)throw Error('Lookup table has not activated yet; no launch submitted');
  const env={PUMP_LOOKUP_TABLE:table.toBase58()};
- const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'./pump-sdk.js':sdk,'@mention/shared':shared,'./money.js':{connection:c},'../env.js':{env}});
- const built=await buildLaunch({...args,mint,mode,quoteAsset:'SOL',devBuyBps:bps});
+ const {buildLaunch}=load('apps/api/src/lib/launch-builder.ts',{'./launch-reserve.js':reserveLib,'./pump-sdk.js':sdk,'@mention/shared':shared,'./money.js':{connection:c},'../env.js':{env}});
+ const built=await buildLaunch({...args,mint,mode:mode==='reserve'?'battle':mode,devnetReserveProgram:reserveProgram,quoteAsset:'SOL',devBuyBps:bps});
  const tx=web3.VersionedTransaction.deserialize(Buffer.from(built.transaction,'base64'));tx.sign([payer]);const signature=await submit(tx.serialize());
  const tokenProgram=new web3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');const ata=sdk.quoteAta(payer.publicKey,mint.publicKey,tokenProgram);
  const received=(await c.getAccountInfo(ata))?BigInt((await c.getTokenAccountBalance(ata)).value.amount):0n,supply=BigInt((await c.getTokenSupply(mint.publicKey)).value.amount);
- if(received!==shared.devBuyUnits(supply,bps))throw Error('On-chain developer buy differs from reviewed amount');
- record({test,passed:true,signature,mint:mint.publicKey.toBase58(),receivedUnits:received.toString(),supplyUnits:supply.toString(),lookupTable:table.toBase58()});
+ const reserved=deposit?BigInt((await c.getTokenAccountBalance(deposit.vault)).value.amount):0n;
+ if(deposit){const account=await c.getAccountInfo(deposit.vault);reserveLib.verifyReserveVault(account?{owner:account.owner.toBase58(),data:[account.data.toString('base64'),'base64']}:null,mint.publicKey,deposit.reserve,deposit.amount);}
+ if(received+reserved!==shared.devBuyUnits(supply,bps))throw Error('On-chain developer buy differs from reviewed amount');
+ record({test,passed:true,...(deposit?{reserve:deposit.reserve.toBase58(),reserveVault:deposit.vault.toBase58(),reserveUnits:reserved.toString()}:{}),signature,mint:mint.publicKey.toBase58(),receivedUnits:received.toString(),supplyUnits:supply.toString(),lookupTable:table.toBase58()});
  console.log(JSON.stringify(evidence.at(-1),null,2));
 })().catch(e=>{console.error(e.message);process.exitCode=1});

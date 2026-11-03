@@ -47,7 +47,7 @@ Arena now uses the same surface, raised, line, foreground, muted and volt theme 
 
 ## 2026-11-02 — Launchpad presentation and mentionmarkets
 
-Launchpad uses a wider, numbered setup layout, icon-led launch options, grouped pair assets with locally bundled official token artwork, and clear pair/mode selection feedback. Fee detail is collapsible; the live token preview stays at the top. Public Arena pages renamed to `/mentionmarkets`, with redirects for Arena and Battles URLs. Navigation places mentionmarkets below Launchpad. Transaction logic, launch execution flags, the 2% developer-buy cap and planned 1% purchased-token reserve are unchanged.
+Launchpad uses a wider, numbered setup layout, icon-led launch options, grouped pair assets with locally bundled official token artwork, and clear pair/mode selection feedback. Fee detail is collapsible; the live token preview stays at the top. Public Arena pages renamed to `/mentionmarkets`, with redirects for Arena and Battles URLs. Navigation places mentionmarkets below Launchpad. Transaction logic, launch execution flags, the 2% developer-buy cap and reserve execution gate remain unchanged. The reserve allocation was subsequently clarified to 50% of purchased developer tokens; see RESERVE-TESTING.md.
 
 ## X profile verification sync
 

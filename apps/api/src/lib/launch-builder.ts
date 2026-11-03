@@ -1,4 +1,5 @@
 import BN from "bn.js";
+import { DEVNET_GENESIS, reserveDeposit, verifyReserveVault } from "./launch-reserve.js";
 import { ComputeBudgetProgram, Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { OnlinePumpSdk, PUMP_SDK, getBuySolAmountFromTokenAmount, quoteAta } from "./pump-sdk.js";
 import { LAUNCH_PAIRS, devBuyUnits, launchOptionsSchema } from "@mention/shared";
@@ -8,10 +9,14 @@ import type { z } from "zod";
 
 const TOKEN_2022 = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 export async function buildLaunch(args: z.infer<typeof launchOptionsSchema> & {
-  mint: Keypair; payer: PublicKey; creator: PublicKey; name: string; ticker: string; uri: string;
+  devnetReserveProgram?: PublicKey; mint: Keypair; payer: PublicKey; creator: PublicKey; name: string; ticker: string; uri: string;
 }) {
   const options = launchOptionsSchema.parse(args);
-  if (options.mode === "battle") throw new Error("Battle launches are unavailable until escrow and settlement are connected");
+  if (options.mode === "battle") {
+    if (!args.devnetReserveProgram) throw new Error("Battle launches are unavailable until escrow and settlement are connected");
+    if (await connection.getGenesisHash() !== DEVNET_GENESIS) throw new Error("Reserve launch rehearsal is DEVNET ONLY");
+    if (!(await connection.getAccountInfo(args.devnetReserveProgram))?.executable) throw new Error("Devnet reserve program is not deployed");
+  }
   const pair = LAUNCH_PAIRS.find(p => p.id === options.quoteAsset)!;
   const quoteMint = new PublicKey(pair.mint);
   const sdk = new OnlinePumpSdk(connection);
@@ -30,6 +35,8 @@ export async function buildLaunch(args: z.infer<typeof launchOptionsSchema> & {
   const instructions = amount.isZero()
     ? [await PUMP_SDK.createV2Instruction(common)]
     : await PUMP_SDK.createV2AndBuyV2Instructions({ ...common, global, amount, quoteAmount: maxQuote, slippage: 0 });
+  const reserve = options.mode === "battle" ? reserveDeposit(args.devnetReserveProgram!,args.payer,args.mint.publicKey,BigInt(amount.toString())) : null;
+  if (reserve) instructions.push(reserve.instruction);
   const bh = await connection.getLatestBlockhash("confirmed");
   const tables = [];
   if (env.PUMP_LOOKUP_TABLE) {
@@ -46,7 +53,7 @@ export async function buildLaunch(args: z.infer<typeof launchOptionsSchema> & {
   if (size > 1232) throw new Error("This launch needs a configured Pump address lookup table. No transaction was sent.");
   const ata = quoteAta(args.payer, args.mint.publicKey, TOKEN_2022);
   const before = await connection.getBalance(args.payer);
-  const sim = await connection.simulateTransaction(tx, { sigVerify: false, accounts: { encoding: "base64", addresses: [args.payer.toBase58(), args.mint.publicKey.toBase58(), ata.toBase58()] } });
+  const sim = await connection.simulateTransaction(tx, { sigVerify: false, accounts: { encoding: "base64", addresses: [args.payer.toBase58(), args.mint.publicKey.toBase58(), ata.toBase58(), ...(reserve ? [reserve.vault.toBase58()] : [])] } });
   if (sim.value.err) throw new Error(`Launch simulation failed. Check your SOL for network/rent costs${amount.isZero() ? "" : ` and ${pair.symbol} for the developer buy`}.`);
   const accounts = sim.value.accounts;
   if (!accounts?.[0] || !accounts[1] || accounts[1].owner !== TOKEN_2022.toBase58()) throw new Error("Could not verify the new token supply");
@@ -57,13 +64,15 @@ export async function buildLaunch(args: z.infer<typeof launchOptionsSchema> & {
   const tokenData = accounts[2] ? Buffer.from(accounts[2].data[0], "base64") : null;
   if (tokenData && (accounts[2]?.owner !== TOKEN_2022.toBase58() || !tokenData.subarray(0,32).equals(args.mint.publicKey.toBuffer()) || !tokenData.subarray(32,64).equals(args.payer.toBuffer()))) throw new Error("Unexpected developer token account");
   const received = tokenData && tokenData.length >= 72 ? tokenData.readBigUInt64LE(64) : 0n;
-  if (received !== BigInt(amount.toString()) || received > devBuyUnits(supply, 200)) throw new Error("Developer buy exceeds the 2% supply cap or does not match the review");
+  if (received + (reserve?.amount ?? 0n) !== BigInt(amount.toString()) || BigInt(amount.toString()) > devBuyUnits(supply, 200)) throw new Error("Developer buy exceeds the 2% supply cap or does not match the review");
+  if (reserve) verifyReserveVault(accounts[3] as {owner:string;data:[string,string]}|null,args.mint.publicKey,reserve.reserve,reserve.amount);
   const cost = before - accounts[0].lamports;
   if (!Number.isSafeInteger(cost) || cost < 0) throw new Error("Could not estimate launch cost");
   tx.sign([args.mint]); // Only the mint is signed here. The creator must approve the payer signature in Privy.
   return {
     transaction: Buffer.from(tx.serialize()).toString("base64"), lastValidBlockHeight: bh.lastValidBlockHeight,
     estimatedCostLamports: cost, devBuyTokenUnits: amount.toString(), totalSupplyUnits: supply.toString(),
+    ...(reserve ? {reserveAddress:reserve.reserve.toBase58(),reserveVault:reserve.vault.toBase58(),reserveTokenUnits:reserve.amount.toString(),developerRetainedUnits:received.toString()} : {}),
     maxQuoteUnits: maxQuote.toString(), quoteDecimals: resolved.decimals, quoteMint: pair.mint, quoteSymbol: pair.symbol,
   };
 }

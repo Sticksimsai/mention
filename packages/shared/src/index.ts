@@ -195,10 +195,10 @@ export function devBuyUnits(supply: bigint, bps: number): bigint {
 }
 
 export const BATTLE_DURATIONS = [600, 1800, 3600] as const;
-export const BATTLE_RULES_VERSION = "volume-draft-v2";
+export const BATTLE_RULES_VERSION = "volume-draft-v3-reserve50";
 export function battleReserveSplit(purchased: bigint) {
   if (purchased < 0n) throw new Error("Purchased tokens cannot be negative");
-  const reserve = purchased / 100n;
+  const reserve = purchased / 2n;
   return { reserve, developer: purchased - reserve };
 }
 export function tokenAmountUnits(amount: string): bigint {

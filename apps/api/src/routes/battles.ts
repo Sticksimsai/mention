@@ -20,7 +20,7 @@ export async function battleViews(rows: (typeof battleChallenges.$inferSelect)[]
   const byId=new Map(coins.map(c=>[c.id,c as BattleCoin]));
   return rows.map(r=>({id:r.id,challenger:byId.get(r.challengerId)!,opponent:byId.get(r.opponentId)!,durationSecs:r.durationSecs,challengerStakeUnits:r.challengerStakeUnits,opponentStakeUnits:r.opponentStakeUnits,status:effectiveStatus(r) as BattleView["status"],rulesVersion:r.rulesVersion,createdAt:r.createdAt.toISOString(),expiresAt:r.expiresAt.toISOString(),acceptedAt:r.acceptedAt?.toISOString()??null,escrowFunded:false}));
 }
-battlesRoute.get("/config",c=>c.json({executionEnabled:false,reserveBpsOfDevBuy:100,durations:[600,1800,3600],rulesVersion:BATTLE_RULES_VERSION}));
+battlesRoute.get("/config",c=>c.json({executionEnabled:false,reserveBpsOfDevBuy:5000,durations:[600,1800,3600],rulesVersion:BATTLE_RULES_VERSION}));
 battlesRoute.get("/",async c=>{
   const communityId=c.req.query("communityId");if(communityId)parseId(communityId);
   const cursor=c.req.query("cursor");if(cursor&&!z.string().datetime().safeParse(cursor).success)throw new HTTPException(400,{message:"Invalid cursor"});
@@ -30,7 +30,7 @@ battlesRoute.get("/",async c=>{
 battlesRoute.get("/community/:id/reserve",async c=>{
   const [coin]=await db.select({id:communities.id,ticker:communities.ticker}).from(communities).where(eq(communities.id,parseId(c.req.param("id"))));
   if(!coin)throw new HTTPException(404,{message:"Community not found"});
-  return c.json({communityId:coin.id,ticker:coin.ticker,status:"not_connected",reserveBpsOfDevBuy:100,availableUnits:null,lockedUnits:null,escrowAddress:null,executionEnabled:false});
+  return c.json({communityId:coin.id,ticker:coin.ticker,status:"not_connected",reserveBpsOfDevBuy:5000,availableUnits:null,lockedUnits:null,escrowAddress:null,executionEnabled:false});
 });
 battlesRoute.get("/coins",async c=>{
  const q=(c.req.query("q")??"").trim().slice(0,80);

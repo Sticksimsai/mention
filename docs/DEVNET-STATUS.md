@@ -53,9 +53,15 @@ User-provided script output reports `creator-2-percent` passed at 2026-11-03 03:
 - Mint: `CVgu8w2N5mXwmwnFJnQHgac4Fb6toxJtvqL5pW5Qfbmd`.
 - Developer received: `20000000000000` raw units out of supply `1000000000000000`: exactly **2%**.
 - Lookup table: `F3DnBmBRRFq2VhuvuqtDFAg6xMCFjJrXKqqHP3RaJdjq`.
-- This verifies the requested developer allocation, not the separate reserve transfer. A 1% reserve of these purchased tokens would be `200000000000` raw units (0.02% of total supply); that integration remains unimplemented.
+- This verifies the requested developer allocation, not the separate reserve transfer. The user clarified the reserve on 2026-11-03: 50% of purchased tokens, so this purchase would reserve `10000000000000` raw units (1% of total supply), leaving the developer the same amount. The earlier creator test did not include this reserve.
 - Do not repeat completed launches; retain `launch-evidence.json` and the corresponding local mint keys.
+
+## Reserve integration candidate — 2026-11-03
+
+The split is now 50% of purchased developer tokens. The contract candidate adds a reserve vault and owner-signed reserve-to-round funding; the launch builder appends the reserve deposit atomically in devnet rehearsal mode. The compiled executable passed 93 local transaction assertions. API/web type checks and launch-builder/reserve calculation tests passed. The read-only live volume collector returned a complete sample, but always emits `signable: false`.
+
+The existing devnet program has NOT yet been upgraded with this reserve candidate. Follow [RESERVE-TESTING.md](RESERVE-TESTING.md) for the upgrade and reserve launch rehearsal. Ordinary creator/fair test results above remain valid for those paths; they do not prove the new reserve path.
 
 ## Before mainnet
 
-Keep production execution gates closed. Complete remaining end-to-end checks, integrate the 1%-of-dev-buy reserve atomically, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
+Keep production execution gates closed. Complete remaining end-to-end checks, verify the atomic 50%-of-dev-buy reserve on public devnet and connect its website flow, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
