@@ -15,7 +15,7 @@ const hooks={
  }})
 };
 const privy={PrivyProvider:props=>{config=props.config;return props.children},usePrivy:()=>({ready:true,authenticated:true,user:{id:'test',linkedAccounts:[{type:'wallet',chainType:'solana',walletClientType:'privy',address:'wallet'}]},logout:async()=>{logoutCalls++},getAccessToken:async()=>null}),useLoginWithOAuth:()=>({initOAuth:async()=>{},loading:false})};
-const mocks={'@privy-io/react-auth':privy,'@privy-io/react-auth/solana':hooks,'@/lib/api':{registerTokenGetter(){}},'./Modal':{Modal:()=>null}};
+const mocks={'@/lib/wallet-rpc':{walletRpcs:{'solana:mainnet':{rpc:{},rpcSubscriptions:{}},'solana:devnet':{rpc:{},rpcSubscriptions:{}}}},'@privy-io/react-auth':privy,'@privy-io/react-auth/solana':hooks,'@/lib/api':{registerTokenGetter(){}},'./Modal':{Modal:()=>null}};
 const moduleObject={exports:{}};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('apps/web/src/components/AuthProvider.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{module:moduleObject,exports:moduleObject.exports,require:n=>mocks[n]??r(n),process:{env:{NEXT_PUBLIC_PRIVY_APP_ID:'test'}},console,Uint8Array,atob,btoa});
 const {AuthProvider,useAuth}=moduleObject.exports;

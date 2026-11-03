@@ -8,6 +8,7 @@ export class ApiError extends Error {
 
 type GetToken = () => Promise<string | null>;
 let getToken: GetToken = async () => null;
+export const getApiAccessToken = () => getToken();
 export function registerTokenGetter(fn: GetToken) { getToken = fn; }
 
 export async function api<T>(

@@ -166,7 +166,10 @@ export default function LaunchPage() {
         {op.details.devBuyTokenUnits && <div className="rounded-xl bg-surface p-4 text-sm"><p>Developer buy: {units(op.details.devBuyTokenUnits)} tokens ({(op.details.devBuyBps ?? 0) / 100}%)</p><p className="mt-2 text-muted">Maximum buy cost: {units(op.details.maxQuoteUnits, op.details.quoteDecimals)} {op.details.quoteSymbol}</p></div>}
         {op.signature && <a href={`https://solscan.io/tx/${op.signature}`} target="_blank" rel="noreferrer" className="block text-sm text-volt">View transaction ↗</a>}{op.error && <p className="text-sm text-down">{op.error}</p>}
         {op.status === "prepared" && <button disabled={busy || !config.data?.enabled} onClick={() => run(async () => {
-          const signedTransaction = op.details.funding === "creator" ? await auth.signTransaction(op.transaction!) : undefined;
+          const current = await api<Launch>(`/v1/launch/${op.id}`);
+          setOp(current);
+          if (current.status !== "prepared") throw new Error(current.error || "This review is no longer ready. Check its status before approving.");
+          const signedTransaction = current.details.funding === "creator" ? await auth.signTransaction(current.transaction!) : undefined;
           setOp(await api<Launch>(`/v1/launch/${op.id}/submit`, { method: "POST", body: signedTransaction ? { signedTransaction } : undefined }));
         })} className={`${primary} w-full`}>{busy ? "Waiting for wallet…" : op.details.funding === "creator" ? "Approve & launch in wallet" : "Confirm launch"}</button>}
         {op.status === "complete" && op.details.communityId && <Link href={communityHref({ id: op.details.communityId, slug: op.details.communitySlug })} className="block text-sm text-volt">Open your community →</Link>}

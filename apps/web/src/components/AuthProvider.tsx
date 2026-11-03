@@ -3,7 +3,7 @@
 import { Component, createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { PrivyProvider, usePrivy, useLoginWithOAuth } from "@privy-io/react-auth";
 import { useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
-import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
+import { walletRpcs } from "@/lib/wallet-rpc";
 import { registerTokenGetter } from "@/lib/api";
 import { Modal } from "./Modal";
 
@@ -119,10 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <PrivyProvider appId={appId} config={{
       // Standard-wallet signing renders a transaction review that requires explicit Kit clients.
       // Never put the server's Helius API key in this browser configuration.
-      solana: { rpcs: {
-        "solana:mainnet": { rpc: createSolanaRpc("https://api.mainnet-beta.solana.com"), rpcSubscriptions: createSolanaRpcSubscriptions("wss://api.mainnet-beta.solana.com") },
-        "solana:devnet": { rpc: createSolanaRpc("https://api.devnet.solana.com"), rpcSubscriptions: createSolanaRpcSubscriptions("wss://api.devnet.solana.com") },
-      } },
+      solana: { rpcs: walletRpcs },
       loginMethods: ["twitter"],
       appearance: { theme: "#171A15", accentColor: "#9BF000", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },
       embeddedWallets: { solana: { createOnLogin: "all-users" }, ethereum: { createOnLogin: "off" } },

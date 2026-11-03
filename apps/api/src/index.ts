@@ -1,3 +1,4 @@
+import { walletRpcRoute } from "./routes/wallet-rpc.js";
 import { mediaRoute } from "./routes/media.js";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
@@ -40,7 +41,7 @@ try {
 
 app.use("*", cors({
   origin: webOrigins,
-  allowHeaders: ["Authorization", "Content-Type"],
+  allowHeaders: ["Authorization", "Content-Type", "Solana-Client"],
   maxAge: 86400,
 }));
 
@@ -68,6 +69,7 @@ app.route("/v1/token", tokenRoute);
 app.route("/v1/users", usersRoute);
 app.route("/v1/x", xRoute);
 app.route("/v1/launch", launchRoute);
+app.route("/v1/wallet-rpc", walletRpcRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);
 app.route("/v1/battles", battlesRoute);
