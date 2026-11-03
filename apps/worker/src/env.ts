@@ -5,6 +5,7 @@ function req(name: string): string {
 }
 
 export const env = {
+  PUBLIC_ASSET_ORIGIN: process.env.PUBLIC_ASSET_ORIGIN ?? "https://mention-api.onrender.com",
   DATABASE_URL: req("DATABASE_URL"),
   REDIS_URL: req("REDIS_URL"),
   SOCIALDATA_API_KEY: process.env.SOCIALDATA_API_KEY ?? "",

@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./x-post": "./src/x-post.ts"
+    "./x-post": "./src/x-post.ts",
+    "./x-media": "./src/x-media.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

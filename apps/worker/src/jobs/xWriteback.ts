@@ -1,3 +1,5 @@
+import {uploadXMedia} from '../lib/xMedia.js';
+import {loadXMedia} from '../lib/xMediaAsset.js';
 import {formatXPost} from '@mention/shared/x-post';
 // Site→X mirror: post one Tribes post to the author's X account via the
 // official X API (OAuth2 user context, tweet.write). Handles token refresh.
@@ -70,13 +72,19 @@ export async function xWritebackJob(postId: string, attemptsExhausted: boolean):
   }
 
   if(!conn.xUserId||conn.xUserId!==row.u.xUserId){await db.update(posts).set({crosspostStatus:'failed'}).where(eq(posts.id,postId));throw new Error('X identity mismatch: reconnect before posting');}
+  const sticker=row.p.stickerData?JSON.parse(row.p.stickerData):null;
+  const mediaUrl=row.p.mediaUrl||sticker?.mediaUrl;
+  if(mediaUrl&&!conn.scopes?.split(/\s+/).includes('media.write')){await db.update(posts).set({crosspostStatus:'failed'}).where(eq(posts.id,postId));return;}
   let text: string;
-  try { text = formatXPost(row.p.content); } catch {
+  try { text = formatXPost(row.p.content,Boolean(mediaUrl)); } catch {
     await db.update(posts).set({crosspostStatus:'failed'}).where(eq(posts.id,postId));
     return; // Invalid text is permanent; never silently truncate or send without attribution.
   }
   try {
     const accessToken = await refreshIfNeeded(conn);
+    // Upload before claiming the irreversible tweet send. Upload failures can retry safely.
+    let mediaId:string|undefined;
+    if(mediaUrl){const asset=await loadXMedia(mediaUrl,row.p.authorId);mediaId=await uploadXMedia(asset.bytes,asset.mime,accessToken);}
     await sendOnce({
       claim:async()=>{
         const claimed=await db.insert(xWriteAttempts).values({postId}).onConflictDoNothing().returning();
@@ -89,7 +97,7 @@ export async function xWritebackJob(postId: string, attemptsExhausted: boolean):
         const res=await fetch("https://api.x.com/2/tweets",{
           method:"POST",signal:AbortSignal.timeout(15000),
           headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},
-          body:JSON.stringify({text}),
+          body:JSON.stringify({text,...(mediaId?{media:{media_ids:[mediaId]}}:{})}),
         });
         if(!res.ok)throw new Error(`X post not confirmed: HTTP ${res.status}`);
         const out:any=await res.json();
