@@ -10,7 +10,7 @@
 
 ## Public devnet escrow results
 
-The user-controlled deployment and public-devnet escrow tests completed on 2026-11-02. The fair launch subsequently passed on 2026-11-03; the creator launch remains pending.
+The user-controlled deployment and public-devnet escrow tests completed on 2026-11-02. Both fair and creator launch rehearsals subsequently passed on 2026-11-03.
 
 - Payer: `56j9ZB548AB9vCqCTazcWQvhM1tjR1mNFxaSGwyEK7CT`.
 - Deployed program: `HvyUucswhe6NeAWeptTZCs86sVdZK4JJGzhVFQ4y3qFH`.
@@ -45,8 +45,17 @@ User-provided script output reports `fair-no-buy` passed at 2026-11-03 03:12:42 
 - Lookup table: `4ghxHvWC6PFLCDomDW2TVfSryMbcut7hojrvNckXYeVX`.
 - The optional native bigint binding fell back to JavaScript; the test still passed.
 
-Next: run `DEVNET_LAUNCH_MODE=creator node scripts/devnet/launch.cjs` to verify the exact 2% developer allocation. This does not test the separate 1%-of-purchased-tokens reserve integration.
+## Public devnet creator launch
+
+User-provided script output reports `creator-2-percent` passed at 2026-11-03 03:19:06 UTC, using the production launch builder on devnet.
+
+- Signature: `5NZCNpprYhyVoFkerRYJQAcE78VWVZwMnjgf2tZXaX5TiRfxUgj93pHUskUamuTJhoohatUbEcbNSo9riHGRh2Ay`.
+- Mint: `CVgu8w2N5mXwmwnFJnQHgac4Fb6toxJtvqL5pW5Qfbmd`.
+- Developer received: `20000000000000` raw units out of supply `1000000000000000`: exactly **2%**.
+- Lookup table: `F3DnBmBRRFq2VhuvuqtDFAg6xMCFjJrXKqqHP3RaJdjq`.
+- This verifies the requested developer allocation, not the separate reserve transfer. A 1% reserve of these purchased tokens would be `200000000000` raw units (0.02% of total supply); that integration remains unimplemented.
+- Do not repeat completed launches; retain `launch-evidence.json` and the corresponding local mint keys.
 
 ## Before mainnet
 
-Keep production execution gates closed. Complete the creator launch rehearsal and remaining end-to-end checks, integrate the 1%-of-dev-buy reserve atomically, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
+Keep production execution gates closed. Complete remaining end-to-end checks, integrate the 1%-of-dev-buy reserve atomically, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
