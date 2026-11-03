@@ -64,8 +64,20 @@ The reserve program upgrade is complete on devnet. RPC independently confirmed f
 
 The user's local build passed all 93 assertions with binary SHA-256 `a27443dddd3ce417710f7b0228b719f9a4444841520c3aba8d60d48fd9dfed80`. Their CLI inspection reports program `HvyUucswhe6NeAWeptTZCs86sVdZK4JJGzhVFQ4y3qFH`, authority `56j9ZB548AB9vCqCTazcWQvhM1tjR1mNFxaSGwyEK7CT`, data length 375392 bytes and program-data balance 1.9078702 devnet SOL. These build details are user-reported; no independent byte-for-byte on-chain binary comparison has been performed.
 
-Next: run `DEVNET_LAUNCH_MODE=reserve node scripts/devnet/launch.cjs` using the existing local keys. Follow [RESERVE-TESTING.md](RESERVE-TESTING.md) for expected results. The atomic reserve launch remains unverified on public devnet until that test passes. Ordinary creator/fair results do not prove this new reserve path.
+### Atomic reserve launch passed
+
+The user-provided `reserve-half-of-dev-buy` result passed at 2026-11-03 04:07:48 UTC. RPC independently confirmed the transaction finalized successfully at slot `518090255` and the reserve vault held `10000000000000` raw units (10,000,000 tokens, 6 decimals).
+
+- Signature: `2qxN68JS26weyy6TGv7AcwygJCNWjhxq8sWtgwho3UaDxBFXq8ykgpzLmNhJm9HaFGrrsjauinurDyVrwre2LG3G`.
+- Mint: `6N8bM2mfdwJ94B1WPvxJ6vLuTNi9PU1yETogLJF7Tn31`.
+- Reserve: `Hadmj6xR8UZDFQRGxnFMZyJ8cCzqtY8NhtfBqm4Qpciw`.
+- Reserve vault: `DeFFthRiGE4E6tZvZixBVukppKextXho5CXhJzLXkYPR`.
+- Developer retained (script-verified): `10000000000000` raw units.
+- Supply (script-verified): `1000000000000000` raw units.
+- Lookup table: `DQrJLpSP6hVtHx4jNhPUHWsW6VP17zkCsbdTY7AKySLB`.
+
+The developer bought 2% of supply, then the same transaction placed half of those tokens into reserve: 1% of total supply in reserve and 1% retained. Do not repeat the successful launch. Preserve the public evidence and private mint keys locally. Reserve-funded round execution is tested locally; the full website flow and live oracle signing remain unverified.
 
 ## Before mainnet
 
-Keep production execution gates closed. Complete remaining end-to-end checks, verify the atomic 50%-of-dev-buy reserve on public devnet and connect its website flow, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
+Keep production execution gates closed. Complete remaining end-to-end checks, connect the verified atomic 50%-of-dev-buy reserve to its website flow, connect and review the volume oracle, and review upgrade-authority ownership. Test the full signed-in site flow and reconcile a small reviewed mainnet launch, buy/sell and payout. The escrow candidate has no live volume ingestion, spectator pricing or production funding UI connection yet.
