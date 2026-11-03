@@ -1,3 +1,6 @@
+import { MENTIONS_GIFS } from "./sticker-pack.js";
+export { MENTIONS_GIFS } from "./sticker-pack.js";
+export { communityHref, communityIdentifier } from "./community-url.js";
 import { z } from "zod";
 
 // ────────────────────────── queues ──────────────────────────
@@ -117,6 +120,7 @@ export interface PostView {
   repostedAt?: string;
   author: AuthorView;
   communityId: string;
+  communitySlug?: string;
   communityName?: string;
   communityTicker?: string;
   likes: number;
@@ -135,6 +139,7 @@ export interface PostView {
 
 export interface CommunityView {
   id: string;
+  slug?: string;
   name: string;
   ticker: string;
   ca: string;
@@ -258,11 +263,8 @@ export const stickerSchema = z.object({
 });
 export interface StickerView { mediaUrl?:string; pfpUrl?:string; id: string; communityId: string; ticker: string; label: string; glyph: string; color: string }
 export function starterStickers(c: {id:string;ticker:string;pfpUrl?:string}): StickerView[] {
-  const labels=["gm", "still here", "building", "community first", "let’s go", "we’re early"];
-  const glyphs=["spark", "diamond", "rocket", "heart", "bolt", "flag"];
-  const colors=["#a3ed00", "#a78bfa", "#38bdf8", "#fb7185", "#fbbf24"];
-  const seed=Array.from(c.id).reduce((n,ch)=>n+ch.charCodeAt(0),0);
-  return labels.map((label,i)=>({id:`preset:${i}`,communityId:c.id,ticker:c.ticker,pfpUrl:c.pfpUrl,label,glyph:glyphs[i],color:colors[(seed+i)%colors.length]}));
+  return MENTIONS_GIFS.map(gif => ({...gif, communityId:c.id, ticker:c.ticker,
+    pfpUrl:c.pfpUrl, glyph:"spark", color:"#a3ed00"}));
 }
 
 export interface MarketChartView {

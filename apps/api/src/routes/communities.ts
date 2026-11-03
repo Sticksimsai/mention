@@ -4,7 +4,7 @@ import { communityStickers } from "@mention/db";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { createCommunitySchema, updateCommunitySchema, type CommunityView } from "@mention/shared";
+import { communityIdentifier, createCommunitySchema, updateCommunitySchema, type CommunityView } from "@mention/shared";
 import {
   communities, communityMembers, users, transferRequests,
   eq, and, desc, sql,
@@ -17,7 +17,7 @@ export const communitiesRoute = new Hono();
 
 function toView(c: any, owner: any, isMember?: boolean): CommunityView {
   return {
-    id: c.id, name: c.name, ticker: c.ticker, ca: c.ca,
+    id: c.id, slug: c.slug, name: c.name, ticker: c.ticker, ca: c.ca,
     bannerUrl: c.bannerUrl, pfpUrl: c.pfpUrl, details: c.details,
     owner: { id: owner?.id, username: owner?.username ?? "", name: owner?.displayName ?? "", pfpUrl: owner?.pfpUrl ?? "" },
     website: c.website, telegram: c.telegram, xCommunityUrl: c.xCommunityUrl,
@@ -58,10 +58,11 @@ communitiesRoute.get("/", async (c) => {
 
 // ── get one (public) ──
 communitiesRoute.get("/:id", async (c) => {
-  const id = c.req.param("id")!;
+  const identifier = communityIdentifier(c.req.param("id")!);
+  if (!identifier) throw new HTTPException(404, { message: "Community not found" });
   const [row] = await db.select({ c: communities, o: users })
     .from(communities).innerJoin(users, eq(communities.ownerId, users.id))
-    .where(eq(communities.id, id));
+    .where(identifier.kind === "id" ? eq(communities.id, identifier.value) : eq(communities.slug, identifier.value));
   if (!row) throw new HTTPException(404, { message: "not found" });
   return c.json(toView(row.c, row.o));
 });
@@ -215,7 +216,7 @@ communitiesRoute.post("/transfers/:transferId/accept", requireAuth, async (c) =>
   return c.json({ ok: true });
 });
 
-// Each community has a branded starter pack and member-created stickers.
+// Every community shares the Mentions blob pack alongside member-created stickers.
 communitiesRoute.get('/:id/stickers', async c => {
  const [comm]=await db.select().from(communities).where(and(eq(communities.id,c.req.param('id')),eq(communities.status,'approved')));
  if(!comm)throw new HTTPException(404,{message:'Community not found'});

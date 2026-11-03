@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import Link from "next/link";
 import {useEffect} from "react";
@@ -52,7 +53,7 @@ export default function ExplorePage() {
       <ul>
         {data?.filter(t=>!filter||`${t.name} ${t.ticker} ${t.ca}`.toLowerCase().includes(filter.replace(/^\$/," ").trim().toLowerCase())).map((t) => (
           <li key={t.id} className="border-b hairline">
-            <Link href={`/t/${t.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-surface/40">
+            <Link href={communityHref(t)} className="flex items-center gap-4 px-5 py-4 hover:bg-surface/40">
               {t.pfpUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.pfpUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />

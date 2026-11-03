@@ -69,7 +69,7 @@ async function finish(op:Operation){
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${op.id}))`);
   const [old]=await tx.select().from(communities).where(eq(communities.ca,d.ca));let community=old;
   if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
-  const [done]=await tx.update(moneyOperations).set({status:"complete",details:JSON.stringify({...d,communityId:community.id}),updatedAt:new Date()}).where(eq(moneyOperations.id,op.id)).returning();return done;
+  const [done]=await tx.update(moneyOperations).set({status:"complete",details:JSON.stringify({...d,communityId:community.id,communitySlug:community.slug}),updatedAt:new Date()}).where(eq(moneyOperations.id,op.id)).returning();return done;
  });
 }
 launchRoute.get("/recent",async c=>{const rows=await db.select().from(moneyOperations).where(and(eq(moneyOperations.userId,c.get("user").id),eq(moneyOperations.kind,"launch"))).orderBy(desc(moneyOperations.createdAt)).limit(20);return c.json(rows.map(publicOperation));});

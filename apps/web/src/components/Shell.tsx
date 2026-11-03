@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -117,7 +118,7 @@ function TrendingRail() {
       <ul className="space-y-0.5">
         {list.map((t) => (
           <li key={t.id}>
-            <Link href={`/t/${t.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-raised">
+            <Link href={communityHref(t)} className="flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-raised">
               {t.pfpUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.pfpUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />

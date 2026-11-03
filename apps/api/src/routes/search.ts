@@ -12,7 +12,7 @@ searchRoute.get("/", async (c) => {
 
   const [tribeRows, userRows] = await Promise.all([
     db.select({
-      id: communities.id, name: communities.name, ticker: communities.ticker,
+      id: communities.id, slug: communities.slug, name: communities.name, ticker: communities.ticker,
       ca: communities.ca, pfpUrl: communities.pfpUrl, membersCount: communities.membersCount,
     }).from(communities)
       .where(and(

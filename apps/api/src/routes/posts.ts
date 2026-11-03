@@ -113,7 +113,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
     content: body.content,
     mediaUrl: body.mediaUrl ?? null,
     quotePostId: body.quotePostId ?? null,
-    stickerData: sticker ? JSON.stringify({...sticker,mediaUrl:stickerMediaUrl}) : null,
+    stickerData: sticker ? JSON.stringify({...sticker,mediaUrl:stickerMediaUrl ?? sticker.mediaUrl}) : null,
     crosspostStatus,
   }).returning();
 
@@ -217,7 +217,7 @@ postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", c
     if(bytes.length<10||bytes.readUInt16LE(6)!==500||bytes.readUInt16LE(8)!==500)throw new HTTPException(400,{message:"Stickers must be 500 × 500 GIFs"});
     stickerMediaUrl=`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${asset.id}`;
   }
-  const attachment={mediaUrl:mediaUrl??null,stickerData:sticker?JSON.stringify({...sticker,mediaUrl:stickerMediaUrl}):null};
+  const attachment={mediaUrl:mediaUrl??null,stickerData:sticker?JSON.stringify({...sticker,mediaUrl:stickerMediaUrl ?? sticker.mediaUrl}):null};
   if (source === "native") {
     await db.transaction(async (tx) => {
       await tx.insert(postReplies).values({ postId: id, authorId: u.id, content, ...attachment });

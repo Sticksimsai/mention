@@ -65,6 +65,8 @@ export const bannedUsers = pgTable("banned_users", {
 export const communityStatusEnum = pgEnum("community_status", ["pending", "approved", "rejected"]);
 
 export const communities = pgTable("communities", {
+  // Assigned once by the database, including launches and staff-created communities.
+  slug: text("slug").notNull().default("").unique(),
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   ticker: text("ticker").notNull(), // uppercased, no $

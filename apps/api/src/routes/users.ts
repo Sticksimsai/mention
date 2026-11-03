@@ -100,7 +100,7 @@ usersRoute.get("/:username", async (c) => {
     db.select({ n: count() }).from(follows).where(eq(follows.followerId, row.id)),
     db.select({ n: count() }).from(communityMembers).where(eq(communityMembers.userId, row.id)),
     db.select().from(communities).where(eq(communities.ownerId, row.id)),
-    db.select({ id: communities.id, name: communities.name, ticker: communities.ticker,
+    db.select({ id: communities.id, slug: communities.slug, name: communities.name, ticker: communities.ticker,
       pfpUrl: communities.pfpUrl, membersCount: communities.membersCount, ownerId: communities.ownerId })
       .from(communityMembers).innerJoin(communities, eq(communityMembers.communityId, communities.id))
       .where(eq(communityMembers.userId, row.id)).orderBy(desc(communityMembers.createdAt)).limit(100),

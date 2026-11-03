@@ -4,10 +4,10 @@
 // token info + CA, embedded chart, trade box, and the merged feed.
 import {CommunityStickerPack} from "@/components/PostAttachments";
 import Link from "next/link";
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CommunityView, TokenStats } from "@mention/shared";
+import { communityHref, type CommunityView, type TokenStats } from "@mention/shared";
 import { CommunityBattles } from "@/components/Battles";
 import { TradeTab } from "@/components/TradeTab";
 import { Shell } from "@/components/Shell";
@@ -19,30 +19,40 @@ import { api, fmtUsd, shortCa } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
 export default function TribePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: address } = useParams<{ id: string }>();
+  const router = useRouter();
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
   const [selectedTab, setTab] = useState<"feed" | "chart" | "trade" | "mentionmarkets" | "stickers" | null>(null);
 
-  const { data: tribe } = useQuery({
-    queryKey: ["community", id],
-    queryFn: () => api<CommunityView>(`/v1/communities/${id}`, { auth: false }),
+  const { data: tribe, error, refetch } = useQuery({
+    queryKey: ["community", address],
+    queryFn: () => api<CommunityView>(`/v1/communities/${encodeURIComponent(address)}`, { auth: false }),
   });
+  const id = tribe?.id;
+  useEffect(() => {
+    if (tribe?.slug && address !== tribe.slug) {
+      router.replace(communityHref(tribe) + window.location.search + window.location.hash, { scroll: false });
+    }
+  }, [tribe?.slug, address, router]);
   const { data: membership } = useQuery({
     queryKey: ["membership", id, me?.id],
     queryFn: () => api<{ isMember: boolean }>(`/v1/communities/${id}/membership`),
-    enabled: Boolean(me),
+    enabled: Boolean(me && id),
   });
 
   const joinLeave = useMutation({
     mutationFn: (join: boolean) =>
-      api(`/v1/communities/${id}/${join ? "join" : "leave"}`, { method: "POST" }),
+      id ? api(`/v1/communities/${id}/${join ? "join" : "leave"}`, { method: "POST" }) : Promise.reject(new Error("Community is loading")),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["membership", id] });
-      qc.invalidateQueries({ queryKey: ["community", id] });
+      qc.invalidateQueries({ queryKey: ["community", address] });
     },
   });
 
+  if (error) {
+    return <Shell><div role="alert" className="px-5 py-8 text-sm"><p>{error.message}</p><button onClick={() => refetch()} className="mt-3 text-volt">Retry</button> · <Link href="/explore" className="text-volt">Explore communities</Link></div></Shell>;
+  }
   if (!tribe) {
     return <Shell><p className="px-5 py-8 text-sm text-muted">Loading…</p></Shell>;
   }

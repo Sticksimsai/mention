@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { api } from "@/lib/api";
 import { SearchIcon } from "./icons";
 
 interface Results {
-  tribes: Array<{ id: string; name: string; ticker: string; pfpUrl: string; membersCount: number }>;
+  tribes: Array<{ id: string; slug?: string; name: string; ticker: string; pfpUrl: string; membersCount: number }>;
   users: Array<{ username: string; displayName: string; pfpUrl: string }>;
 }
 
@@ -58,7 +59,7 @@ export function SearchBox() {
             <p className="px-4 py-3 text-sm text-muted">No matches for “{debounced}”</p>
           )}
           {data?.tribes.map((t) => (
-            <Link key={t.id} href={`/t/${t.id}`} onClick={() => setOpen(false)}
+            <Link key={t.id} href={communityHref(t)} onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface">
               {t.pfpUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

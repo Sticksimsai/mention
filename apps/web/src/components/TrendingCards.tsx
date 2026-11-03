@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 // Trending strip — horizontally scrolling community cards pinned to the top
 // of the home feed. Banner-style card: pfp, name, ticker, members, live mcap.
@@ -49,7 +50,7 @@ export function TrendingCards() {
         {list.map((t) => (
           <Link
             key={t.id}
-            href={`/t/${t.id}`}
+            href={communityHref(t)}
             className="group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border hairline bg-surface p-4 transition hover:border-volt/40"
           >
             {t.bannerUrl && (

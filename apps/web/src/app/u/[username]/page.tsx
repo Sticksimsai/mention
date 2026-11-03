@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import type { XVerification } from "@mention/shared";
 import { FollowButton, ProfileConnections } from "@/components/ProfileConnections";
@@ -15,7 +16,7 @@ import { Modal } from "@/components/Modal";
 import { api, ApiError } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
 
-interface Community { id: string; name: string; ticker: string; pfpUrl: string; membersCount?: number; isOwner?: boolean }
+interface Community { id: string; slug?: string; name: string; ticker: string; pfpUrl: string; membersCount?: number; isOwner?: boolean }
 interface Profile {
   id: string; username: string; displayName: string; pfpUrl: string; bannerUrl: string; bio: string;
   xVerification?: XVerification;
@@ -84,7 +85,7 @@ export default function ProfilePage() {
     <nav className="flex border-b hairline px-4" aria-label="Profile sections">{(["posts", "communities", ...(own ? ["wallet"] : [])] as const).map(t => <button key={t} onClick={() => setTab(t as typeof tab)} aria-current={activeTab === t ? "page" : undefined} className={`flex-1 border-b-2 px-2 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-volt text-fg" : "border-transparent text-muted hover:text-fg"}`}>{t === "wallet" ? "Wallet & activity" : t}</button>)}</nav>
     {activeTab === "posts" && <Feed author={p.username} />}
     {activeTab === "communities" && <div className="p-5 sm:p-6">
-      {!p.joinedCommunities ? <p className="text-sm text-muted">Community details are temporarily unavailable. Please refresh shortly.</p> : p.joinedCommunities.length ? <div className="space-y-2">{p.joinedCommunities.map(c => <Link key={c.id} href={`/t/${c.id}`} className="flex items-center gap-3 rounded-xl border hairline bg-surface p-3 hover:border-volt/30">
+      {!p.joinedCommunities ? <p className="text-sm text-muted">Community details are temporarily unavailable. Please refresh shortly.</p> : p.joinedCommunities.length ? <div className="space-y-2">{p.joinedCommunities.map(c => <Link key={c.id} href={communityHref(c)} className="flex items-center gap-3 rounded-xl border hairline bg-surface p-3 hover:border-volt/30">
         {c.pfpUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={c.pfpUrl} alt="" className="h-10 w-10 rounded-xl object-cover" />

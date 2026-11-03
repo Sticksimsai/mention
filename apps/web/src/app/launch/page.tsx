@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import {BannerEditor} from "@/components/BannerEditor";
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ interface Launch {
   id: string; status: string; signature?: string; error?: string; transaction?: string;
   details: {
     name: string; ticker: string; description: string; creatorWallet: string; imageUrl: string; ca: string;
-    estimatedCostLamports?: number; platformFeeShareBps: number; communityId?: string; funding?: string;
+    estimatedCostLamports?: number; platformFeeShareBps: number; communityId?: string; communitySlug?: string; funding?: string;
     mode?: Mode; quoteAsset?: Pair; devBuyBps?: number; devBuyTokenUnits?: string;
     totalSupplyUnits?: string; maxQuoteUnits?: string; quoteDecimals?: number; quoteSymbol?: string;
   };
@@ -165,7 +166,7 @@ export default function LaunchPage() {
           const signedTransaction = op.details.funding === "creator" ? await auth.signTransaction(op.transaction!) : undefined;
           setOp(await api<Launch>(`/v1/launch/${op.id}/submit`, { method: "POST", body: signedTransaction ? { signedTransaction } : undefined }));
         })} className={`${primary} w-full`}>{busy ? "Waiting for wallet…" : op.details.funding === "creator" ? "Approve & launch in wallet" : "Confirm launch"}</button>}
-        {op.status === "complete" && <Link href={`/t/${op.details.communityId}`} className="block text-sm text-volt">Open your community →</Link>}
+        {op.status === "complete" && op.details.communityId && <Link href={communityHref({ id: op.details.communityId, slug: op.details.communitySlug })} className="block text-sm text-volt">Open your community →</Link>}
         <button disabled={busy} onClick={() => run(async () => setOp(await api<Launch>(`/v1/launch/${op.id}`)))} className="text-xs text-volt">Refresh / recover launch</button>{["complete", "failed", "expired"].includes(op.status) && <button onClick={() => { setOp(null); localStorage.removeItem(storageKey); }} className="ml-4 text-xs text-muted">New launch</button>}<p className="text-xs leading-relaxed text-muted">If confirmation is delayed, recover this launch. Retries use the same mint and transaction.</p>
       </section>}
       {auth.authenticated && !!recent.data?.length && <section className="border-t hairline pt-5"><h2 className="mb-3 text-sm font-semibold">Recent launches</h2>{recent.data.map(r => <button key={r.id} onClick={() => { setOp(r); localStorage.setItem(storageKey, r.id); }} className="mb-2 flex w-full justify-between gap-3 rounded-xl bg-surface p-3 text-left text-xs"><span>{r.details.name}</span><span className="text-muted">{r.status}</span></button>)}</section>}

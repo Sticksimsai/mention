@@ -11,6 +11,7 @@ export const tokenRoute = new Hono();
 
 export interface TopToken {
   communityId: string;
+  slug: string;
   name: string;
   ticker: string;
   ca: string;
@@ -26,7 +27,7 @@ export interface TopToken {
 tokenRoute.get("/top", async (c) => {
   const out = await cached<TopToken[]>("token:top10", 10, async () => {
     const rows = await db.select({
-      id: communities.id, name: communities.name, ticker: communities.ticker,
+      id: communities.id, slug: communities.slug, name: communities.name, ticker: communities.ticker,
       ca: communities.ca, pfpUrl: communities.pfpUrl,
     }).from(communities).where(eq(communities.status, "approved"));
     if (rows.length === 0) return [];
@@ -39,7 +40,7 @@ tokenRoute.get("/top", async (c) => {
       const raw = fresh[i] ?? stale[i];
       const s: TokenStats | null = raw ? JSON.parse(raw) : null;
       return {
-        communityId: r.id, name: r.name, ticker: r.ticker, ca: r.ca, pfpUrl: r.pfpUrl,
+        communityId: r.id, slug: r.slug, name: r.name, ticker: r.ticker, ca: r.ca, pfpUrl: r.pfpUrl,
         marketCap: s?.marketCap ?? null,
         change24h: s?.change24h ?? null,
         volume24h: s?.volume24h ?? null,

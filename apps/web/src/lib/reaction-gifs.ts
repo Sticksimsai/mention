@@ -1,12 +1,4 @@
 import {loadImage} from './media';
-export const REACTION_GIFS=[
- ['gm','Community'],['gn','Community'],['we’re so back','Hype'],['let’s cook','Hype'],['still here','Community'],['built different','Hype'],['send it','Hype'],['locked in','Hype'],
- ['respect','Community'],['thank you','Community'],['welcome in','Community'],['good vibes','Community'],['not leaving','Community'],['we build','Community'],['together','Community'],['community wins','Community'],
- ['big mood','Reactions'],['wait what','Reactions'],['oh no','Reactions'],['bruh','Reactions'],['interesting','Reactions'],['say less','Reactions'],['I see you','Reactions'],['real','Reactions'],
- ['loading…','Reactions'],['thinking…','Reactions'],['one more time','Reactions'],['taking notes','Reactions'],['eyes on this','Reactions'],['plot twist','Reactions'],['fair enough','Reactions'],['all good','Reactions'],
- ['nice','Celebration'],['W','Celebration'],['LFG','Celebration'],['cheers','Celebration'],['GG','Celebration'],['well played','Celebration'],['nailed it','Celebration'],['we did it','Celebration'],
- ['patience','Trading'],['zoom out','Trading'],['hold on','Trading'],['touch grass','Trading'],['stay curious','Trading'],['check the chart','Trading'],['do your research','Trading'],['no rush','Trading'],
-].map(([label,category],i)=>({id:`reaction-${i}`,label,category,color:['#a3ed00','#a78bfa','#38bdf8','#fb7185','#fbbf24'][i%5],style:i%6}));
 export async function makeReactionGif({label,color,ticker='',pfpUrl,style=0}:{label:string;color:string;ticker?:string;pfpUrl?:string;style?:number}):Promise<Blob>{
  const {GIFEncoder,quantize,applyPalette}=await import('gifenc');
  const avatar=pfpUrl?await loadImage(pfpUrl):null;

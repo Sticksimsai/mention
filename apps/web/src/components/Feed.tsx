@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 import {TickerText} from "./TickerText";
 import { useState } from "react";
@@ -124,7 +125,7 @@ export function PostCard({ post }: { post: PostView }) {
           <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-fg"><TickerText text={post.content}/></p>
           {(post.tweetUrl || post.communityName || post.official || post.globalPinned || post.pinned) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
             {post.tweetUrl && <a href={post.tweetUrl} target="_blank" rel="noreferrer" className="hover:text-fg" title="Open original post on X">{post.source === "x" ? "From 𝕏 ↗" : "Also on 𝕏 ↗"}</a>}
-            {post.communityName && <Link href={`/t/${post.communityId}`} className="text-volt hover:underline">${post.communityTicker}</Link>}
+            {post.communityName && <Link href={communityHref({ id: post.communityId, slug: post.communitySlug })} className="text-volt hover:underline">${post.communityTicker}</Link>}
             {post.official && <span>Official Mentions</span>}
             {(post.globalPinned || post.pinned) && <span className="text-volt">{post.globalPinned ? "Pinned sitewide" : "Pinned in community"}</span>}
           </div>}

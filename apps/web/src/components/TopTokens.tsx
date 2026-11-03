@@ -1,4 +1,5 @@
 "use client";
+import { communityHref } from "@mention/shared";
 
 // Top 10 tokens by live market cap. Rail mode for the sidebar card,
 // full mode for the /top page.
@@ -8,6 +9,7 @@ import { api, fmtUsd } from "@/lib/api";
 
 export interface TopToken {
   communityId: string;
+  slug?: string;
   name: string;
   ticker: string;
   ca: string;
@@ -49,7 +51,7 @@ export function TopTokensRail() {
       <ol className="space-y-0.5">
         {data.map((t, i) => (
           <li key={t.communityId}>
-            <Link href={`/t/${t.communityId}`}
+            <Link href={communityHref({ id: t.communityId, slug: t.slug })}
               className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 -mx-2 hover:bg-raised">
               <span className={`w-4 text-right font-mono text-xs ${i < 3 ? "text-volt" : "text-muted"}`}>
                 {i + 1}
@@ -102,7 +104,7 @@ export function TopTokensTable() {
           <tr key={t.communityId} className="border-b hairline hover:bg-surface/50">
             <td className={`px-5 py-3 font-mono text-sm ${i < 3 ? "text-volt" : "text-muted"}`}>{i + 1}</td>
             <td className="py-3">
-              <Link href={`/t/${t.communityId}`} className="flex items-center gap-3">
+              <Link href={communityHref({ id: t.communityId, slug: t.slug })} className="flex items-center gap-3">
                 {t.pfpUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.pfpUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
