@@ -71,6 +71,13 @@
       "when": 1793692226495,
       "tag": "0009_launch_community_links",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793695000000,
+      "tag": "0010_remove_solana_playground",
+      "breakpoints": true
     }
   ]
 }
