@@ -60,7 +60,11 @@ User-provided script output reports `creator-2-percent` passed at 2026-11-03 03:
 
 The split is now 50% of purchased developer tokens. The contract candidate adds a reserve vault and owner-signed reserve-to-round funding; the launch builder appends the reserve deposit atomically in devnet rehearsal mode. The compiled executable passed 93 local transaction assertions. API/web type checks and launch-builder/reserve calculation tests passed. The read-only live volume collector returned a complete sample, but always emits `signable: false`.
 
-The existing devnet program has NOT yet been upgraded with this reserve candidate. Follow [RESERVE-TESTING.md](RESERVE-TESTING.md) for the upgrade and reserve launch rehearsal. Ordinary creator/fair test results above remain valid for those paths; they do not prove the new reserve path.
+The reserve program upgrade is complete on devnet. RPC independently confirmed finalized success at slot `518089462` for signature `18BSp1GDzfzq6KvzG3HTWGe6UeU2W2DtaG1z9dNGfEGZdJVgynHHBqktJGAxajzCcXvDcJfAYfmFtVsw8wqZwgN`.
+
+The user's local build passed all 93 assertions with binary SHA-256 `a27443dddd3ce417710f7b0228b719f9a4444841520c3aba8d60d48fd9dfed80`. Their CLI inspection reports program `HvyUucswhe6NeAWeptTZCs86sVdZK4JJGzhVFQ4y3qFH`, authority `56j9ZB548AB9vCqCTazcWQvhM1tjR1mNFxaSGwyEK7CT`, data length 375392 bytes and program-data balance 1.9078702 devnet SOL. These build details are user-reported; no independent byte-for-byte on-chain binary comparison has been performed.
+
+Next: run `DEVNET_LAUNCH_MODE=reserve node scripts/devnet/launch.cjs` using the existing local keys. Follow [RESERVE-TESTING.md](RESERVE-TESTING.md) for expected results. The atomic reserve launch remains unverified on public devnet until that test passes. Ordinary creator/fair results do not prove this new reserve path.
 
 ## Before mainnet
 
