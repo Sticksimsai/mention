@@ -4,15 +4,20 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./x-post": "./src/x-post.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "twitter-text": "3.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/twitter-text": "3.1.10",
     "typescript": "^5.7.2"
   }
 }

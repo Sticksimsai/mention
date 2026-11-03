@@ -1,3 +1,4 @@
+import {formatXPost} from '@mention/shared/x-post';
 import { env } from "../env.js";
 import { launchImages } from "@mention/db";
 import { stickerPack } from "../lib/stickers.js";
@@ -100,6 +101,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   // Determine crosspost eligibility: user opted in AND has an active write connection
   let crosspostStatus: "skipped" | "pending" = "skipped";
   if (body.crosspostToX) {
+    try { formatXPost(body.content); } catch (error) { throw new HTTPException(400,{message:(error as Error).message}); }
     const [conn] = await db.select().from(xConnections)
       .where(and(eq(xConnections.userId, u.id), eq(xConnections.writeEnabled, true)));
     if (conn) crosspostStatus = "pending";
