@@ -51,24 +51,26 @@ export function TrendingCards() {
           <Link
             key={t.id}
             href={communityHref(t)}
-            className="group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border hairline bg-surface p-4 transition hover:border-volt/40"
+            className="group relative w-52 shrink-0 snap-start overflow-hidden rounded-2xl border hairline bg-surface p-4 transition-colors hover:border-volt/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt"
           >
-            {t.bannerUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.bannerUrl} alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-20 transition group-hover:opacity-30" />
-            )}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(163,237,0,0.10),transparent_65%)]" />
+              <div className="absolute right-0 top-0 h-20 w-28 opacity-25 [background-image:radial-gradient(rgba(163,237,0,0.5)_1px,transparent_1px)] [background-size:8px_8px] [mask-image:linear-gradient(to_bottom_left,black,transparent)]" />
+              <span className="absolute right-5 top-5 h-2 w-2 bg-volt/20" />
+              <span className="absolute right-8 top-8 h-1 w-1 bg-volt/30" />
+            </div>
             <div className="relative">
               {t.pfpUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.pfpUrl} alt="" className="h-11 w-11 rounded-xl border hairline object-cover" />
+                <img src={t.pfpUrl} alt="" className="h-11 w-11 rounded-xl border hairline bg-ink object-cover" />
               ) : (
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-raised font-display text-xs text-volt">
                   ${t.ticker.slice(0, 3)}
                 </div>
               )}
               <p className="mt-2.5 truncate text-sm font-medium">{t.name}</p>
-              <p className="truncate text-xs text-muted">${t.ticker} · {t.membersCount} members</p>
+              <p className="mt-1 break-all text-xs text-muted">${t.ticker}</p>
+              <p className="mt-1 text-[11px] text-muted">{t.membersCount} {t.membersCount === 1 ? "member" : "members"}</p>
               <CardMcap ca={t.ca} />
             </div>
           </Link>
