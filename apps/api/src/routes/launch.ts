@@ -25,6 +25,15 @@ launchRoute.get("/images/:id",async c=>{
  const [image]=await db.select().from(launchImages).where(eq(launchImages.id,id.data));if(!image)throw new HTTPException(404);
  c.header("Content-Type",image.mime);c.header("X-Content-Type-Options","nosniff");c.header("Cache-Control","public, max-age=31536000, immutable");return c.body(new Uint8Array(Buffer.from(image.data,"base64")));
 });
+// Public token metadata uses the immutable launch snapshot, not editable community settings.
+launchRoute.get("/metadata/:id",async c=>{
+ const parsed=z.string().uuid().safeParse(c.req.param("id"));if(!parsed.success)throw new HTTPException(404);
+ const [op]=await db.select().from(moneyOperations).where(and(eq(moneyOperations.id,parsed.data),eq(moneyOperations.kind,"launch")));
+ if(!op)throw new HTTPException(404);
+ const d=JSON.parse(op.details);
+ c.header("Cache-Control","public, max-age=300");c.header("X-Content-Type-Options","nosniff");
+ return c.json({name:d.name,symbol:d.ticker.toUpperCase(),description:d.description,image:d.imageUrl,external_url:d.website,showName:true,website:d.website,...(d.twitterUrl?{twitter:d.twitterUrl}:{}),...(d.telegram?{telegram:d.telegram}:{})});
+});
 launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,unavailableReasons:launchAvailability(),communityWebsiteOrigin:env.WEB_ORIGIN,devBuyEnabled:true,battleExecutionEnabled:false,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
 launchRoute.use("*",requireAuth);
 launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:3_000_000}),zValidator("json",z.object({data:z.string().max(2_800_000)})),async c=>{
@@ -62,13 +71,12 @@ launchRoute.post("/prepare",rateLimit("launch-prepare-v2",6,60),zValidator("json
   await tx.update(moneyOperations).set({details:JSON.stringify(details)}).where(eq(moneyOperations.id,body.id));
  });
  try{
-  const form=new FormData();form.append("file",new Blob([new Uint8Array(Buffer.from(image.data,"base64"))],{type:image.mime}),"token");form.append("name",body.name);form.append("symbol",body.ticker.toUpperCase());form.append("description",body.description);form.append("showName","true");form.append("twitter",details.twitterUrl);form.append("website",details.website);if(body.telegram)form.append("telegram",body.telegram);
-  const ipfs=await fetch("https://pump.fun/api/ipfs",{method:"POST",body:form,signal:AbortSignal.timeout(20000)});if(!ipfs.ok)throw new Error("Token image publishing failed");const metadata=await ipfs.json() as {metadataUri:string};if(!metadata.metadataUri)throw new Error("Missing metadata URI");
-  const built=await buildLaunch({...body,mint,payer,creator,uri:metadata.metadataUri});
+  const metadataUri=new URL(`/v1/launch/metadata/${body.id}`,env.PUBLIC_ASSET_ORIGIN).href;
+  const built=await buildLaunch({...body,mint,payer,creator,uri:metadataUri});
   const {transaction,lastValidBlockHeight,...review}=built;
   const [op]=await db.update(moneyOperations).set({status:"prepared",transaction,lastValidBlockHeight,details:JSON.stringify({...details,...review}),updatedAt:new Date()}).where(and(eq(moneyOperations.id,body.id),eq(moneyOperations.status,"preparing"))).returning();
   if(!op)throw new Error("Preparation was cancelled");return c.json(publicOperation(op));
- }catch(e){await db.update(moneyOperations).set({status:"failed",error:"Preparation failed. No launch transaction was submitted.",updatedAt:new Date()}).where(and(eq(moneyOperations.id,body.id),eq(moneyOperations.status,"preparing")));throw new HTTPException(502,{message:e instanceof Error?e.message:"Could not prepare launch"});}
+ }catch(e){console.warn("Launch preparation failed",{operationId:body.id,stage:"build-or-simulation",errorType:e instanceof Error?e.name:"unknown"});await db.update(moneyOperations).set({status:"failed",error:"Preparation failed. No launch transaction was submitted.",updatedAt:new Date()}).where(and(eq(moneyOperations.id,body.id),eq(moneyOperations.status,"preparing")));throw new HTTPException(502,{message:e instanceof Error?e.message:"Could not prepare launch"});}
 });
 async function finish(op:Operation){
  if(op.status==="preparing" && Date.now()-op.createdAt.getTime()>600000){
