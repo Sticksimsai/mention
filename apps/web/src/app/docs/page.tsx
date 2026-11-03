@@ -49,7 +49,7 @@ export default function DocsPage() {
         </Doc>
         <Doc id="mirroring" number="03" title="One conversation. Two places." intro="Bring matching X posts into a community, and choose when to share your Mentions posts back to X.">
           <div className="docs-flow" aria-hidden="true"><span>𝕏</span><span className="docs-flow-track"><i style={{ animationPlayState: playing ? "running" : "paused" }}/></span><span className="font-display text-xs text-volt">mentions</span></div>
-          <div className="grid gap-3 sm:grid-cols-2"><div className="docs-card"><p className="mb-3 text-xs font-semibold text-volt">X → Mentions</p><p className="text-sm leading-6 text-muted">Matching posts from monitored member accounts appear in the community feed when they include its $TICKER or contract address. Import timing varies with account activity.</p></div><div className="docs-card"><p className="mb-3 text-xs font-semibold text-volt">Mentions → X</p><p className="text-sm leading-6 text-muted">Enable X posting in Settings, then select “Also post to my X” when composing. You can revoke that connection.</p></div></div>
+          <div className="grid gap-3 sm:grid-cols-2"><div className="docs-card"><p className="ui-heading ui-heading-compact mb-3 text-volt">X → Mentions</p><p className="text-sm leading-6 text-muted">Matching posts from monitored member accounts appear in the community feed when they include its $TICKER or contract address. Import timing varies with account activity.</p></div><div className="docs-card"><p className="ui-heading ui-heading-compact mb-3 text-volt">Mentions → X</p><p className="text-sm leading-6 text-muted">Enable X posting in Settings, then select “Also post to my X” when composing. You can revoke that connection.</p></div></div>
           <Note>Signing in with X and granting permission to post to X are separate steps.</Note>
         </Doc>
         <Doc id="trading" number="04" title="The market, next to the conversation" intro="Each community has a Trade tab. Review the token, amount, and transaction details before approving in your wallet.">
@@ -70,7 +70,7 @@ export default function DocsPage() {
           <p className="mt-4 text-sm leading-6 text-muted">Acceptance means “Awaiting escrow.” It does not transfer tokens, start a countdown or promise a payout. Existing proposals need fresh consent to final settlement terms. Real challenge activity appears in the home feed. Odds remain unavailable until live pricing is connected.</p><Link href="/mentionmarkets" className="mt-4 inline-block text-sm text-volt">Explore mentionmarkets →</Link>
         </Doc>
 
-        <div className="rounded-2xl border border-volt/20 bg-volt/5 p-6"><p className="text-lg font-semibold">Find your next conversation.</p><Link href="/explore" className="mt-3 inline-block text-sm font-semibold text-volt">Explore Mentions ↗</Link></div>
+        <div className="rounded-2xl border border-volt/20 bg-volt/5 p-6"><p className="ui-heading">Find your next conversation.</p><Link href="/explore" className="mt-3 inline-block text-sm font-semibold text-volt">Explore Mentions ↗</Link></div>
       </div>
     </div>
   </Shell>;

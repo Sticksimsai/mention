@@ -38,7 +38,7 @@ export function WalletCard({ showActivity = false }: { showActivity?: boolean })
     catch { setError("Could not copy automatically. Select and copy the address below."); setDepositOpen(true); }
   }
   return <section className="rounded-2xl border hairline bg-surface p-4" aria-label="Your Mentions wallet">
-    <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">Mentions wallet</h2><span className="rounded border border-volt/20 px-1.5 py-0.5 text-[9px] tracking-wide text-volt">SOLANA</span></div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold">Mentions wallet</h2><span className="rounded border border-volt/20 px-1.5 py-0.5 text-[9px] tracking-wide text-volt">SOLANA</span></div>
     <p className="mt-4 text-xs text-muted">Available SOL balance</p>
     <p className="mt-1 text-3xl font-semibold tracking-tight">{walletAddress ? balance.data && !balance.isError ? balance.data.balanceSol.toLocaleString(undefined, { maximumFractionDigits: 6 }) : "—" : "—"}<span className="ml-2 text-xs font-normal text-muted">SOL</span></p>
     <p className="mt-1 text-[11px] text-muted">Your personal wallet · Mainnet</p>

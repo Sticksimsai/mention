@@ -30,7 +30,7 @@ export function MarketCard({market:m,saved,onSave}:{market:ArenaMarket;saved:boo
  const title=`Which coin leads after ${roundLabel(m.duration)}?`;
  const head=<><span className="arena-pair"><CoinAvatar coin={m.coins[0]}/><CoinAvatar coin={m.coins[1]} side={1}/></span><span>{title}</span></>;
  return <article className="arena-market-card">
-  <Link href={`/mentionmarkets/${m.id}`} className="arena-card-title">{head}</Link>
+  <Link href={`/mentionmarkets/${m.id}`} className="arena-card-title ui-heading">{head}</Link>
   <div className="arena-card-rows">{m.coins.map((c,i)=><div className="arena-coin-row" key={c.ticker}><span className="arena-ticker">${c.ticker}</span><strong>—</strong><Link href={`/mentionmarkets/${m.id}`} className={`arena-side arena-side-${i}`}>View</Link></div>)}</div>
   <OddsChart market={m} compact/>
   <footer className="arena-card-footer"><span>{m.status}</span><Bookmark saved={saved} onClick={onSave}/></footer>

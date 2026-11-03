@@ -14,7 +14,7 @@ export const durationLabel = (seconds: number) => seconds === 3600 ? "1 hour" : 
 export const statusLabel = (status: BattleView["status"]) => ({ open: "Open challenge", accepted: "Awaiting escrow", cancelled: "Cancelled", expired: "Expired" })[status];
 
 export function BattleNotice() {
-  return <div className="rounded-xl border border-volt/20 bg-volt/[0.04] p-4 text-sm leading-6"><p className="font-semibold text-volt">Challenge preview · wagering is not live</p><p className="text-muted">Owners can agree on terms. No tokens are reserved, transferred or paid out yet. A round can start only after escrow and settlement are available.</p></div>;
+  return <div className="rounded-xl border border-volt/20 bg-volt/[0.04] p-4 text-sm leading-6"><p className="ui-heading text-volt">Challenge preview · wagering is not live</p><p className="text-muted">Owners can agree on terms. No tokens are reserved, transferred or paid out yet. A round can start only after escrow and settlement are available.</p></div>;
 }
 export function BattleCard({battle}:{battle:BattleView}) {
  const {saved,toggle}=useArenaWatchlist();
