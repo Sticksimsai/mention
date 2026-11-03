@@ -3,6 +3,7 @@
 import { Component, createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { PrivyProvider, usePrivy, useLoginWithOAuth } from "@privy-io/react-auth";
 import { useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
+import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { registerTokenGetter } from "@/lib/api";
 import { Modal } from "./Modal";
 
@@ -28,12 +29,12 @@ const stub: AuthState = {
 const AuthCtx = createContext<AuthState>(stub);
 export const useAuth = () => useContext(AuthCtx);
 
-function UnavailableAuth({ children }: { children: ReactNode }) {
+function UnavailableAuth({ children, recover = false }: { children: ReactNode; recover?: boolean }) {
   const [open, setOpen] = useState(false);
   return <AuthCtx.Provider value={{ ...stub, login: () => setOpen(true) }}>
     {children}
     <Modal open={open} onClose={() => setOpen(false)} title="Sign-in unavailable">
-      <div className="p-8 pt-14"><h2 className="text-xl font-semibold">Sign-in is temporarily unavailable</h2><p className="mt-3 text-sm text-muted">You can still browse Mentions. Please try again shortly.</p></div>
+      <div className="p-8 pt-14"><h2 className="text-xl font-semibold">Sign-in is temporarily unavailable</h2><p className="mt-3 text-sm text-muted">{recover ? "The wallet connection was interrupted. Reload to reconnect and recover your launch from Recent launches. This does not submit a transaction." : "You can still browse Mentions. Please try again shortly."}</p>{recover && <button className="mt-4 rounded-xl bg-volt px-4 py-3 text-sm font-semibold text-ink" onClick={() => window.location.reload()}>Reload and reconnect</button>}</div>
     </Modal>
   </AuthCtx.Provider>;
 }
@@ -112,10 +113,16 @@ class AuthErrorBoundary extends Component<{ children: ReactNode; fallback: React
 }
 export function AuthProvider({ children }: { children: ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
-  const fallback = <UnavailableAuth>{children}</UnavailableAuth>;
-  if (!appId) return fallback;
+  const fallback = <UnavailableAuth recover>{children}</UnavailableAuth>;
+  if (!appId) return <UnavailableAuth>{children}</UnavailableAuth>;
   return <AuthErrorBoundary fallback={fallback}>
     <PrivyProvider appId={appId} config={{
+      // Standard-wallet signing renders a transaction review that requires explicit Kit clients.
+      // Never put the server's Helius API key in this browser configuration.
+      solana: { rpcs: {
+        "solana:mainnet": { rpc: createSolanaRpc("https://api.mainnet-beta.solana.com"), rpcSubscriptions: createSolanaRpcSubscriptions("wss://api.mainnet-beta.solana.com") },
+        "solana:devnet": { rpc: createSolanaRpc("https://api.devnet.solana.com"), rpcSubscriptions: createSolanaRpcSubscriptions("wss://api.devnet.solana.com") },
+      } },
       loginMethods: ["twitter"],
       appearance: { theme: "#171A15", accentColor: "#9BF000", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },
       embeddedWallets: { solana: { createOnLogin: "all-users" }, ethereum: { createOnLogin: "off" } },
