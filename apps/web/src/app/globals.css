@@ -311,3 +311,16 @@ h3, h3[class], .ui-heading, .ui-heading[class] { font-size: var(--heading-subsec
 /* Compact supporting labels share the same face without becoming page titles. */
 .ui-heading.ui-heading-compact { font-size: .625rem; line-height: 1.7; }
 .font-display { font-weight: 400; font-synthesis: none; }
+
+/* Display names share the pixel identity; handles and post text stay sans-serif. */
+.user-display-name {
+  font-family: var(--heading-font);
+  font-size: .75rem;
+  font-weight: 400;
+  font-synthesis: none;
+  font-style: normal;
+  line-height: 1.6;
+  letter-spacing: .02em;
+  -webkit-font-smoothing: none;
+}
+.user-display-name-compact { font-size: .625rem; }

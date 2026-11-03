@@ -112,7 +112,7 @@ export function PostCard({ post }: { post: PostView }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center text-[15px] leading-5">
-                <Link href={`/u/${post.author.username}`} className="truncate font-semibold text-fg hover:underline">{post.author.name}</Link>
+                <Link href={`/u/${post.author.username}`} className="user-display-name truncate text-fg hover:underline">{post.author.name}</Link>
                 {post.author.verified && <span className="shrink-0"><XVerifiedBadge /></span>}
               </div>
               <Link href={`/u/${post.author.username}`} className="mt-0.5 block truncate text-xs leading-5 text-muted hover:text-fg">@{post.author.username}</Link>

@@ -11,7 +11,7 @@ import { AttachmentPicker,CommunitySticker,emptyAttachments } from './PostAttach
 export function QuotedPost({post}:{post:PostView|null|undefined}){
  if(!post)return <div className="mt-3 rounded-xl border hairline p-4 text-sm text-muted">This post is no longer available.</div>;
  return <Link href={`/post/${encodeURIComponent(post.id)}`} className="mt-3 block overflow-hidden rounded-xl border hairline p-4 transition hover:bg-raised">
-  <div className="flex items-center gap-2">{post.author.pfpUrl&&<img src={post.author.pfpUrl} className="h-6 w-6 rounded-full" alt=""/>}<strong className="truncate text-sm">{post.author.name}</strong>{post.author.verified&&<XVerifiedBadge/>}</div><p className="mt-1 text-xs text-muted">@{post.author.username}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{post.content}</p>{post.mediaUrl&&<img src={post.mediaUrl} className="mt-3 max-h-56 rounded-lg" alt="Quoted attachment"/>}{post.sticker&&<CommunitySticker sticker={post.sticker} small/>}
+  <div className="flex items-center gap-2">{post.author.pfpUrl&&<img src={post.author.pfpUrl} className="h-6 w-6 rounded-full" alt=""/>}<strong className="user-display-name truncate">{post.author.name}</strong>{post.author.verified&&<XVerifiedBadge/>}</div><p className="mt-1 text-xs text-muted">@{post.author.username}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{post.content}</p>{post.mediaUrl&&<img src={post.mediaUrl} className="mt-3 max-h-56 rounded-lg" alt="Quoted attachment"/>}{post.sticker&&<CommunitySticker sticker={post.sticker} small/>}
  </Link>;
 }
 export function PostInteraction({post,mode,onClose}:{post:PostView;mode:'quote'|'reply';onClose:()=>void}){

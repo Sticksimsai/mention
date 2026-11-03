@@ -82,7 +82,7 @@ export function SearchBox() {
                 <img src={u.pfpUrl} alt="" className="h-8 w-8 rounded-full" />
               ) : <div className="h-8 w-8 rounded-full bg-ink" />}
               <div className="min-w-0">
-                <p className="truncate text-sm">{u.displayName}</p>
+                <p className="user-display-name truncate">{u.displayName}</p>
                 <p className="text-xs text-muted">@{u.username}</p>
               </div>
             </Link>

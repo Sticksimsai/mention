@@ -15,7 +15,7 @@ export function AccountButton({ compact = false }: { compact?: boolean }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={me.pfpUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
       ) : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-raised text-sm text-volt">{me.displayName.slice(0, 1)}</span>}
-      {!compact && <span className="min-w-0"><span className="block truncate text-xs font-semibold">{me.displayName}</span><span className="block truncate text-[11px] text-muted">@{me.username}</span></span>}
+      {!compact && <span className="min-w-0"><span className="user-display-name user-display-name-compact block truncate">{me.displayName}</span><span className="block truncate text-[11px] text-muted">@{me.username}</span></span>}
       <span className="ml-auto text-muted" aria-hidden="true">↗</span>
     </Link>
     <button onClick={logout} aria-label="Sign out" title="Sign out" className="grid h-9 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg">⎋</button>
