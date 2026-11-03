@@ -1,3 +1,4 @@
+import {xMediaSource} from '@mention/shared/x-media';
 import {formatXPost} from '@mention/shared/x-post';
 import { env } from "../env.js";
 import { launchImages } from "@mention/db";
@@ -96,15 +97,29 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
     stickerMediaUrl=`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${asset.id}`;
   }
   if(body.stickerId&&!sticker)throw new HTTPException(400,{message:"Choose a sticker from this community"});
-  if(body.crosspostToX&&(body.quotePostId||body.mediaUrl||sticker))throw new HTTPException(400,{message:"Quotes and attachments are posted on Mentions only for now"});
+  if(body.crosspostToX&&body.quotePostId)throw new HTTPException(400,{message:"Quote posts stay on Mentions for now"});
+  const xMediaUrl=body.mediaUrl||stickerMediaUrl||sticker?.mediaUrl;
+  if(body.crosspostToX&&(body.mediaUrl||sticker)){
+    if(body.mediaUrl&&sticker)throw new HTTPException(400,{message:"Choose one image, GIF or sticker when posting to X."});
+    if(!xMediaUrl)throw new HTTPException(400,{message:"Choose the sticker again to prepare its animation for X."});
+    try {
+      const source=xMediaSource(xMediaUrl,env.PUBLIC_ASSET_ORIGIN);
+      if(source.kind==='upload'){
+        const [asset]=await db.select().from(launchImages).where(and(eq(launchImages.id,source.id),eq(launchImages.userId,u.id)));
+        if(!asset)throw new Error('Upload your own attachment before posting to X.');
+      }
+    } catch(error){throw new HTTPException(400,{message:(error as Error).message});}
+  }
 
   // Determine crosspost eligibility: user opted in AND has an active write connection
   let crosspostStatus: "skipped" | "pending" = "skipped";
   if (body.crosspostToX) {
-    try { formatXPost(body.content); } catch (error) { throw new HTTPException(400,{message:(error as Error).message}); }
+    try { formatXPost(body.content,Boolean(xMediaUrl)); } catch (error) { throw new HTTPException(400,{message:(error as Error).message}); }
     const [conn] = await db.select().from(xConnections)
       .where(and(eq(xConnections.userId, u.id), eq(xConnections.writeEnabled, true)));
-    if (conn) crosspostStatus = "pending";
+    if (!conn) throw new HTTPException(400,{message:"Connect X and enable posting in Settings first."});
+    if(xMediaUrl&&!conn.scopes.split(/\s+/).includes('media.write'))throw new HTTPException(400,{message:"Reconnect X in Settings to allow images, GIFs and stickers."});
+    crosspostStatus = "pending";
   }
 
   const [post] = await db.insert(posts).values({

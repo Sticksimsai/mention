@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { useMe } from "@/lib/hooks";
@@ -8,6 +8,7 @@ import { useMe } from "@/lib/hooks";
 export default function SettingsPage() {
   const { authenticated, login, me } = useMe();
   const qc = useQueryClient();
+  const xStatus=useQuery({queryKey:['x-status',me?.id],queryFn:()=>api<{mediaEnabled:boolean}>('/v1/x/status'),enabled:!!me?.xWriteConnected});
 
   const connect = useMutation({
     mutationFn: () => api<{ url: string }>("/v1/x/connect"),
@@ -64,6 +65,8 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
+            {me?.xWriteConnected&&xStatus.data&&!xStatus.data.mediaEnabled&&<div className="mt-4 rounded-xl border hairline p-3"><p className="text-xs text-muted">Reconnect once to let Mentions upload your images, GIFs and stickers to X.</p><button onClick={()=>connect.mutate()} disabled={connect.isPending} className="mt-3 text-sm text-volt">Reconnect X for media</button></div>}
+            {me?.xWriteConnected&&xStatus.data?.mediaEnabled&&<p className="mt-3 text-xs text-volt">Images, GIFs and stickers enabled.</p>}
             {connect.isError && <p className="mt-2 text-xs text-down">{(connect.error as Error).message}</p>}
           </section>
 

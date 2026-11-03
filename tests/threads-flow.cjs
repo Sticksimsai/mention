@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const r=require('node:module').createRequire(path.resolve('apps/api/package.json'));
 const ts=require('../apps/web/node_modules/typescript');
-function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:n=>mocks[n]??r(n),Date,console,Buffer});return module.exports;}
+function load(file,mocks={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:n=>mocks[n]??(n.startsWith('.')?load(path.resolve(path.dirname(file),n.replace(/\.js$/,'.ts')),mocks):n==='twitter-text'?require('node:module').createRequire(path.resolve('packages/shared/package.json'))(n):r(n)),Date,console,Buffer,URL});return module.exports;}
 const shared=load('packages/shared/src/index.ts');const {Hono}=r('hono'),{HTTPException}=r('hono/http-exception');
 const names=['posts','postLikes','postReposts','postReplies','xPosts','xPostLikes','xPostReposts','xPostReplies','xPostCommunities','communities','communityMembers','xConnections','users','launchImages'];
 const tables=Object.fromEntries(names.map(n=>[n,new Proxy({},{get:(_,k)=>`${n}.${String(k)}`})]));
@@ -10,7 +10,7 @@ let results=[],writes=0,filters=[],saved=[],packRows=[];
 function chain(result){const c=new Proxy({},{get:(_,k)=>k==='then'?(resolve,reject)=>Promise.resolve(result).then(resolve,reject):(...args)=>{if(k==='where')filters.push(args);return c;}});return c;}
 const db={select:()=>chain(results.shift()??[]),transaction:async fn=>fn(db),insert:()=>({values:row=>{writes++;saved.push(row);return {returning:async()=>[{id:'22222222-2222-4222-8222-222222222222',...row}],then:(resolve,reject)=>Promise.resolve().then(resolve,reject)}}}),update:()=>({set:()=>({where:async()=>{writes++}})})};
 const post={id:'n:11111111-1111-4111-8111-111111111111',communityId:'community',replies:3};
-const inner=load('apps/api/src/routes/posts.ts',{'@mention/shared':shared,'../env.js':{env:{PUBLIC_ASSET_ORIGIN:'https://test'}},'./feed.js':{visiblePost:async(source,id)=>{const rows=results.shift()??[];if(!rows.length)throw new HTTPException(404);return {...post,source}},decorate:async p=>p},'../lib/stickers.js':{stickerPack:async()=>packRows},'@mention/db':{...tables,eq:(...a)=>a,and:(...a)=>a,or:(...a)=>a,isNull:a=>a,desc:a=>a,sql:()=>null},'../lib/db.js':{db},'../lib/redis.js':{redis:{del:async()=>{}},queues:{}},'../auth/middleware.js':{requireAuth:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);c.set('user',{id:'viewer'});await next()},requireNotBanned:()=>{},rateLimit:()=>async(c,next)=>next()}}).postsRoute;
+const inner=load('apps/api/src/routes/posts.ts',{'@mention/shared':shared,'@mention/shared/x-media':load('packages/shared/src/x-media.ts'),'@mention/shared/x-post':load('packages/shared/src/x-post.ts'),'../env.js':{env:{PUBLIC_ASSET_ORIGIN:'https://test'}},'./feed.js':{visiblePost:async(source,id)=>{const rows=results.shift()??[];if(!rows.length)throw new HTTPException(404);return {...post,source}},decorate:async p=>p},'../lib/stickers.js':{stickerPack:async()=>packRows},'@mention/db':{...tables,eq:(...a)=>a,and:(...a)=>a,or:(...a)=>a,isNull:a=>a,desc:a=>a,sql:()=>null},'../lib/db.js':{db},'../lib/redis.js':{redis:{del:async()=>{}},queues:{xWriteback:{add:async()=>{}}}},'../auth/middleware.js':{requireAuth:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);c.set('user',{id:'viewer'});await next()},requireNotBanned:()=>{},rateLimit:()=>async(c,next)=>next()}}).postsRoute;
 const route=new Hono();route.use('*',async(c,next)=>next());route.route('/',inner);route.onError((e,c)=>c.json({error:e.message},e.status??500));
 const uri=`http://test/${post.id}`;const row={p:{},u:{},c:{id:'community'}};
 (async()=>{
@@ -46,6 +46,17 @@ const uri=`http://test/${post.id}`;const row={p:{},u:{},c:{id:'community'}};
  results=[[row]];assert.equal((await create({content:'My take',quotePostId:post.id,stickerId:'foreign'})).status,400,'Reject sticker outside its community');
  assert(!shared.createPostSchema.safeParse({content:'hello',mediaUrl:'javascript:alert(1)'}).success);
  assert(!shared.stickerSchema.safeParse({label:'gm',glyph:'bad',color:'red'}).success);
- const pack=shared.starterStickers({id:'community-a',ticker:'SOL'});assert.equal(pack.length,6);assert(pack.every(s=>s.communityId==='community-a'&&s.ticker==='SOL'));
+ const pack=shared.starterStickers({id:'community-a',ticker:'SOL'});assert.equal(pack.length,10);assert(pack.every(s=>s.communityId==='community-a'&&s.ticker==='SOL'));
+ const communityId='55555555-5555-4555-8555-555555555555',assetId='66666666-6666-4666-8666-666666666666';
+ const comm={id:communityId,ownerId:'viewer',status:'approved'},mediaUrl='https://test/v1/media/'+assetId;
+ results=[[comm],[{id:assetId}],[{scopes:'tweet.write media.write'}]];
+ assert.equal((await create({communityId,content:'',mediaUrl,crosspostToX:true})).status,201,'Media-only post can queue for X');assert.equal(saved.at(-1).crosspostStatus,'pending');
+ n=writes;results=[[comm],[{id:assetId}],[{scopes:'tweet.write'}]];
+ assert.equal((await create({communityId,content:'hi',mediaUrl,crosspostToX:true})).status,400,'Old connections must reconnect');assert.equal(writes,n);
+ results=[[comm],[]];assert.equal((await create({communityId,content:'hi',mediaUrl,crosspostToX:true})).status,400,'Media must belong to author');assert.equal(writes,n);
+ results=[[comm]];assert.equal((await create({communityId,content:'hi',mediaUrl:'https://evil.example/file.gif',crosspostToX:true})).status,400,'External fetch blocked');
+ packRows=[{id:'preset:0',mediaUrl:'/stickers/mentions-blob/01-dance.gif'}];results=[[comm],[{scopes:'tweet.write media.write'}]];
+ assert.equal((await create({communityId,content:'',stickerId:'preset:0',crosspostToX:true})).status,201,'Preset stickers queue for X');
+ results=[[comm]];assert.equal((await create({communityId,content:'hi',mediaUrl,stickerId:'preset:0',crosspostToX:true})).status,400,'Mixed media gets an actionable error');
  console.log('PASS: public thread/replies, authenticated writes, UUID validation, hidden-parent protection, atomic native and X reply counts.');
 })().catch(e=>{console.error(e);process.exitCode=1});

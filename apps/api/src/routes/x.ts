@@ -19,7 +19,7 @@ import { requireAuth, requireNotBanned } from "../auth/middleware.js";
 
 export const xRoute = new Hono();
 
-const SCOPES = "tweet.read tweet.write users.read offline.access";
+const SCOPES = "tweet.read tweet.write users.read offline.access media.write";
 
 function b64url(buf: Buffer) {
   return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -113,8 +113,9 @@ xRoute.get("/status", requireAuth, async (c) => {
   const [conn] = await db.select({
     writeEnabled: xConnections.writeEnabled,
     expiresAt: xConnections.expiresAt,
+    scopes: xConnections.scopes,
   }).from(xConnections).where(eq(xConnections.userId, u.id));
-  return c.json({ connected: Boolean(conn), writeEnabled: conn?.writeEnabled ?? false });
+  return c.json({ connected: Boolean(conn), writeEnabled: conn?.writeEnabled ?? false, mediaEnabled: Boolean(conn?.scopes.split(/\s+/).includes("media.write")) });
 });
 
 xRoute.post("/toggle", requireAuth, async (c) => {
