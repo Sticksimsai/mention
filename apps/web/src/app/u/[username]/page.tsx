@@ -59,7 +59,12 @@ export default function ProfilePage() {
       {p.bannerUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.bannerUrl} alt="" className="h-full w-full object-cover" />
-      ) : <><span aria-hidden="true" className="absolute -right-3 -top-20 rotate-[-15deg] text-[240px] font-black leading-none text-volt/15">@</span><p className="absolute bottom-4 right-5 text-[10px] text-white/80">where conversations become communities.</p></>}
+      ) : (
+        <>
+          <img src="/brand/onlycults.webp" alt="" aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-[130%] w-auto -translate-y-1/2 object-contain opacity-25 sm:right-8" />
+          <p className="absolute bottom-4 right-5 text-[10px] text-white/80">where conversations become communities.</p>
+        </>
+      )}
     </div>
     <section className="px-5 pb-6 sm:px-6">
       <div className="relative flex items-start justify-between">
