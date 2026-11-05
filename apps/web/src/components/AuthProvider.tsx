@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Never put the server's Helius API key in this browser configuration.
       solana: { rpcs: walletRpcs },
       loginMethods: ["twitter"],
-      appearance: { theme: "#171A15", accentColor: "#9BF000", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },
+      appearance: { theme: "#191919", accentColor: "#FFFFFF", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },
       embeddedWallets: { solana: { createOnLogin: "all-users" }, ethereum: { createOnLogin: "off" } },
     }}><PrivyBridge>{children}</PrivyBridge></PrivyProvider>
   </AuthErrorBoundary>;

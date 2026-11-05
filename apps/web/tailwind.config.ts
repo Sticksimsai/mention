@@ -5,16 +5,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#121212",
-        surface: "#191B18",
-        raised: "#22251F",
-        line: "#2B2E28",
-        fg: "#ECEFE6",
-        muted: "#99A18F",
-        volt: "#9BF000",
-        "volt-deep": "#7FCC00",
-        up: "#22C55E",
-        down: "#EF4444",
+        ink: "#101010",
+        surface: "#191919",
+        raised: "#242424",
+        line: "#353535",
+        fg: "#F5F5F5",
+        muted: "#B0B0B0",
+        volt: "#FFFFFF",
+        "volt-deep": "#CDCDCD",
+        up: "#EBEBEB",
+        down: "#BBBBBB",
       },
       fontFamily: {
         display: ["StairsNSlabs", "Cocogoose", "system-ui", "sans-serif"],
