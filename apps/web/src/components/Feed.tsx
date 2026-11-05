@@ -126,7 +126,7 @@ export function PostCard({ post }: { post: PostView }) {
           {(post.tweetUrl || post.communityName || post.official || post.globalPinned || post.pinned) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
             {post.tweetUrl && <a href={post.tweetUrl} target="_blank" rel="noreferrer" className="hover:text-fg" title="Open original post on X">{post.source === "x" ? "From 𝕏 ↗" : "Also on 𝕏 ↗"}</a>}
             {post.communityName && <Link href={communityHref({ id: post.communityId, slug: post.communitySlug })} className="text-volt hover:underline">${post.communityTicker}</Link>}
-            {post.official && <span>Official Mentions</span>}
+            {post.official && <span>Official onlycults</span>}
             {(post.globalPinned || post.pinned) && <span className="text-volt">{post.globalPinned ? "Pinned sitewide" : "Pinned in community"}</span>}
           </div>}
           {post.source === "native" && post.author.id === me?.id && ["pending","failed"].includes(post.crosspostStatus ?? "") && <p className="mt-2 text-xs text-muted">{post.crosspostStatus === "pending" ? "Queued for X" : "X post unconfirmed. Check your X profile before posting again."}</p>}

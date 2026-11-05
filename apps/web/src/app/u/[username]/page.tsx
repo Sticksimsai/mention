@@ -78,7 +78,7 @@ export default function ProfilePage() {
     </section>
     <section className="grid grid-cols-3 gap-2 px-5 pb-6 sm:px-6" aria-label="Profile stats">
       <Stat label="Communities joined" value={p.tribes} />
-      <Stat label="Mentions posts" value={p.postCount} />
+      <Stat label="onlycults posts" value={p.postCount} />
       <Stat label="Communities created" value={p.ownedTribes.length} />
     </section>
     {own && <div className="px-5 pb-5 lg:hidden"><button onClick={() => setTab("wallet")} className="w-full rounded-xl border hairline bg-surface px-4 py-3 text-left text-sm font-medium">My wallet <span className="float-right text-volt">Add funds ↗</span></button></div>}

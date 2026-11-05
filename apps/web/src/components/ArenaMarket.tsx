@@ -46,7 +46,7 @@ export function MarketDetail({market:m,saved,onSave}:{market:ArenaMarket;saved:b
     <div className="arena-round-info"><p className="arena-eyebrow">Round brief</p><h3>Two communities. One finish line.</h3><p>The higher percentage price change leads. Both coins are measured over the same {roundLabel(m.duration)} window.</p><dl><div><dt>Format</dt><dd>Community vs community</dd></div><div><dt>Funding</dt><dd>Not deposited</dd></div><div><dt>Chart</dt><dd>Win probability (%)</dd></div></dl>{m.stakes&&<p className="arena-stakes">Proposed stakes: {m.stakes[0]} ${m.coins[0].ticker} / {m.stakes[1]} ${m.coins[1].ticker}. Token quantities are not equal-value commitments.</p>}</div>
   </div><div className="arena-chart"><OddsChart market={m}/>
     <p className="arena-chart-caption">Market odds will appear when a pricing mechanism is connected.</p>
-  </div></div><footer className="arena-detail-footer"><span>Proposed stakes · no funds locked</span><span>{roundLabel(m.duration)} round <span className="arena-footer-brand">mentions / mentionmarkets</span></span></footer>
+  </div></div><footer className="arena-detail-footer"><span>Proposed stakes · no funds locked</span><span>{roundLabel(m.duration)} round <span className="arena-footer-brand">onlycults / mentionmarkets</span></span></footer>
  </section>;
 }
 

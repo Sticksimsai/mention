@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mentions",
-  icons: { icon: [{ url: "/brand/favicon.svg?v=4", type: "image/svg+xml" }], shortcut: "/brand/favicon.svg?v=4" },
+  title: "onlycults",
+  icons: { icon: [{ url: "/brand/favicon.svg?v=5", type: "image/svg+xml" }], shortcut: "/brand/favicon.svg?v=5" },
   description: "Post on the public feed and launch a community token on Solana with Pump.fun.",
 };
 

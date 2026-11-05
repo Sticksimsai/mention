@@ -41,7 +41,7 @@ function UnavailableAuth({ children, recover = false }: { children: ReactNode; r
   return <AuthCtx.Provider value={{ ...stub, login: () => setOpen(true) }}>
     {children}
     <Modal open={open} onClose={() => setOpen(false)} title="Sign-in unavailable">
-      <div className="p-8 pt-14"><h2 className="text-xl font-semibold">Sign-in is temporarily unavailable</h2><p className="mt-3 text-sm text-muted">{recover ? "The wallet connection was interrupted. Reload to reconnect and recover your launch from Recent launches. This does not submit a transaction." : "You can still browse Mentions. Please try again shortly."}</p>{recover && <button className="mt-4 rounded-xl bg-volt px-4 py-3 text-sm font-semibold text-ink" onClick={() => window.location.reload()}>Reload and reconnect</button>}</div>
+      <div className="p-8 pt-14"><h2 className="text-xl font-semibold">Sign-in is temporarily unavailable</h2><p className="mt-3 text-sm text-muted">{recover ? "The wallet connection was interrupted. Reload to reconnect and recover your launch from Recent launches. This does not submit a transaction." : "You can still browse onlycults. Please try again shortly."}</p>{recover && <button className="mt-4 rounded-xl bg-volt px-4 py-3 text-sm font-semibold text-ink" onClick={() => window.location.reload()}>Reload and reconnect</button>}</div>
     </Modal>
   </AuthCtx.Provider>;
 }
@@ -84,7 +84,7 @@ function PrivyBridge({ children }: { children: ReactNode }) {
     createWallet: async () => { await createWallet(); },
     fundWallet: async () => {
       if (!walletAddress) throw new Error("Create your wallet first.");
-      await fundWallet(walletAddress, { cluster: { name: "mainnet-beta" }, uiConfig: { receiveFundsTitle: "Add funds to Mentions", receiveFundsSubtitle: "Receive funds in your Solana wallet." } });
+      await fundWallet(walletAddress, { cluster: { name: "mainnet-beta" }, uiConfig: { receiveFundsTitle: "Add funds to onlycults", receiveFundsSubtitle: "Receive funds in your Solana wallet." } });
     },
     signTransaction: async (transaction, signerAddress = walletAddress ?? undefined) => {
       const wallet = wallets.find(w => w.address === signerAddress);
@@ -101,19 +101,19 @@ function PrivyBridge({ children }: { children: ReactNode }) {
     exportWallet: async () => { if (walletAddress) await exportWallet({ address: walletAddress }); },
   }}>
     {children}
-    <Modal open={open} onClose={() => setOpen(false)} title="Sign in to Mentions">
+    <Modal open={open} onClose={() => setOpen(false)} title="Sign in to onlycults">
       <div className="px-8 pb-7 pt-10 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/mention-still.webp" width={80} height={80} alt="" className="mx-auto h-20 w-20" />
+        <img src="/brand/onlycults.webp" width={80} height={80} alt="" className="mx-auto h-20 w-20" />
         <h2 className="mt-3 text-2xl font-semibold tracking-tight">Your people. Your place.</h2>
-        <p className="mb-7 mt-2 text-sm text-muted">Sign in to join the conversation on Mentions.</p>
+        <p className="mb-7 mt-2 text-sm text-muted">Sign in to join the conversation on onlycults.</p>
         <button onClick={connect} disabled={!ready || loading} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-fg px-4 py-3 font-semibold text-ink disabled:opacity-50"><span className="text-xl">𝕏</span>{loading ? "Connecting to X…" : "Continue with X"}</button>
         <div className="mt-6 space-y-3 text-left text-sm text-muted">
           <p><span className="mr-2 text-volt">✓</span>Your X photo and username come with you</p>
           <p><span className="mr-2 text-volt">✓</span>Your communities, all in one place</p>
-          <p><span className="mr-2 text-volt">✓</span>A personal Solana wallet inside Mentions</p>
+          <p><span className="mr-2 text-volt">✓</span>A personal Solana wallet inside onlycults</p>
         </div>
-        <p className="mt-6 text-xs leading-relaxed text-muted">Signing in does not give Mentions permission to post to X. You can enable that separately in Settings.</p>
+        <p className="mt-6 text-xs leading-relaxed text-muted">Signing in does not give onlycults permission to post to X. You can enable that separately in Settings.</p>
         {error && <p role="alert" className="mt-4 text-sm text-down">{error}</p>}
       </div>
       <div className="border-t hairline px-6 py-4 text-center text-xs text-muted">Secure sign-in with <span className="font-semibold text-fg">Privy</span></div>
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       externalWallets: { solana: { connectors: solanaConnectors } },
       solana: { rpcs: walletRpcs },
       loginMethods: ["twitter"],
-      appearance: { theme: "#191919", accentColor: "#FFFFFF", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },
+      appearance: { theme: "#191919", accentColor: "#FFFFFF", logo: "/brand/onlycults.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on onlycults." },
       embeddedWallets: { solana: { createOnLogin: "all-users" }, ethereum: { createOnLogin: "off" } },
     }}><PrivyBridge>{children}</PrivyBridge></PrivyProvider>
   </AuthErrorBoundary>;

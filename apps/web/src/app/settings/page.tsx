@@ -38,7 +38,7 @@ export default function SettingsPage() {
           <section className="rounded-2xl bg-surface p-5">
             <h2 className="font-medium">Post to X</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted">
-              Mirror your Mentions posts to your X account. Signing in proves who you are;
+              Mirror your onlycults posts to your X account. Signing in proves who you are;
               this separate step grants posting permission, and you can turn it off any time.
             </p>
             {!me?.xWriteConnected ? (
@@ -65,7 +65,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
-            {me?.xWriteConnected&&xStatus.data&&!xStatus.data.mediaEnabled&&<div className="mt-4 rounded-xl border hairline p-3"><p className="text-xs text-muted">Reconnect once to let Mentions upload your images, GIFs and stickers to X.</p><button onClick={()=>connect.mutate()} disabled={connect.isPending} className="mt-3 text-sm text-volt">Reconnect X for media</button></div>}
+            {me?.xWriteConnected&&xStatus.data&&!xStatus.data.mediaEnabled&&<div className="mt-4 rounded-xl border hairline p-3"><p className="text-xs text-muted">Reconnect once to let onlycults upload your images, GIFs and stickers to X.</p><button onClick={()=>connect.mutate()} disabled={connect.isPending} className="mt-3 text-sm text-volt">Reconnect X for media</button></div>}
             {me?.xWriteConnected&&xStatus.data?.mediaEnabled&&<p className="mt-3 text-xs text-volt">Images, GIFs and stickers enabled.</p>}
             {connect.isError && <p className="mt-2 text-xs text-down">{(connect.error as Error).message}</p>}
           </section>
