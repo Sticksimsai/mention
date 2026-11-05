@@ -27,7 +27,7 @@ services:
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
       - key: WEB_ORIGIN
-        value: https://getmentions.xyz
+        value: https://onlycults.fun
       - key: API_PUBLIC_URL
         value: https://api.getmentions.xyz
       - key: X_REDIRECT_URI
