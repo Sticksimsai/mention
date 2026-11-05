@@ -85,6 +85,13 @@
       "when": 1793696000000,
       "tag": "0011_official_mentions_community",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793906166128,
+      "tag": "0012_onlycults_public_reset",
+      "breakpoints": true
     }
   ]
 }

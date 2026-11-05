@@ -8,16 +8,14 @@ import { communities, communityMembers, moneyOperations, launchImages, eq, and, 
 import { db } from "../lib/db.js";
 import { env } from "../env.js";
 import { buildLaunch } from "../lib/launch-builder.js";
-import { LAUNCH_PAIRS, MAX_DEV_BUY_BPS, launchOptionsSchema, xProfileUrlSchema } from "@mention/shared";
+import { LAUNCH_PAIRS, launchOptionsSchema, xProfileUrlSchema } from "@mention/shared";
 import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
-import { address, connection, hash, platformKeypair, ownOperation, publicOperation, refreshOperation, broadcast, type Operation } from "../lib/money.js";
+import { address, connection, hash, ownOperation, publicOperation, refreshOperation, broadcast, type Operation } from "../lib/money.js";
 
 export const launchRoute=new Hono();
 function launchAvailability() {
- const splitValid=Number.isInteger(env.PLATFORM_CREATOR_FEE_SHARE_BPS)&&env.PLATFORM_CREATOR_FEE_SHARE_BPS>=0&&env.PLATFORM_CREATOR_FEE_SHARE_BPS<=10000;
- let treasuryReady=false;try{platformKeypair();treasuryReady=true;}catch{}
- const common=!env.LAUNCH_ENABLED?"Launch execution is not open yet":!splitValid?"Creator fee split is not configured":null;
- return {fair:common??(!treasuryReady?"Creator-fee treasury is not configured. The site administrator must configure PLATFORM_WALLET_SECRET on the API service.":null),creator:common??(!treasuryReady?"Creator-fee treasury is not configured. The site administrator must configure PLATFORM_WALLET_SECRET on the API service.":null),holders:common,battle:"mentionmarkets launches are not available yet"};
+ const retired = "New launches use SOL holder rewards.";
+ return {fair:retired,creator:retired,battle:retired,holders:env.LAUNCH_ENABLED?null:"Launch execution is not open yet"};
 }
 const input=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(32),ticker:z.string().regex(/^[A-Za-z0-9]{1,12}$/),description:z.string().max(2000),imageId:z.string().uuid(),bannerId:z.string().uuid().optional(),fundingWallet:z.string().min(32).max(44),creatorWallet:z.string().min(32).max(44),twitterUrl:xProfileUrlSchema.nullable().optional(),telegram:z.string().url().nullable().optional(),devBuySol:z.literal(0).default(0)}).and(launchOptionsSchema);
 launchRoute.get("/images/:id",async c=>{
@@ -34,7 +32,7 @@ launchRoute.get("/metadata/:id",async c=>{
  c.header("Cache-Control","public, max-age=300");c.header("X-Content-Type-Options","nosniff");
  return c.json({name:d.name,symbol:d.ticker.toUpperCase(),description:d.description,image:d.imageUrl,external_url:d.website,showName:true,website:d.website,...(d.twitterUrl?{twitter:d.twitterUrl}:{}),...(d.telegram?{telegram:d.telegram}:{})});
 });
-launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,unavailableReasons:launchAvailability(),communityWebsiteOrigin:env.WEB_ORIGIN,devBuyEnabled:true,battleExecutionEnabled:false,maxDevBuyBps:MAX_DEV_BUY_BPS,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS}));
+launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,unavailableReasons:launchAvailability(),communityWebsiteOrigin:env.WEB_ORIGIN,devBuyEnabled:false,battleExecutionEnabled:false,maxDevBuyBps:0,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS.filter(pair=>pair.id==="SOL")}));
 launchRoute.use("*",requireAuth);
 launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:3_000_000}),zValidator("json",z.object({data:z.string().max(2_800_000)})),async c=>{
  requireNotBanned(c);const raw=c.req.valid("json").data;const match=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw);
@@ -44,13 +42,13 @@ launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:
  const [image]=await db.insert(launchImages).values({userId:c.get("user").id,mime:match[1],data:bytes.toString("base64")}).returning({id:launchImages.id});return c.json({id:image.id,url:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`},201);
 });
 function assertEnabled(){
- if(!Number.isInteger(env.PLATFORM_CREATOR_FEE_SHARE_BPS)||env.PLATFORM_CREATOR_FEE_SHARE_BPS<0||env.PLATFORM_CREATOR_FEE_SHARE_BPS>10000)throw new HTTPException(503,{message:"Creator fee split is not configured"});
  if(!env.LAUNCH_ENABLED)throw new HTTPException(503,{message:"Launch execution is not open yet"});
 }
 launchRoute.post("/prepare",rateLimit("launch-prepare-v2",6,60),zValidator("json",input,(result,c)=>{
  if(!result.success){const issue=result.error.issues[0];return c.json({error:`${issue.path.join(".") || "Launch details"}: ${issue.message}`},400);}
 }),async c=>{
  requireNotBanned(c);assertEnabled();const body=c.req.valid("json"),user=c.get("user");address(body.creatorWallet);
+ if(body.mode!=="holders" || body.quoteAsset!=="SOL" || body.devBuyBps!==0)throw new HTTPException(400,{message:"New launches use SOL holder rewards with no initial buy. Refresh your launch form."});
  const unavailable=launchAvailability()[body.mode];if(unavailable){console.warn("launch preparation blocked",{mode:body.mode,reason:unavailable});throw new HTTPException(503,{message:unavailable});}
  const digest=hash(body);const [existing]=await db.select().from(moneyOperations).where(eq(moneyOperations.id,body.id));
  if(existing){if(existing.userId!==user.id||existing.kind!=="launch"||existing.requestHash!==digest)throw new HTTPException(409,{message:"Launch ID already used for different details"});return c.json(publicOperation(existing));}
@@ -58,7 +56,7 @@ launchRoute.post("/prepare",rateLimit("launch-prepare-v2",6,60),zValidator("json
  const [banner]=body.bannerId?await db.select().from(launchImages).where(and(eq(launchImages.id,body.bannerId),eq(launchImages.userId,user.id))):[];
  if(body.bannerId&&!banner)throw new HTTPException(400,{message:"Upload your community banner first"});
  const mint=Keypair.generate(), payer=address(body.fundingWallet);
- const creator=body.mode==="holders"?payer:platformKeypair().publicKey;
+ const creator=payer;
  const details={...body,communitySlug:"",website:"",twitterUrl:body.twitterUrl || `https://x.com/${user.username}`,bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
  await db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(721931)`);

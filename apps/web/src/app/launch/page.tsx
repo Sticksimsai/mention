@@ -5,7 +5,7 @@ import {BannerEditor} from "@/components/BannerEditor";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { LAUNCH_PAIRS, MAX_DEV_BUY_BPS } from "@mention/shared";
+import { LAUNCH_PAIRS } from "@mention/shared";
 import { PairLogo } from "@/components/LaunchAssets";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/components/AuthProvider";
@@ -38,9 +38,9 @@ export default function LaunchPage() {
   const [f, setF] = useState({ name: "", ticker: "", description: "", twitterUrl: "", telegram: "", creatorWallet: "" });
   const [image, setImage] = useState<{ id: string; url: string } | null>(null);
   const [banner,setBanner]=useState<{url:string;id?:string}>({url:""});
-  const [mode, setMode] = useState<Mode>("fair");
-  const [pairId, setPairId] = useState<Pair>("SOL");
-  const [devBuyBps, setDevBuyBps] = useState(0);
+  const mode = "holders" as const;
+  const pairId = "SOL" as const;
+  const devBuyBps = 0;
   const [op, setOp] = useState<Launch | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -99,7 +99,7 @@ export default function LaunchPage() {
       throw e;
     }
   }
-  function selectMode(next: Mode) { setMode(next); if (next !== "holders") setPairId("SOL"); if (next === "fair") setDevBuyBps(0); }
+
   const unavailable = config.data?.unavailableReasons?.[mode];
   const shown = op?.details;
   const selectedMode = shown?.mode ?? mode;
@@ -110,7 +110,7 @@ export default function LaunchPage() {
 
   return <Shell wide>
     <header className="launch-header">
-      <div><h1 className="font-display text-lg">Create a token</h1><p>Launch on Pump.fun with a community page on onlycults.</p></div>
+      <div><h1 className="font-display text-lg">Create a token</h1><p>Launch on Pump.fun with a SOL pair and holder rewards.</p></div>
       <span className="launch-network">Solana</span>
     </header>
     <div className="launch-content space-y-6">
@@ -119,7 +119,7 @@ export default function LaunchPage() {
           <img src={shown?.imageUrl || image?.url || DEFAULT_IMAGE} alt="Your token preview" className="h-20 w-20 shrink-0 rounded-xl border hairline bg-ink object-cover sm:h-24 sm:w-24" />
           <div className="min-w-0"><p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{op ? "Launch review" : "Live preview"}</p><h2 className="break-words text-lg font-semibold">{shown?.name || f.name || "Your token"} <span className="text-muted">· ${(shown?.ticker || f.ticker || "TICKER").toUpperCase()}</span></h2><p className="mt-2 break-words whitespace-pre-wrap text-sm leading-relaxed text-muted">{shown?.description || f.description || "Your description appears here."}</p></div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 border-t hairline px-2 py-4 text-center"><div><p className="text-[10px] text-muted">Pair asset</p><p className="mt-1 flex items-center justify-center gap-2 text-sm font-semibold"><PairLogo symbol={pair.symbol} small />{pair.symbol}</p></div><div><p className="text-[10px] text-muted">{selectedMode === "holders" ? "Fee destination" : "Your creator share"}</p><p className="mt-1 text-sm font-semibold text-volt">{selectedMode === "holders" ? "Holders" : creatorShare}</p></div><div><p className="text-[10px] text-muted">Developer buy</p><p className="mt-1 text-sm font-semibold">{(shown?.devBuyBps ?? devBuyBps) / 100}% <span className="text-muted">/ 2%</span></p></div></div>
+        <div className="grid grid-cols-3 divide-x divide-white/10 border-t hairline px-2 py-4 text-center"><div><p className="text-[10px] text-muted">Pair asset</p><p className="mt-1 flex items-center justify-center gap-2 text-sm font-semibold"><PairLogo symbol={pair.symbol} small />{pair.symbol}</p></div><div><p className="text-[10px] text-muted">{selectedMode === "holders" ? "Fee destination" : "Your creator share"}</p><p className="mt-1 text-sm font-semibold text-volt">{selectedMode === "holders" ? "Holders" : creatorShare}</p></div><div><p className="text-[10px] text-muted">Initial buy</p><p className="mt-1 text-sm font-semibold">{(shown?.devBuyBps ?? devBuyBps) / 100}% </p></div></div>
       </section>
 
       <details className="launch-fees rounded-2xl border hairline px-5 py-4">
@@ -128,7 +128,6 @@ export default function LaunchPage() {
           <p><span className="font-semibold text-fg">Create → review → sign.</span> Your wallet pays launch rent, network fees, and any developer buy. No onlycults launch surcharge. Costs appear before you approve.</p>
           {selectedMode === "holders" ? <p><span className="font-semibold text-fg">Holder rewards.</span> The protocol creator-fee portion goes to eligible holders in {pair.symbol}, instead of you or onlycults. This choice is permanent. Pump controls eligibility, distribution timing and costs; rewards are not guaranteed.</p> : <p><span className="font-semibold text-fg">Creator fees: {creatorShare} to you / {platformShare === undefined ? "—" : `${platformShare / 100}%`} to onlycults.</span> This splits collected creator fees, not all trading volume. Your share is allocated after receipt reconciliation and paid after approval; payouts are not instant.</p>}
           <p><span className="font-semibold text-fg">Trading fees.</span> Pump charges its own schedule: tiers for SOL/USDC, a flat schedule for custom pairs. {pair.id === "SOL" ? <>Trading through onlycults adds {config.data ? `${config.data.tradeFeeBps / 100}%` : "the configured platform fee"}, plus provider and network costs. These are separate from the creator-fee split.</> : <>Token-pair trading opens on Pump; in-app pair trading is not available yet. Network costs also apply.</>}</p>
-          <p><span className="font-semibold text-fg">2% initial-buy limit.</span> The launch buy cannot exceed 2% of total supply. This is not a lifetime wallet holding limit; later market trades are separate.</p>
           <a href="https://pump.fun/docs/fees" target="_blank" rel="noreferrer" className="inline-block text-volt">Pump’s current fee schedule ↗</a>
         </div>
       </details>
@@ -141,30 +140,10 @@ export default function LaunchPage() {
           <label className="block text-xs font-medium text-muted">Description<textarea maxLength={2000} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} rows={3} className={inputClass} /></label>
 
           <div className="rounded-xl border hairline p-4"><label className="block text-sm font-medium">Token image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || !auth.authenticated} onChange={e => { const file = e.target.files?.[0]; if (file) run(async () => { await saveImage(file); }); }} className="mt-3 block w-full text-xs text-muted" /></label><p className="mt-3 text-xs text-muted">The onlycults image is preset. Upload PNG, JPEG or WebP up to 2 MB to replace it.{!auth.authenticated && " Sign in to upload."}</p>{image && <button type="button" onClick={() => setImage(null)} className="mt-2 text-xs text-volt">Use default image</button>}</div>
-          <details className="text-sm"><summary className="cursor-pointer text-muted">Banner, links & fee recipient</summary><div className="mt-4 space-y-4"><BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">Leave blank to use your connected X profile.</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to the funding wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
+          <details className="text-sm"><summary className="cursor-pointer text-muted">Banner & links</summary><div className="mt-4 space-y-4"><BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">Leave blank to use your connected X profile.</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to the funding wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
         </section>
 
-        <details className="launch-step">
-          <summary className="cursor-pointer font-semibold">Launch settings <span className="ml-2 text-xs font-normal text-muted">{pair.symbol} · {devBuyBps / 100}% initial buy</span></summary>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="text-sm">Launch type
-              <select className={inputClass} value={mode} onChange={e => selectMode(e.target.value as Mode)}>
-                <option value="fair">Fair start</option><option value="creator">Creator launch</option><option value="holders">Holder rewards</option>
-              </select>
-            </label>
-            {mode === "holders" && <label className="text-sm">Pair asset
-              <select className={inputClass} value={pairId} onChange={e => setPairId(e.target.value as Pair)}>
-                {LAUNCH_PAIRS.map(asset => <option key={asset.id} value={asset.id}>{asset.symbol} · {asset.name}</option>)}
-              </select>
-            </label>}
-            {mode !== "fair" && <label className="text-sm">Initial buy · {devBuyBps / 100}% of supply
-              <input className="mt-3 block w-full accent-white" type="range" min="0" max={MAX_DEV_BUY_BPS} step="25" value={devBuyBps} onChange={e => setDevBuyBps(Number(e.target.value))} />
-              <span className="mt-1 flex justify-between text-xs text-muted"><span>0%</span><span>2%</span></span>
-            </label>}
-          </div>
-          <p className="mt-3 text-xs text-muted">{mode === "holders" ? "Protocol creator fees go to eligible holders. This choice is permanent." : "Creator fees are shared between your fee recipient and onlycults."}</p>
-        </details>
-        {unavailable && mode !== "battle" && <p role="alert" className="rounded-xl border hairline bg-surface p-4 text-sm text-muted">{unavailable}</p>}
+        {unavailable && <p role="alert" className="rounded-xl border hairline bg-surface p-4 text-sm text-muted">{unavailable}</p>}
         {config.data && !config.data.enabled && <p className="rounded-xl border hairline bg-surface p-4 text-xs leading-relaxed text-muted">Draft your launch now. Transaction execution is not open yet; your wallet will only be charged after launch access is enabled and you approve.</p>}
         {auth.authenticated && <section className="launch-step space-y-3">
           <label className="block text-sm font-semibold">Funding wallet
@@ -175,7 +154,7 @@ export default function LaunchPage() {
           </label>
           <button type="button" disabled={busy} onClick={auth.connectLaunchWallet} className="rounded-lg border hairline px-3 py-2 text-sm">Connect a Solana wallet</button>
         </section>}
-        {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !fundingWallet ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your onlycults wallet</button> : <div className="space-y-3"><button disabled={busy || !auth.walletAddresses.includes(fundingWallet) || !!unavailable || mode === "battle" || !config.data?.enabled || f.name.trim().length < 2 || !/^[a-z0-9]{1,12}$/i.test(f.ticker.trim())} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button>{fundingWallet === auth.walletAddress && <button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button>}</div>}
+        {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !fundingWallet ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your onlycults wallet</button> : <div className="space-y-3"><button disabled={busy || !auth.walletAddresses.includes(fundingWallet) || !!unavailable || !config.data?.enabled || f.name.trim().length < 2 || !/^[a-z0-9]{1,12}$/i.test(f.ticker.trim())} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button>{fundingWallet === auth.walletAddress && <button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button>}</div>}
       </> : <section className="space-y-4 rounded-2xl border hairline p-5"><h2 className="text-sm font-semibold">Launch status <span className="ml-2 capitalize text-volt">{op.status.replaceAll("_", " ")}</span></h2><p className="break-all text-xs leading-relaxed text-muted">Mint: {op.details.ca}<br />{op.details.mode === "holders" ? "Fee destination: eligible holders via Pump" : `Fee recipient: ${op.details.creatorWallet}`}</p>
         {op.details.website && <div className="rounded-xl bg-surface p-4 text-xs leading-6"><p className="text-muted">Website · locked</p><p className="break-all text-volt">{op.details.website}</p>{op.details.twitterUrl && <><p className="mt-2 text-muted">X / Twitter</p><p className="break-all">{op.details.twitterUrl}</p></>}</div>}
         {op.details.estimatedCostLamports !== undefined && <p className="text-sm">Estimated {op.details.funding === "creator" ? "wallet SOL debit" : "platform cost"}: {(op.details.estimatedCostLamports / 1e9).toFixed(6)} SOL <span className="block mt-1 text-xs text-muted">Includes rent, network costs and a SOL developer buy, if selected. Token-pair buys also spend the pair asset below.</span></p>}

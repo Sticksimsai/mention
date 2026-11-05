@@ -98,12 +98,12 @@ usersRoute.get("/:username", async (c) => {
   const [[followers], [following], [memberships], owned, joined, [postCount]] = await Promise.all([
     db.select({ n: count() }).from(follows).where(eq(follows.followeeId, row.id)),
     db.select({ n: count() }).from(follows).where(eq(follows.followerId, row.id)),
-    db.select({ n: count() }).from(communityMembers).where(eq(communityMembers.userId, row.id)),
-    db.select().from(communities).where(eq(communities.ownerId, row.id)),
+    db.select({ n: count() }).from(communityMembers).innerJoin(communities,eq(communityMembers.communityId,communities.id)).where(and(eq(communityMembers.userId,row.id),eq(communities.status,"approved"))),
+    db.select().from(communities).where(and(eq(communities.ownerId,row.id),eq(communities.status,"approved"))),
     db.select({ id: communities.id, slug: communities.slug, name: communities.name, ticker: communities.ticker,
       pfpUrl: communities.pfpUrl, membersCount: communities.membersCount, ownerId: communities.ownerId })
       .from(communityMembers).innerJoin(communities, eq(communityMembers.communityId, communities.id))
-      .where(eq(communityMembers.userId, row.id)).orderBy(desc(communityMembers.createdAt)).limit(100),
+      .where(and(eq(communityMembers.userId,row.id),eq(communities.status,"approved"))).orderBy(desc(communityMembers.createdAt)).limit(100),
     db.select({ n: count() }).from(posts).where(and(eq(posts.authorId, row.id), eq(posts.hidden, false))),
   ]);
   return c.json({

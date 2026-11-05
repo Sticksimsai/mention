@@ -57,6 +57,17 @@ communitiesRoute.get("/", async (c) => {
   return c.json(out);
 });
 
+communitiesRoute.get("/directory", async c => {
+  const page = Number(c.req.query("page") ?? 0);
+  if (!Number.isSafeInteger(page) || page < 0 || page > 100000) throw new HTTPException(400, {message:"Invalid page"});
+  const pageSize = 24;
+  const rows = await db.select({c:communities,o:users}).from(communities)
+    .innerJoin(users,eq(communities.ownerId,users.id))
+    .where(and(eq(communities.status,"approved"),eq(communities.launchedViaTribes,true)))
+    .orderBy(desc(communities.createdAt),desc(communities.id)).offset(page * pageSize).limit(pageSize + 1);
+  return c.json({items:rows.slice(0,pageSize).map(({c,o})=>toView(c,o)),hasMore:rows.length>pageSize});
+});
+
 // ── get one (public) ──
 communitiesRoute.get("/:id", async (c) => {
   const identifier = communityIdentifier(c.req.param("id")!);
@@ -64,7 +75,7 @@ communitiesRoute.get("/:id", async (c) => {
   const [row] = await db.select({ c: communities, o: users })
     .from(communities).innerJoin(users, eq(communities.ownerId, users.id))
     .where(identifier.kind === "id" ? eq(communities.id, identifier.value) : eq(communities.slug, identifier.value));
-  if (!row) throw new HTTPException(404, { message: "not found" });
+  if (!row || row.c.status !== "approved") throw new HTTPException(404, { message: "not found" });
   return c.json(toView(row.c, row.o));
 });
 

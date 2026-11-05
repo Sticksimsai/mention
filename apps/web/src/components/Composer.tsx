@@ -9,7 +9,7 @@ import {useMe} from '@/lib/hooks';
 import {XVerifiedBadge} from './XVerifiedBadge';
 export function Composer({communityId}:{communityId?:string}){
  const {authenticated,login,me}=useMe();const [open,setOpen]=useState(false);
- return <div className="border-b hairline px-5 py-4"><button onClick={()=>authenticated?setOpen(true):login()} className="flex w-full items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left hover:bg-raised">{me?.pfpUrl?<img src={me.pfpUrl} alt="" className="h-9 w-9 rounded-full"/>:<img src="/brand/favicon.svg" alt="" className="h-9 w-9"/>}<span className="flex-1 text-sm text-muted">{authenticated?'What’s happening?':'Sign in with X to post'}</span><span className="rounded-full bg-volt px-4 py-2 text-xs font-semibold text-ink">Create post</span></button>{open&&<ComposeModal communityId={communityId} close={()=>setOpen(false)}/>}</div>;
+ return <div className="flex justify-center border-b hairline px-5 py-5"><button type="button" onClick={()=>authenticated?setOpen(true):login()} className="min-h-11 rounded-full bg-white px-8 py-2 text-sm font-semibold text-black hover:bg-neutral-200">Create post</button>{open&&<ComposeModal communityId={communityId} close={()=>setOpen(false)}/>}</div>;
 }
 function ComposeModal({communityId,close}:{communityId?:string;close:()=>void}){
  const {me}=useMe();const dialog=useRef<HTMLDialogElement>(null),[content,setContent]=useState(''),[attachments,setAttachments]=useState(emptyAttachments),[mediaBusy,setMediaBusy]=useState(false),[toX,setToX]=useState(false);const qc=useQueryClient();const hasMedia=Boolean(attachments.mediaUrl||attachments.sticker);

@@ -16,15 +16,15 @@ const route=load('apps/api/src/routes/launch.ts',{
 }).launchRoute;
 (async()=>{
  let config=await (await route.request('/config')).json();
- assert.match(config.unavailableReasons.fair,/PLATFORM_WALLET_SECRET/);
+ assert(config.unavailableReasons.fair);
  assert.equal(config.unavailableReasons.holders,null);
  assert(!JSON.stringify(config).includes('secret must never leak'));
  configured=true;config=await (await route.request('/config')).json();
- assert.equal(config.unavailableReasons.fair,null);assert(config.unavailableReasons.battle);
+ assert(config.unavailableReasons.fair);assert(config.unavailableReasons.battle);
  env.LAUNCH_ENABLED=false;config=await (await route.request('/config')).json();
  assert(config.unavailableReasons.holders);assert(config.unavailableReasons.creator);
  env.LAUNCH_ENABLED=true;env.PLATFORM_CREATOR_FEE_SHARE_BPS=10001;
- config=await (await route.request('/config')).json();assert.match(config.unavailableReasons.creator,/split/);
+ config=await (await route.request('/config')).json();assert.equal(config.unavailableReasons.holders,null);assert.deepEqual(Array.from(config.pairs,p=>p.id),["SOL"]);assert.equal(config.devBuyEnabled,false);
  assert.equal(reads,0);assert(limits.some(([bucket,count,secs])=>bucket==='launch-prepare-v2'&&count===6&&secs===60));
  const id='11111111-1111-4111-8111-111111111111';
  assert.equal((await route.request('/metadata/'+id)).status,404);

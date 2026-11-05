@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "./AccountButton";
+import { SearchBox } from "./SearchBox";
+import { TrendingCards } from "./TrendingCards";
 import { BrandLogo } from "./BrandLogo";
 import {
-  HomeIcon, RocketIcon,
+  HomeIcon, RocketIcon, FlameIcon,
 } from "./icons";
 
 export function Shell({ children }: { children: React.ReactNode; wide?: boolean }) {
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[1040px]">
+    <div className="mx-auto flex min-h-screen w-full max-w-[1340px]">
       {/* ── left nav ── */}
-      <header className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col justify-between overflow-y-auto border-r hairline px-4 py-6 md:flex xl:w-60">
+      <header className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col justify-between overflow-y-auto border-r hairline px-4 py-6 md:flex xl:w-60">
         <div>
           <div className="mb-5 ml-3">
             <BrandLogo />
@@ -21,6 +23,7 @@ export function Shell({ children }: { children: React.ReactNode; wide?: boolean 
 
           <nav aria-label="Main navigation" className="flex flex-col gap-1">
             <NavItem href="/" icon={<HomeIcon />}>Feed</NavItem>
+            <NavItem href="/cult" icon={<FlameIcon />}>Cult</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launch</NavItem>
           </nav>
 
@@ -37,9 +40,14 @@ export function Shell({ children }: { children: React.ReactNode; wide?: boolean 
         </div>
         {children}
       </main>
+      <aside aria-label="Discovery" className="sticky top-0 hidden h-dvh w-64 shrink-0 space-y-5 overflow-y-auto px-4 py-5 lg:block xl:w-72">
+        <SearchBox />
+        <TrendingCards />
+      </aside>
 
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t hairline bg-ink px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
         <MobileLink href="/" icon={<HomeIcon />} label="Feed" />
+        <MobileLink href="/cult" icon={<FlameIcon />} label="Cult" />
         <MobileLink href="/launch" icon={<RocketIcon />} label="Launch" />
       </nav>
 

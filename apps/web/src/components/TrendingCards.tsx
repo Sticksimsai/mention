@@ -38,20 +38,20 @@ export function TrendingCards() {
     queryFn: () => api<CommunityView[]>("/v1/communities?sort=new", { auth: false }),
   });
   const list = (trending?.length ? trending : newest ?? []).slice(0, 10);
-  if (list.length === 0) return null;
+  if (list.length === 0) return <section className="rounded-xl border hairline bg-surface p-4"><h2 className="font-display text-xs">Trending</h2><p className="mt-3 text-sm text-muted">Trending cults will appear here.</p></section>;
 
   return (
     <div className="border-b hairline">
       <div className="flex items-center justify-between px-5 pt-4">
         <h2 className="font-display text-sm font-medium">Trending now</h2>
-        <Link href="/explore" className="text-xs text-volt hover:underline">See all</Link>
+        <Link href="/cult" className="text-xs text-volt hover:underline">See all</Link>
       </div>
-      <div className="flex snap-x gap-3 overflow-x-auto px-5 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="grid gap-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {list.map((t) => (
           <Link
             key={t.id}
             href={communityHref(t)}
-            className="group relative w-52 shrink-0 snap-start overflow-hidden rounded-2xl border hairline bg-surface p-4 transition-colors hover:border-volt/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt"
+            className="group relative w-full min-w-0 snap-start overflow-hidden rounded-2xl border hairline bg-surface p-4 transition-colors hover:border-volt/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt"
           >
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(163,237,0,0.10),transparent_65%)]" />
