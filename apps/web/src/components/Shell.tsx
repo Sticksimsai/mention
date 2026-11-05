@@ -27,6 +27,11 @@ export function Shell({ children }: { children: React.ReactNode; wide?: boolean 
             <NavItem href="/cult" icon={<FlameIcon />}>Cult</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launch</NavItem>
             <NavItem href="/how-it-works" icon={<BookIcon />}>How it works</NavItem>
+            <a href="https://x.com/OnlyCults_fun" target="_blank" rel="noopener noreferrer"
+              className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface hover:text-fg">
+              <span aria-hidden="true" className="inline-flex w-5 justify-center text-lg">𝕏</span>
+              <span>@OnlyCults_fun</span>
+            </a>
           </nav>
           <Composer placement="sidebar" />
 
