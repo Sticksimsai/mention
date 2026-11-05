@@ -31,7 +31,15 @@ import {processDevnetMarkets} from "./lib/market-worker.js";
 const app = new Hono();
 
 app.use("*", logger());
-const webOrigins = [env.WEB_ORIGIN];
+const productionOrigins = [
+  "https://onlycults.fun",
+  "https://www.onlycults.fun",
+  "https://getmentions.xyz",
+  "https://www.getmentions.xyz",
+];
+const webOrigins = productionOrigins.includes(env.WEB_ORIGIN)
+  ? [...productionOrigins]
+  : [env.WEB_ORIGIN];
 try {
   const u = new URL(env.WEB_ORIGIN);
   webOrigins.push(u.hostname.startsWith("www.")
