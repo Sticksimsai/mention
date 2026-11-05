@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mentions",
   icons: { icon: [{ url: "/brand/favicon.svg?v=4", type: "image/svg+xml" }], shortcut: "/brand/favicon.svg?v=4" },
-  description: "Social trading on Solana. Launch a token, mint its community — posts mirror between here and X, with the chart live in the room.",
+  description: "Post on the public feed and launch a community token on Solana with Pump.fun.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

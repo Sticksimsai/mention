@@ -7,15 +7,13 @@
 //  • Run N instances of this service on Railway to scale horizontally —
 //    BullMQ distributes jobs across them automatically.
 import { Worker, Queue } from "bullmq";
-import { OFFICIAL_ACCOUNT_ID, QUEUES, type TweetSyncJob, type XWritebackJob, type TokenStatsJob } from "@mention/shared";
-import { users, xSyncState, communityMembers, eq, sql } from "@mention/db";
+import { QUEUES, type XWritebackJob, type TokenStatsJob } from "@mention/shared";
+import { sql } from "@mention/db";
 import { db, redis, queueConnection } from "./lib/context.js";
-import { tweetSyncJob } from "./jobs/tweetSync.js";
 import { xWritebackJob } from "./jobs/xWriteback.js";
 import { tokenStatsJob, warmAllTokenStats } from "./jobs/tokenStats.js";
 import { trendingJob } from "./jobs/trending.js";
 
-import { communitySearchJob } from "./jobs/communitySearch.js";
 import { xProfileJob } from "./jobs/xProfile.js";
 
 const connection = queueConnection;
@@ -30,23 +28,11 @@ function observe<T>(worker: Worker<T>) {
 }
 observe(new Worker<{userId:string}>(QUEUES.X_PROFILE, job => xProfileJob(job.data.userId), { connection, concurrency: 2, limiter: { max: 30, duration: 60_000 } }));
 
-const searchQueue = new Queue(QUEUES.COMMUNITY_SEARCH, { connection });
-observe(new Worker<{communityId:string}>(QUEUES.COMMUNITY_SEARCH,job=>communitySearchJob(job.data.communityId),{connection,concurrency:2,limiter:{max:30,duration:60_000}}));
-
-const tweetSyncQueue = new Queue(QUEUES.TWEET_SYNC, { connection });
 const writebackQueue = new Queue(QUEUES.X_WRITEBACK, { connection });
 const tokenStatsQueue = new Queue(QUEUES.TOKEN_STATS, { connection });
 const schedulerQueue = new Queue(QUEUES.SCHEDULER, { connection });
 
 // ── workers ──
-
-observe(new Worker<TweetSyncJob>(QUEUES.TWEET_SYNC, async (job) => {
-  return tweetSyncJob(job.data.username);
-}, {
-  connection,
-  concurrency: 4,                       // parallel SocialData fetches per instance
-  limiter: { max: 60, duration: 60_000 }, // global-ish politeness cap
-}));
 
 observe(new Worker<XWritebackJob>(QUEUES.X_WRITEBACK, async (job) => {
   const exhausted = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
@@ -75,33 +61,6 @@ observe(new Worker(QUEUES.SCHEDULER, async (job) => {
       for(const row of rows as unknown as Array<{id:string}>)await writebackQueue.add("post",{postId:row.id},{jobId:`xw-${row.id}`,attempts:5,backoff:{type:"exponential",delay:10000},removeOnComplete:1000,removeOnFail:1000});
       return {enqueued:rows.length};
     }
-    case "community-search": {
-      const rows=await db.execute(sql`SELECT id FROM communities WHERE status = 'approved' AND is_example = false`);
-      for(const row of rows as unknown as Array<{id:string}>)await searchQueue.add("search",{communityId:row.id},{jobId:`search-${row.id}`,attempts:3,backoff:{type:"exponential",delay:10000},removeOnComplete:true,removeOnFail:true});
-      return {enqueued:rows.length};
-    }
-    case "fanout-tweet-sync": {
-      // every member of any tribe gets mirrored; due = past nextEligibleAt
-      const due = await db.execute(sql`
-        SELECT DISTINCT u.username
-        FROM users u
-        LEFT JOIN community_members cm ON cm.user_id = u.id
-        LEFT JOIN x_sync_state s ON s.username = u.username
-        WHERE (cm.user_id IS NOT NULL OR u.id = ${OFFICIAL_ACCOUNT_ID})
-          AND (s.next_eligible_at IS NULL OR s.next_eligible_at <= now())
-        LIMIT 500
-      `);
-      for (const row of due as unknown as Array<{ username: string }>) {
-        await tweetSyncQueue.add("sync", { username: row.username }, {
-          jobId: `tw-${row.username}-${Math.floor(Date.now() / 60_000)}`, // dedupe within the minute
-          attempts: 3,
-          backoff: { type: "exponential", delay: 30_000 },
-          removeOnComplete: 1000,
-          removeOnFail: 1000,
-        });
-      }
-      return { enqueued: (due as unknown as unknown[]).length };
-    }
     case "warm-token-stats": {
       const n = await warmAllTokenStats(async (ca) => {
         await tokenStatsQueue.add("refresh", { ca }, {
@@ -116,13 +75,13 @@ observe(new Worker(QUEUES.SCHEDULER, async (job) => {
       return { ok: true };
     }
   }
-}, { connection })).on("completed",job=>{if(job.name==="fanout-tweet-sync"||job.name==="community-search")console.info("sync scheduler completed",job.name,job.returnvalue);});
+}, { connection }));
 
 // repeatable schedules (idempotent to re-register on boot)
 async function registerSchedules() {
   await schedulerQueue.upsertJobScheduler("pending-writebacks", {every:15_000},{name:"pending-writebacks"});
-  await schedulerQueue.upsertJobScheduler("community-search", {every:60_000},{name:"community-search"});
-  await schedulerQueue.upsertJobScheduler("fanout-tweet-sync", { every: 60_000 }, { name: "fanout-tweet-sync" });
+  await schedulerQueue.removeJobScheduler("community-search");
+  await schedulerQueue.removeJobScheduler("fanout-tweet-sync");
   await schedulerQueue.upsertJobScheduler("warm-token-stats", { every: 30_000 }, { name: "warm-token-stats" });
   await schedulerQueue.upsertJobScheduler("refresh-trending", { every: 300_000 }, { name: "refresh-trending" });
   const heartbeat=()=>redis.set('ops:worker-heartbeat',new Date().toISOString(),'EX',90).catch(()=>{});

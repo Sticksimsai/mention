@@ -17,6 +17,8 @@ export function AccountButton({ compact = false }: { compact?: boolean }) {
       ) : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-raised text-sm text-volt">{me.displayName.slice(0, 1)}</span>}
       {!compact && <span className="min-w-0 flex-1"><span className="user-display-name user-display-name-compact block whitespace-normal [overflow-wrap:anywhere]">{me.displayName}</span><span className="mt-0.5 block whitespace-normal text-[11px] leading-4 text-muted [overflow-wrap:anywhere]">@{me.username}</span></span>}
     </Link>
-    <div className="mt-2 border-t hairline pt-1"><button onClick={logout} aria-label="Sign out" title="Sign out" className="flex min-h-9 w-full items-center justify-end gap-2 rounded-lg px-2 text-[11px] text-muted hover:bg-raised hover:text-fg"><span>Sign out</span><span aria-hidden="true">⎋</span></button></div>
+    <details className="mt-2 border-t hairline pt-1"><summary className="cursor-pointer p-2 text-xs text-muted">Account</summary>
+      <div className="grid gap-2 p-2 text-xs"><Link href="/settings">Settings</Link><Link href="/manage">My communities</Link>{me.role && <Link href="/admin">Site admin</Link>}</div>
+      <button onClick={logout} aria-label="Sign out" title="Sign out" className="flex min-h-9 w-full items-center justify-end gap-2 rounded-lg px-2 text-[11px] text-muted hover:bg-raised hover:text-fg"><span>Sign out</span><span aria-hidden="true">⎋</span></button></details>
   </div>;
 }

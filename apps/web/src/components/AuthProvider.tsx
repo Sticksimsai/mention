@@ -1,11 +1,13 @@
 "use client";
 
 import { Component, createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import { PrivyProvider, usePrivy, useLoginWithOAuth } from "@privy-io/react-auth";
-import { useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
+import { PrivyProvider, usePrivy, useConnectWallet, useLoginWithOAuth } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors, useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
 import { walletRpcs } from "@/lib/wallet-rpc";
 import { registerTokenGetter } from "@/lib/api";
 import { Modal } from "./Modal";
+
+const solanaConnectors = toSolanaWalletConnectors();
 
 export interface AuthState {
   ready: boolean; authenticated: boolean; available: boolean;
@@ -17,12 +19,17 @@ export interface AuthState {
   createWallet: () => Promise<void>;
   fundWallet: () => Promise<void>;
   exportWallet: () => Promise<void>;
-  signTransaction: (transaction: string) => Promise<string>;
+  launchWalletAddress: string | null;
+  walletAddresses: string[];
+  selectLaunchWallet: (address: string) => void;
+  connectLaunchWallet: () => void;
+  signTransaction: (transaction: string, signerAddress?: string) => Promise<string>;
   signDevnetTransaction: (transaction: string) => Promise<string>;
 }
 const unavailable = async () => { throw new Error("Wallet services are unavailable. Please try again shortly."); };
 const stub: AuthState = {
   ready: true, authenticated: false, available: false, userId: null, walletAddress: null,
+  launchWalletAddress: null, walletAddresses: [], selectLaunchWallet: () => {}, connectLaunchWallet: () => {},
   login: () => {}, logout: async () => {}, getAccessToken: async () => null,
   createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable, signTransaction: unavailable, signDevnetTransaction: unavailable,
 };
@@ -54,6 +61,13 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const { signTransaction } = useStandardSignTransaction();
   const wallet = user?.linkedAccounts.find((a) => a.type === "wallet" && a.chainType === "solana" && a.walletClientType === "privy");
   const walletAddress = wallet?.type === "wallet" ? wallet.address : null;
+  const [launchSelection, setLaunchSelection] = useState<{userId:string;address:string} | null>(null);
+  const selectLaunchWallet = (address:string) => {
+    if (user) setLaunchSelection({ userId:user.id, address });
+  };
+  const { connectWallet } = useConnectWallet({ onSuccess: ({wallet}) => selectLaunchWallet(wallet.address) });
+  const walletAddresses = [...new Set([...(walletAddress ? [walletAddress] : []), ...wallets.map(w => w.address)])];
+  const launchWalletAddress = user && launchSelection?.userId === user.id ? launchSelection.address : walletAddress;
   const tokenGetter = useCallback(async () => authenticated ? getAccessToken() : null, [authenticated, getAccessToken]);
   useEffect(() => { registerTokenGetter(tokenGetter); return () => registerTokenGetter(async () => null); }, [tokenGetter]);
   useEffect(() => { if (authenticated) setOpen(false); }, [authenticated]);
@@ -64,15 +78,17 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   }
   return <AuthCtx.Provider value={{
     ready, authenticated, available: true, userId: user?.id ?? null, walletAddress,
+    launchWalletAddress, walletAddresses, selectLaunchWallet,
+    connectLaunchWallet: () => connectWallet({walletChainType:"solana-only",description:"Connect your Solana wallet to fund and sign the launch."}),
     login: () => { setError(""); setOpen(true); }, logout, getAccessToken,
     createWallet: async () => { await createWallet(); },
     fundWallet: async () => {
       if (!walletAddress) throw new Error("Create your wallet first.");
       await fundWallet(walletAddress, { cluster: { name: "mainnet-beta" }, uiConfig: { receiveFundsTitle: "Add funds to Mentions", receiveFundsSubtitle: "Receive funds in your Solana wallet." } });
     },
-    signTransaction: async (transaction) => {
-      const wallet = wallets.find(w => w.address === walletAddress);
-      if (!wallet) throw new Error("Your embedded wallet is still connecting. Please retry.");
+    signTransaction: async (transaction, signerAddress = walletAddress ?? undefined) => {
+      const wallet = wallets.find(w => w.address === signerAddress);
+      if (!wallet) throw new Error("Connect the wallet used to prepare this transaction, then retry.");
       const { signedTransaction } = await signTransaction({ transaction: Uint8Array.from(atob(transaction), c => c.charCodeAt(0)), wallet, chain: "solana:mainnet" });
       return btoa(String.fromCharCode(...signedTransaction));
     },
@@ -119,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <PrivyProvider appId={appId} config={{
       // Standard-wallet signing renders a transaction review that requires explicit Kit clients.
       // Never put the server's Helius API key in this browser configuration.
+      externalWallets: { solana: { connectors: solanaConnectors } },
       solana: { rpcs: walletRpcs },
       loginMethods: ["twitter"],
       appearance: { theme: "#191919", accentColor: "#FFFFFF", logo: "/brand/mention-still.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on Mentions." },

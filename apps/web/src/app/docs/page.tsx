@@ -4,18 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 
-const sections = ["Overview", "Launching", "X mirroring", "Trading", "Fees", "Rules & roles", "mentionmarkets"];
+const sections = ["Overview", "Launching", "Posting", "Trading", "Fees", "Rules & roles", "mentionmarkets"];
 const ids = ["overview", "launch", "mirroring", "trading", "fees", "rules", "mentionmarkets"];
 export default function DocsPage() {
-  const [playing, setPlaying] = useState(false);
   const [active, setActive] = useState("overview");
-  useEffect(() => {
-    const motion = matchMedia("(prefers-reduced-motion: reduce)");
-    setPlaying(!motion.matches);
-    const update = () => setPlaying(!motion.matches);
-    motion.addEventListener("change", update);
-    return () => motion.removeEventListener("change", update);
-  }, []);
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top-b.boundingClientRect.top);
@@ -41,16 +33,14 @@ export default function DocsPage() {
         <Doc id="launch" number="02" title="From an idea to a community" intro="Launching a token creates its community. You don’t need to set up a separate feed.">
           <div className="grid gap-3 sm:grid-cols-2">{[
             ["01", "Make it yours", "Add a name, ticker, image, and description in the Launchpad."],
-            ["02", "Set your wallet", "Provide the Solana wallet that receives your launcher share of creator fees."],
+            ["02", "Set your wallet", "Choose your Mentions wallet or connect a Solana wallet to fund and approve the launch."],
             ["03", "Launch together", "The mint opens on pump.fun’s bonding curve and the community opens alongside it."],
             ["04", "Grow the room", "Share the community, pin a welcome post, and manage its appearance and posting rules."],
           ].map(([n,t,d])=><div key={n} className="docs-card"><span className="font-mono text-xs text-volt">{n}</span><h3 className="mb-2 mt-4 text-sm font-semibold">{t}</h3><p className="text-xs leading-6 text-muted">{d}</p></div>)}</div>
           <Note>Communities can be transferred to another owner, but cannot be deleted.</Note>
         </Doc>
-        <Doc id="mirroring" number="03" title="One conversation. Two places." intro="Bring matching X posts into a community, and choose when to share your Mentions posts back to X.">
-          <div className="docs-flow" aria-hidden="true"><span>𝕏</span><span className="docs-flow-track"><i style={{ animationPlayState: playing ? "running" : "paused" }}/></span><span className="font-display text-xs text-volt">mentions</span></div>
-          <div className="grid gap-3 sm:grid-cols-2"><div className="docs-card"><p className="ui-heading ui-heading-compact mb-3 text-volt">X → Mentions</p><p className="text-sm leading-6 text-muted">Matching posts from monitored member accounts appear in the community feed when they include its $TICKER or contract address. Import timing varies with account activity.</p></div><div className="docs-card"><p className="ui-heading ui-heading-compact mb-3 text-volt">Mentions → X</p><p className="text-sm leading-6 text-muted">Enable X posting in Settings, then select “Also post to my X” when composing. You can revoke that connection.</p></div></div>
-          <Note>Signing in with X and granting permission to post to X are separate steps.</Note>
+        <Doc id="mirroring" number="03" title="Posting on Mentions" intro="Use Create post on Feed to publish a public post, or open a community to post to its members.">
+          <Note>To share a post to X too, connect X posting in Settings and select “Also post to my X” in the composer.</Note>
         </Doc>
         <Doc id="trading" number="04" title="The market, next to the conversation" intro="Each community has a Trade tab. Review the token, amount, and transaction details before approving in your wallet.">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border hairline bg-surface p-5 text-sm"><span className="rounded-lg bg-raised px-3 py-2">Bonding curve</span><span className="text-muted">→ Graduation →</span><span className="rounded-lg border border-volt/20 px-3 py-2 text-volt">PumpSwap</span></div>

@@ -52,20 +52,19 @@ function chronology(p:FeedItem){return p.source!=="market"&&p.repostedAt?p.repos
 async function repostViews(opts:{authorUsername?:string;communityId?:string;communityIds?:string[];before?:Date;pinsOnly?:boolean}):Promise<PostView[]>{
  if(opts.pinsOnly)return [];
  const before=opts.before??new Date(Date.now()+60000);
- const read=async(table:typeof postReposts|typeof xPostReposts,source:"n"|"x")=>{
-  const native=source==="n";
-  const base=native?posts:xPosts;
-  const where=[lt(table.createdAt,before),eq(base.hidden,false),or(eq(communities.status,"approved"),native?and(isNull(posts.communityId),or(eq(posts.authorId,OFFICIAL_ACCOUNT_ID),sql`${posts.quotePostId} IS NOT NULL`)):eq(xPosts.official,true))!];
-  if(opts.authorUsername)where.push(eq(users.username,opts.authorUsername));
-  const cid=native?posts.communityId:xPostCommunities.communityId;
-  if(opts.communityId)where.push(eq(cid,opts.communityId));
-  if(opts.communityIds)where.push(or(inArray(cid,opts.communityIds),native?eq(posts.authorId,OFFICIAL_ACCOUNT_ID):eq(xPosts.official,true))!);
-  let query=db.select({r:table,u:users}).from(table).innerJoin(users,eq(table.userId,users.id)).innerJoin(base,eq(native?postReposts.postId:xPostReposts.xPostId,base.id)).$dynamic();
-  if(!native)query=query.leftJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id));
-  const rows=await query.leftJoin(communities,eq(cid,communities.id)).where(and(...where)).orderBy(desc(table.createdAt)).limit(PAGE);
-  return rows.map(({r,u})=>({id:`${source}:${"postId" in r?r.postId:r.xPostId}`,at:r.createdAt.toISOString(),u}));
- };
- const rows=(await Promise.all([read(postReposts,"n"),read(xPostReposts,"x")])).flat();
+ const where = [
+   lt(postReposts.createdAt, before), eq(posts.hidden, false),
+   or(eq(communities.status, "approved"), isNull(posts.communityId))!,
+ ];
+ if (opts.authorUsername) where.push(eq(users.username, opts.authorUsername));
+ if (opts.communityId) where.push(eq(posts.communityId, opts.communityId));
+ if (opts.communityIds) where.push(or(inArray(posts.communityId, opts.communityIds), eq(posts.authorId, OFFICIAL_ACCOUNT_ID))!);
+ const reposts = await db.select({r:postReposts,u:users}).from(postReposts)
+   .innerJoin(users,eq(postReposts.userId,users.id))
+   .innerJoin(posts,eq(postReposts.postId,posts.id))
+   .leftJoin(communities,eq(posts.communityId,communities.id))
+   .where(and(...where)).orderBy(desc(postReposts.createdAt)).limit(PAGE);
+ const rows = reposts.map(({r,u}) => ({id:`n:${r.postId}`,at:r.createdAt.toISOString(),u}));
  const originals=await visiblePosts(rows.map(r=>r.id));
  return rows.flatMap(r=>{const p=originals.find(p=>p.id===r.id);return p?[{...p,repostedAt:r.at,repostedBy:{id:r.u.id,username:r.u.username,name:r.u.displayName,pfpUrl:r.u.pfpUrl}}]:[];});
 }
@@ -82,7 +81,7 @@ async function fetchMerged(opts: {
   const before = opts.before ?? new Date(Date.now() + 60_000);
 
   // native
-  const nativeWhere = [eq(posts.hidden, false), lt(posts.createdAt, before), or(eq(communities.status, "approved"), and(isNull(posts.communityId), or(eq(posts.authorId, OFFICIAL_ACCOUNT_ID),sql`${posts.quotePostId} IS NOT NULL`)))!];
+  const nativeWhere = [eq(posts.hidden, false), lt(posts.createdAt, before), or(eq(communities.status, "approved"), isNull(posts.communityId))!];
   if (opts.pinsOnly) nativeWhere.push(eq(opts.communityId ? posts.pinned : posts.globalPinned, true));
   if (opts.communityId) nativeWhere.push(eq(posts.communityId, opts.communityId));
   if (opts.communityIds) nativeWhere.push(or(inArray(posts.communityId, opts.communityIds), eq(posts.authorId, OFFICIAL_ACCOUNT_ID))!);
@@ -93,25 +92,14 @@ async function fetchMerged(opts: {
     .where(and(...nativeWhere, ...(opts.authorUsername ? [eq(users.username, opts.authorUsername)] : [])))
     .orderBy(desc(posts.createdAt)).limit(PAGE);
 
-  // mirrored
-  const xWhere = [eq(xPosts.hidden, false), lt(xPosts.tweetCreatedAt, before), or(eq(communities.status, "approved"), eq(xPosts.official, true))!];
-  if (opts.pinsOnly) xWhere.push(opts.communityId ? sql`false` : eq(xPosts.globalPinned, true));
-  if (opts.authorUsername) xWhere.push(eq(xPosts.authorUsername, opts.authorUsername));
-  if (opts.communityId) xWhere.push(eq(xPostCommunities.communityId, opts.communityId));
-  if (opts.communityIds) xWhere.push(or(inArray(xPostCommunities.communityId, opts.communityIds), eq(xPosts.official, true))!);
-  const xQ = db.select({ x: xPosts, link: xPostCommunities, c: communities })
-    .from(xPosts)
-    .leftJoin(xPostCommunities, eq(xPostCommunities.xPostId, xPosts.id))
-    .leftJoin(communities, eq(xPostCommunities.communityId, communities.id))
-    .where(and(...xWhere))
-    .orderBy(desc(xPosts.tweetCreatedAt)).limit(PAGE);
-
-  const [nativeRows, xRows, reposts, activity] = await Promise.all([nativeQ, xQ, repostViews(opts), opts.includeMarkets ? marketActivity({ ...opts, before }) : Promise.resolve([])]);
+  const [nativeRows, reposts, activity] = await Promise.all([
+    nativeQ, repostViews(opts),
+    opts.includeMarkets ? marketActivity({ ...opts, before }) : Promise.resolve([]),
+  ]);
 
   const views: FeedItem[] = [
     ...activity, ...reposts,
     ...nativeRows.map((r) => nativeToView(r.p, r.u, r.c)),
-    ...xRows.map((r) => xToView(r.x, r.link?.communityId ?? "", r.c)),
   ];
   // de-dupe mirrored tweets linked to multiple tribes in the global feed
   views.sort((a,b)=>chronology(a)<chronology(b)?1:-1);
@@ -197,7 +185,7 @@ async function visiblePosts(ids:string[]):Promise<PostView[]> {
  const nativeIds=[...new Set(ids.filter(id=>id.startsWith("n:")).map(id=>id.slice(2)))];
  const xIds=[...new Set(ids.filter(id=>id.startsWith("x:")).map(id=>id.slice(2)))];
  const [nativeRows,xRows]=await Promise.all([
- nativeIds.length?db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).leftJoin(communities,eq(posts.communityId,communities.id)).where(and(inArray(posts.id,nativeIds),eq(posts.hidden,false),or(eq(communities.status,"approved"),and(isNull(posts.communityId),or(eq(posts.authorId,OFFICIAL_ACCOUNT_ID),sql`${posts.quotePostId} IS NOT NULL`))))):[],
+ nativeIds.length?db.select({p:posts,u:users,c:communities}).from(posts).innerJoin(users,eq(posts.authorId,users.id)).leftJoin(communities,eq(posts.communityId,communities.id)).where(and(inArray(posts.id,nativeIds),eq(posts.hidden,false),or(eq(communities.status,"approved"),isNull(posts.communityId)))):[],
  xIds.length?db.select({p:xPosts,c:communities}).from(xPosts).leftJoin(xPostCommunities,eq(xPostCommunities.xPostId,xPosts.id)).leftJoin(communities,eq(xPostCommunities.communityId,communities.id)).where(and(inArray(xPosts.id,xIds),eq(xPosts.hidden,false),or(eq(communities.status,"approved"),eq(xPosts.official,true)))):[]
  ]);
  return [...nativeRows.map(r=>nativeToView(r.p,r.u,r.c)),...xRows.map(r=>xToView(r.p,r.c?.id??"",r.c))];

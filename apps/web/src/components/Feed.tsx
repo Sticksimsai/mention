@@ -53,12 +53,12 @@ export function Feed({ communityId, author, scope }: {
         </p>
         <p className="text-sm leading-6">
           {scope === "joined"
-            ? "Join a community and its posts — on-site and from X — show up here."
-            : "Community posts, matching tweets and real mentionmarkets updates appear here."}
+            ? "Posts from communities you join appear here."
+            : "Public posts and community updates appear here."}
         </p>
         {!communityId && !author && (
-          <Link href="/explore" className="mt-6 rounded-xl border hairline bg-surface px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-volt/40 hover:text-volt">
-            Explore communities
+          <Link href="/launch" className="mt-6 rounded-xl border hairline bg-surface px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-volt/40 hover:text-volt">
+            Launch a token
           </Link>
         )}
       </div>

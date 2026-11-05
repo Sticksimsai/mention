@@ -100,9 +100,8 @@ communitiesRoute.post("/", requireAuth, rateLimit("community-create", 3, 3600),
       throw e;
     });
 
-    // warm token stats + start mirroring the owner immediately
+    // warm token stats
     await queues.tokenStats.add("refresh", { ca: created.ca }, { jobId: `ts-${created.ca}` }).catch(() => {});
-    await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw-${u.username}-init` }).catch(() => {});
     return c.json(toView(created, { id: u.id, username: u.username, displayName: u.displayName, pfpUrl: u.pfpUrl }, true), 201);
   });
 
@@ -159,8 +158,6 @@ communitiesRoute.post("/:id/join", requireAuth, rateLimit("join", 30, 60), async
         .where(eq(communities.id, id));
     }
   });
-  // joining = this user's tweets get mirrored too
-  await queues.tweetSync.add("sync", { username: u.username }, { jobId: `tw-${u.username}-join` }).catch(() => {});
   return c.json({ ok: true });
 });
 

@@ -13,7 +13,6 @@ export const queues = {
   xProfile: new Queue(QUEUES.X_PROFILE, { connection: queueConn }),
   xWriteback: new Queue(QUEUES.X_WRITEBACK, { connection: queueConn }),
   tokenStats: new Queue(QUEUES.TOKEN_STATS, { connection: queueConn }),
-  tweetSync: new Queue(QUEUES.TWEET_SYNC, { connection: queueConn }),
 };
 
 /** Read-through JSON cache. Serves stale value on fetch failure if present. */

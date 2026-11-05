@@ -10,7 +10,7 @@ import { visiblePost, decorate } from "./feed.js";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
-import { createPostSchema, createReplySchema, OFFICIAL_ACCOUNT_ID } from "@mention/shared";
+import { createPostSchema, createReplySchema } from "@mention/shared";
 import {
   posts, postLikes, postReposts, postReplies,
   xPosts, xPostLikes, xPostReposts, xPostReplies, xPostCommunities,
@@ -69,7 +69,6 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   const [comm] = body.communityId ? await db.select().from(communities).where(eq(communities.id, body.communityId)) : [];
   if (body.communityId && (!comm || comm.status !== "approved")) throw new HTTPException(404, { message: "community not found" });
   if (body.quotePostId) { const q=parseId(body.quotePostId); await visiblePost(q.source,q.id); }
-  if (!comm && !body.quotePostId && (u.id !== OFFICIAL_ACCOUNT_ID || u.role !== "admin")) throw new HTTPException(403, { message: "Only the official account can publish sitewide posts" });
 
   // must be a member (staff bypass, per v1 roles)
   if (!u.role && comm && comm.ownerId !== u.id) {
