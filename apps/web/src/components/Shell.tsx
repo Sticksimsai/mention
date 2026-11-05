@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { AccountButton } from "./AccountButton";
 import { SearchBox } from "./SearchBox";
 import { TrendingCards } from "./TrendingCards";
+import { Composer } from "./Composer";
 import { BrandLogo } from "./BrandLogo";
 import {
-  HomeIcon, RocketIcon, FlameIcon,
+  HomeIcon, RocketIcon, FlameIcon, BookIcon,
 } from "./icons";
 
 export function Shell({ children }: { children: React.ReactNode; wide?: boolean }) {
@@ -25,7 +26,9 @@ export function Shell({ children }: { children: React.ReactNode; wide?: boolean 
             <NavItem href="/" icon={<HomeIcon />}>Feed</NavItem>
             <NavItem href="/cult" icon={<FlameIcon />}>Cult</NavItem>
             <NavItem href="/launch" icon={<RocketIcon />}>Launch</NavItem>
+            <NavItem href="/how-it-works" icon={<BookIcon />}>How it works</NavItem>
           </nav>
+          <Composer placement="sidebar" />
 
         </div>
 
@@ -48,7 +51,9 @@ export function Shell({ children }: { children: React.ReactNode; wide?: boolean 
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t hairline bg-ink px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
         <MobileLink href="/" icon={<HomeIcon />} label="Feed" />
         <MobileLink href="/cult" icon={<FlameIcon />} label="Cult" />
+        <Composer placement="mobile" />
         <MobileLink href="/launch" icon={<RocketIcon />} label="Launch" />
+        <MobileLink href="/how-it-works" icon={<BookIcon />} label="How it works" />
       </nav>
 
     </div>

@@ -9,6 +9,7 @@ import { LAUNCH_PAIRS } from "@mention/shared";
 import { PairLogo } from "@/components/LaunchAssets";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/components/AuthProvider";
+import { uploadMedia } from "@/lib/media";
 import { api, ApiError } from "@/lib/api";
 
 type Mode = "fair" | "creator" | "holders" | "battle";
@@ -36,6 +37,9 @@ export default function LaunchPage() {
   const auth = useAuth();
   const fundingWallet = auth.launchWalletAddress;
   const [f, setF] = useState({ name: "", ticker: "", description: "", twitterUrl: "", telegram: "", creatorWallet: "" });
+  const [dragging, setDragging] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
   const [image, setImage] = useState<{ id: string; url: string } | null>(null);
   const [banner,setBanner]=useState<{url:string;id?:string}>({url:""});
   const mode = "holders" as const;
@@ -70,12 +74,33 @@ export default function LaunchPage() {
     finally { lock.current = false; setBusy(false); }
   }
   async function saveImage(file: Blob) {
-    if (file.size > 2_000_000) throw new Error("Choose an image smaller than 2 MB");
-    const data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file);
+    const saved = await uploadMedia(file);
+    setImage(saved);
+    return saved;
+  }
+
+  function chooseImage(files: FileList | null) {
+    if (!files?.length || lock.current) return;
+    if (!auth.authenticated) {
+      setImageError("Sign in before uploading your token image.");
+      return;
+    }
+    if (files.length !== 1) {
+      setImageError("Choose one token image.");
+      return;
+    }
+    const file = files[0];
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setImageError("Choose a PNG, JPEG, WebP or GIF file.");
+      return;
+    }
+    setImageError("");
+    void run(async () => {
+      setUploadingImage(true);
+      try { await saveImage(file); }
+      catch (cause) { setImageError(cause instanceof Error ? cause.message : "Upload failed. Try again."); }
+      finally { setUploadingImage(false); }
     });
-    const saved = await api<{ id: string; url: string }>("/v1/launch/images", { method: "POST", body: { data } });
-    setImage(saved); return saved;
   }
   async function prepare() {
     if (!fundingWallet || !auth.walletAddresses.includes(fundingWallet)) throw new Error("Connect a funding wallet first.");
@@ -139,7 +164,35 @@ export default function LaunchPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{field("name", "Token name", 32)}{field("ticker", "Ticker", 12)}</div>
           <label className="block text-xs font-medium text-muted">Description<textarea maxLength={2000} value={f.description} onChange={e => setF({ ...f, description: e.target.value })} rows={3} className={inputClass} /></label>
 
-          <div className="rounded-xl border hairline p-4"><label className="block text-sm font-medium">Token image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || !auth.authenticated} onChange={e => { const file = e.target.files?.[0]; if (file) run(async () => { await saveImage(file); }); }} className="mt-3 block w-full text-xs text-muted" /></label><p className="mt-3 text-xs text-muted">The onlycults image is preset. Upload PNG, JPEG or WebP up to 2 MB to replace it.{!auth.authenticated && " Sign in to upload."}</p>{image && <button type="button" onClick={() => setImage(null)} className="mt-2 text-xs text-volt">Use default image</button>}</div>
+          <div>
+            <label
+              onDragOver={event => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = busy || !auth.authenticated ? "none" : "copy";
+                setDragging(auth.authenticated && !busy);
+              }}
+              onDragLeave={event => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                setDragging(false);
+                chooseImage(event.dataTransfer.files);
+              }}
+              className={`flex items-center gap-4 rounded-xl border border-dashed p-4 focus-within:ring-2 focus-within:ring-white ${dragging ? "border-white bg-raised" : "hairline bg-surface"} ${busy || !auth.authenticated ? "" : "cursor-pointer"}`}
+            >
+              <img src={image?.url || DEFAULT_IMAGE} alt="" className="h-14 w-14 rounded-lg bg-ink object-cover" />
+              <span>
+                <span className="block text-sm font-semibold">Token image</span>
+                <span className="block text-sm" aria-live="polite">{uploadingImage ? "Uploading…" : !auth.authenticated ? "Sign in to upload an image" : dragging ? "Drop to upload" : "Drop an image or GIF, or browse files"}</span>
+                <span className="block text-xs text-muted">PNG, JPEG or WebP up to 2 MB · GIF up to 8 MB</span>
+              </span>
+              <input aria-label="Choose token image or GIF" type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={busy || !auth.authenticated} onChange={event => { chooseImage(event.target.files); event.target.value = ""; }} />
+            </label>
+            {imageError && <p role="alert" className="mt-2 text-sm">{imageError}</p>}
+            {image && <button type="button" disabled={busy} onClick={() => { setImage(null); setImageError(""); }} className="mt-2 text-xs underline">Use default image</button>}
+          </div>
           <details className="text-sm"><summary className="cursor-pointer text-muted">Banner & links</summary><div className="mt-4 space-y-4"><BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">Leave blank to use your connected X profile.</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to the funding wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
         </section>
 

@@ -7,9 +7,22 @@ import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {api} from '@/lib/api';
 import {useMe} from '@/lib/hooks';
 import {XVerifiedBadge} from './XVerifiedBadge';
-export function Composer({communityId}:{communityId?:string}){
- const {authenticated,login,me}=useMe();const [open,setOpen]=useState(false);
- return <div className="flex justify-center border-b hairline px-5 py-5"><button type="button" onClick={()=>authenticated?setOpen(true):login()} className="min-h-11 rounded-full bg-white px-8 py-2 text-sm font-semibold text-black hover:bg-neutral-200">Create post</button>{open&&<ComposeModal communityId={communityId} close={()=>setOpen(false)}/>}</div>;
+type ComposerPlacement = "center" | "sidebar" | "mobile";
+
+export function Composer({communityId, placement = "center"}: {communityId?: string; placement?: ComposerPlacement}) {
+  const {authenticated,login} = useMe();
+  const [open,setOpen] = useState(false);
+  const compact = placement === "mobile";
+  const wrapper = placement === "center" ? "flex justify-center border-b hairline px-5 py-5" : placement === "sidebar" ? "mt-4" : "";
+  const size = compact ? "h-11 w-11 text-xl" : placement === "sidebar" ? "min-h-11 w-full px-4 text-sm" : "min-h-11 px-8 text-sm";
+  return <div className={wrapper}>
+    <button type="button" aria-label="Create post" onClick={() => authenticated ? setOpen(true) : login()}
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-white font-semibold text-black hover:bg-neutral-200 ${size}`}>
+      {placement !== "center" && <span aria-hidden="true">+</span>}
+      {!compact && "Create post"}
+    </button>
+    {open && <ComposeModal communityId={communityId} close={() => setOpen(false)} />}
+  </div>;
 }
 function ComposeModal({communityId,close}:{communityId?:string;close:()=>void}){
  const {me}=useMe();const dialog=useRef<HTMLDialogElement>(null),[content,setContent]=useState(''),[attachments,setAttachments]=useState(emptyAttachments),[mediaBusy,setMediaBusy]=useState(false),[toX,setToX]=useState(false);const qc=useQueryClient();const hasMedia=Boolean(attachments.mediaUrl||attachments.sticker);
