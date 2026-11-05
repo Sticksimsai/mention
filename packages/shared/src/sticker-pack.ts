@@ -1,17 +1,17 @@
-/** Uploaded, looping artwork shared by every community. Keep filenames stable for old posts. */
+/** Official animated pack shared by the GIF picker and community sticker trays. */
 export const MENTIONS_GIFS = [
-  ['01-dance', 'Dance', 'Celebration'],
-  ['02-jump', 'Jump', 'Hype'],
-  ['03-coin', 'Coin', 'Trading'],
-  ['04-gm', 'GM', 'Community'],
-  ['05-pump', 'Pump', 'Trading'],
-  ['06-wave', 'Wave', 'Community'],
-  ['07-vibe', 'Vibe', 'Reactions'],
-  ['08-rocket', 'Rocket', 'Hype'],
-  ['09-laser', 'Laser', 'Reactions'],
-  ['10-at-sign', 'Mentions', 'Community'],
+  ['01-c-echo', 'C Echo', 'Reactions'],
+  ['02-halftone-orb', 'Halftone Orb', 'Reactions'],
+  ['03-c-flag', 'C Flag', 'Community'],
+  ['04-join-the-cult', 'Join the Cult', 'Community'],
+  ['05-candles', 'Candles', 'Trading'],
+  ['06-gm', 'GM', 'Community'],
+  ['07-c-glitch', 'C Glitch', 'Reactions'],
+  ['08-worship', 'Worship', 'Hype'],
+  ['09-wordmark', 'Wordmark', 'Community'],
+  ['10-procession', 'Procession', 'Celebration'],
 ].map(([file, label, category]) => ({
-  id: `mentions-blob:${file}`,
+  id: `onlycults-v1:${file}`,
   label, category,
-  mediaUrl: `/stickers/mentions-blob/${file}.gif`,
+  mediaUrl: `/stickers/onlycults-v1/${file}.gif`,
 }));
