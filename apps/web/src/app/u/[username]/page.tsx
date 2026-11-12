@@ -55,7 +55,7 @@ export default function ProfilePage() {
       <div className="min-w-0"><h1 className="truncate text-base font-semibold">{p.displayName}{p.xVerification?.status === "verified" && <XVerifiedBadge />}</h1><p className="text-[11px] text-muted">{own ? "Your profile" : `@${p.username}`}</p></div>
       {own && <span className="ml-auto shrink-0 rounded-full border hairline px-2 py-1 text-[10px] text-muted"><span className="mr-1 text-volt">●</span>X connected</span>}
     </header>
-    <div className="relative h-32 overflow-hidden bg-gradient-to-br from-[#26391a] via-[#3c5420] to-[#90ae42] sm:h-36">
+    <div className="relative h-32 overflow-hidden bg-gradient-to-br from-[#2A1F06] via-[#6B4A08] to-[#F2B416] sm:h-36">
       {p.bannerUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.bannerUrl} alt="" className="h-full w-full object-cover" />

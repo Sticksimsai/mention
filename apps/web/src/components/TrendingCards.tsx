@@ -38,7 +38,7 @@ export function TrendingCards() {
     queryFn: () => api<CommunityView[]>("/v1/communities?sort=new", { auth: false }),
   });
   const list = (trending?.length ? trending : newest ?? []).slice(0, 10);
-  if (list.length === 0) return <section className="rounded-xl border hairline bg-surface p-4"><h2 className="font-display text-xs">Trending</h2><p className="mt-3 text-sm text-muted">Trending cults will appear here.</p></section>;
+  if (list.length === 0) return <section className="rounded-xl border hairline bg-surface p-4"><h2 className="font-display text-xs">Trending</h2><p className="mt-3 text-sm text-muted">Trending communities will appear here.</p></section>;
 
   return (
     <div className="border-b hairline">

@@ -15,7 +15,7 @@ export interface Attachments {mediaUrl:string;sticker:StickerView|null;stickerMe
 export const emptyAttachments:Attachments={mediaUrl:'',sticker:null};
 export function AttachmentPicker({communityId,value,onChange,onBusyChange}:{communityId?:string;value:Attachments;onChange:(v:Attachments)=>void;onBusyChange?:(busy:boolean)=>void}){
  const [panel,setPanel]=useState<'gif'|'stickers'|null>(null),[search,setSearch]=useState(''),[category,setCategory]=useState('All'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[dragging,setDragging]=useState(false),[creating,setCreating]=useState(false);
- const [label,setLabel]=useState('gm'),[glyph,setGlyph]=useState('spark'),[color,setColor]=useState('#a3ed00');const fileId=useId();const qc=useQueryClient();
+ const [label,setLabel]=useState('gm'),[glyph,setGlyph]=useState('spark'),[color,setColor]=useState('#F2B416');const fileId=useId();const qc=useQueryClient();
  const pack=useQuery({queryKey:['stickers',communityId],queryFn:()=>api<StickerView[]>(`/v1/communities/${communityId}/stickers`,{auth:false}),enabled:!!communityId&&panel==='stickers'});
  async function work(fn:()=>Promise<void>){if(busy)return;setBusy(true);onBusyChange?.(true);setError('');try{await fn();}catch(e){setError(e instanceof Error?e.message:'Could not attach media');}finally{setBusy(false);onBusyChange?.(false);}}
  async function upload(file:File){await work(async()=>{if(!['image/gif','image/png','image/jpeg','image/webp'].includes(file.type))throw new Error('Choose a GIF, PNG, JPEG or WebP image');if(file.size>(file.type==='image/gif'?8_000_000:2_000_000))throw new Error('GIFs: up to 8 MB. Images: up to 2 MB.');const saved=await uploadMedia(file);onChange({...value,mediaUrl:saved.url});setPanel(null);});}

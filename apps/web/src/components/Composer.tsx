@@ -17,7 +17,7 @@ export function Composer({communityId, placement = "center"}: {communityId?: str
   const size = compact ? "h-11 w-11 text-xl" : placement === "sidebar" ? "min-h-11 w-full px-4 text-sm" : "min-h-11 px-8 text-sm";
   return <div className={wrapper}>
     <button type="button" aria-label="Create post" onClick={() => authenticated ? setOpen(true) : login()}
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-white font-semibold text-black hover:bg-neutral-200 ${size}`}>
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-volt font-semibold text-ink hover:bg-volt-deep ${size}`}>
       {placement !== "center" && <span aria-hidden="true">+</span>}
       {!compact && "Create post"}
     </button>

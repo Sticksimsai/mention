@@ -15,14 +15,14 @@ export default function CultPage() {
     refetchInterval: 15000,
   });
   return <Shell>
-    <header className="border-b hairline px-5 py-6"><h1 className="font-display text-base">Cult</h1><p className="mt-2 text-sm text-muted">Newly launched communities, newest first.</p></header>
+    <header className="border-b hairline px-5 py-6"><h1 className="font-display text-base">Communities</h1><p className="mt-2 text-sm text-muted">Newly launched communities, newest first.</p></header>
     <Composer />
     <div className="p-5">
       {query.isLoading && <p role="status">Loading cults…</p>}
       {query.isError && <button onClick={()=>query.refetch()}>Directory unavailable · Retry</button>}
       {query.data?.items.length===0 && <div className="rounded-xl border border-dashed hairline p-8 text-center"><h2>No launches yet</h2><Link href="/launch" className="mt-3 inline-block underline">Launch a cult</Link></div>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {query.data?.items.map(c=><Link key={c.id} href={communityHref(c)} className="overflow-hidden rounded-2xl border hairline bg-surface hover:border-white/50">
+        {query.data?.items.map(c=><Link key={c.id} href={communityHref(c)} className="overflow-hidden rounded-2xl border hairline bg-surface hover:border-volt/60">
           <img src={c.bannerUrl || "/brand/community-banner.svg"} alt="" className="aspect-[3/1] w-full object-cover" />
           <div className="p-4"><img src={c.pfpUrl || "/brand/memes.webp"} alt="" className="relative -mt-9 mb-2 h-11 w-11 rounded-xl border-2 border-surface bg-ink object-cover" />
             <h2 className="break-words text-sm">{c.name}</h2><p className="text-xs text-muted">${c.ticker} · {c.membersCount} {c.membersCount===1?"member":"members"}</p>

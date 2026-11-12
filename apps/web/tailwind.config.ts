@@ -5,16 +5,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#101010",
-        surface: "#191919",
-        raised: "#242424",
-        line: "#353535",
-        fg: "#F5F5F5",
-        muted: "#B0B0B0",
-        volt: "#FFFFFF",
-        "volt-deep": "#CDCDCD",
-        up: "#EBEBEB",
-        down: "#BBBBBB",
+        // Dark, slightly warm neutrals with the coin's gold as the accent.
+        ink: "#0E0D0A",
+        surface: "#17150F",
+        raised: "#221F17",
+        line: "#383224",
+        fg: "#F7F3E8",
+        muted: "#B4AD9B",
+        volt: "#F2B416",
+        "volt-deep": "#D2940A",
+        up: "#3DD68C",
+        down: "#FF6B6B",
       },
       fontFamily: {
         display: ["StairsNSlabs", "Cocogoose", "system-ui", "sans-serif"],
