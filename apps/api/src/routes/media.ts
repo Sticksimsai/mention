@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { launchImages,eq } from '@mention/db';
 import { db } from '../lib/db.js';
 import { env } from '../env.js';
-import { requireAuth,requireNotBanned,rateLimit } from '../auth/middleware.js';
+import { requireAuthOrWallet,requireNotBanned,rateLimit,walletIpRateLimit } from '../auth/middleware.js';
 export const mediaRoute=new Hono();
 export function validateMedia(data:string){
  const match=/^data:(image\/(?:gif|png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(data);
@@ -24,7 +24,7 @@ mediaRoute.get('/:id',async c=>{
  c.header('Content-Type',asset.mime);c.header('X-Content-Type-Options','nosniff');c.header('Cache-Control','public, max-age=31536000, immutable');
  return c.body(new Uint8Array(Buffer.from(asset.data,'base64')));
 });
-mediaRoute.post('/',requireAuth,rateLimit('media-upload',30,3600),bodyLimit({maxSize:11_000_000}),zValidator('json',z.object({data:z.string().max(10_800_000)})),async c=>{
+mediaRoute.post('/',requireAuthOrWallet,rateLimit('media-upload',30,3600),walletIpRateLimit('wallet-media',20,3600),bodyLimit({maxSize:11_000_000}),zValidator('json',z.object({data:z.string().max(10_800_000)})),async c=>{
  requireNotBanned(c);const {bytes,mime}=validateMedia(c.req.valid('json').data);
  const [asset]=await db.insert(launchImages).values({userId:c.get('user').id,mime,data:bytes.toString('base64')}).returning({id:launchImages.id});
  return c.json({id:asset.id,url:`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${asset.id}`},201);

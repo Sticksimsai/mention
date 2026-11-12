@@ -26,6 +26,7 @@ import { earningsRoute, processApprovedPayouts } from "./routes/earnings.js";
 import { battlesRoute } from "./routes/battles.js";
 
 import {readinessRoute} from "./routes/readiness.js";
+import { walletAuthRoute } from "./routes/wallet-auth.js";
 import {marketExecutionRoute} from "./routes/market-execution.js";
 import {processDevnetMarkets} from "./lib/market-worker.js";
 const app = new Hono();
@@ -77,6 +78,7 @@ app.route("/v1/token", tokenRoute);
 app.route("/v1/users", usersRoute);
 app.route("/v1/x", xRoute);
 app.route("/v1/launch", launchRoute);
+app.route("/v1/wallet-auth", walletAuthRoute);
 app.route("/v1/wallet-rpc", walletRpcRoute);
 app.route("/v1/trade", tradeRoute);
 app.route("/v1/earnings", earningsRoute);

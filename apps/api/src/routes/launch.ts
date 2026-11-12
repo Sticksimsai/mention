@@ -9,7 +9,7 @@ import { db } from "../lib/db.js";
 import { env } from "../env.js";
 import { buildLaunch } from "../lib/launch-builder.js";
 import { LAUNCH_PAIRS, launchOptionsSchema, xProfileUrlSchema } from "@mention/shared";
-import { requireAuth, requireNotBanned, rateLimit } from "../auth/middleware.js";
+import { requireAuthOrWallet, requireNotBanned, rateLimit } from "../auth/middleware.js";
 import { address, connection, hash, ownOperation, publicOperation, refreshOperation, broadcast, type Operation } from "../lib/money.js";
 
 export const launchRoute=new Hono();
@@ -33,7 +33,8 @@ launchRoute.get("/metadata/:id",async c=>{
  return c.json({name:d.name,symbol:d.ticker.toUpperCase(),description:d.description,image:d.imageUrl,external_url:d.website,showName:true,website:d.website,...(d.twitterUrl?{twitter:d.twitterUrl}:{}),...(d.telegram?{telegram:d.telegram}:{})});
 });
 launchRoute.get("/config",c=>c.json({enabled:env.LAUNCH_ENABLED,unavailableReasons:launchAvailability(),communityWebsiteOrigin:env.WEB_ORIGIN,devBuyEnabled:false,battleExecutionEnabled:false,maxDevBuyBps:0,platformFeeShareBps:env.PLATFORM_CREATOR_FEE_SHARE_BPS,tradeFeeBps:env.PLATFORM_TRADE_FEE_BPS,pairs:LAUNCH_PAIRS.filter(pair=>pair.id==="SOL")}));
-launchRoute.use("*",requireAuth);
+// Launching needs only a wallet: an X sign-in or a wallet session both pass.
+launchRoute.use("*",requireAuthOrWallet);
 launchRoute.post("/images",rateLimit("launch-image",10,3600),bodyLimit({maxSize:3_000_000}),zValidator("json",z.object({data:z.string().max(2_800_000)})),async c=>{
  requireNotBanned(c);const raw=c.req.valid("json").data;const match=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw);
  if(!match)throw new HTTPException(400,{message:"Upload a PNG, JPEG, or WebP image"});const bytes=Buffer.from(match[2],"base64");
@@ -48,6 +49,8 @@ launchRoute.post("/prepare",rateLimit("launch-prepare-v2",6,60),zValidator("json
  if(!result.success){const issue=result.error.issues[0];return c.json({error:`${issue.path.join(".") || "Launch details"}: ${issue.message}`},400);}
 }),async c=>{
  requireNotBanned(c);assertEnabled();const body=c.req.valid("json"),user=c.get("user");address(body.creatorWallet);
+ // A wallet session proved control of exactly one address, so only that address may fund its launch.
+ if(user.wallet&&body.fundingWallet!==user.wallet)throw new HTTPException(400,{message:"Fund this launch with the wallet you connected, or sign in with X to use another wallet."});
  if(body.mode!=="holders" || body.quoteAsset!=="SOL" || body.devBuyBps!==0)throw new HTTPException(400,{message:"New launches use SOL holder rewards with no initial buy. Refresh your launch form."});
  const unavailable=launchAvailability()[body.mode];if(unavailable){console.warn("launch preparation blocked",{mode:body.mode,reason:unavailable});throw new HTTPException(503,{message:unavailable});}
  const digest=hash(body);const [existing]=await db.select().from(moneyOperations).where(eq(moneyOperations.id,body.id));
@@ -57,7 +60,7 @@ launchRoute.post("/prepare",rateLimit("launch-prepare-v2",6,60),zValidator("json
  if(body.bannerId&&!banner)throw new HTTPException(400,{message:"Upload your community banner first"});
  const mint=Keypair.generate(), payer=address(body.fundingWallet);
  const creator=payer;
- const details={...body,communitySlug:"",website:"",twitterUrl:body.twitterUrl || `https://x.com/${user.username}`,bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
+ const details={...body,communitySlug:"",website:"",twitterUrl:body.twitterUrl || (user.wallet?"":`https://x.com/${user.username}`),bannerUrl:banner?`${env.PUBLIC_ASSET_ORIGIN}/v1/media/${banner.id}`:"",ca:mint.publicKey.toBase58(),funding:"creator",reservedLamports:0,platformFeeShareBps:body.mode==="holders"?0:env.PLATFORM_CREATOR_FEE_SHARE_BPS,imageUrl:`${env.PUBLIC_ASSET_ORIGIN}/v1/launch/images/${image.id}`};
  await db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(721931)`);
   const names=await tx.select({id:communities.id}).from(communities).where(eq(communities.name,body.name));if(names.length)throw new HTTPException(409,{message:"Community name is already taken"});
@@ -86,7 +89,7 @@ async function finish(op:Operation){
  return db.transaction(async tx=>{
   await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${op.id}))`);
   const [old]=await tx.select().from(communities).where(eq(communities.ca,d.ca));let community=old;
-  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,twitterUrl:d.twitterUrl,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
+  if(!community){[community]=await tx.insert(communities).values({name:d.name,ticker:d.ticker.toUpperCase(),ca:d.ca,details:d.description,pfpUrl:d.imageUrl,bannerUrl:d.bannerUrl??"",ownerId:op.userId,creatorWallet:d.creatorWallet,platformFeeShareBps:d.platformFeeShareBps,launchedViaTribes:true,website:d.website,twitterUrl:d.twitterUrl||null,telegram:d.telegram}).returning();await tx.insert(communityMembers).values({communityId:community.id,userId:op.userId}).onConflictDoNothing();}
   const [done]=await tx.update(moneyOperations).set({status:"complete",details:JSON.stringify({...d,communityId:community.id,communitySlug:community.slug}),updatedAt:new Date()}).where(eq(moneyOperations.id,op.id)).returning();return done;
  });
 }

@@ -3,13 +3,13 @@ import { HTTPException } from "hono/http-exception";
 import { bodyLimit } from "hono/body-limit";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { requireAuth, rateLimit } from "../auth/middleware.js";
+import { requireAuthOrWallet, rateLimit } from "../auth/middleware.js";
 import { env } from "../env.js";
 
 // Private RPC URLs stay on the server. This endpoint cannot submit or sign transactions.
 export const walletRpcRoute = new Hono();
 const request = z.object({jsonrpc:z.literal("2.0"),id:z.union([z.string().max(100),z.number()]),method:z.enum(["getAccountInfo","getMultipleAccounts","getBalance","getFeeForMessage","getLatestBlockhash","getTransaction","getSignatureStatuses","getBlockHeight","simulateTransaction"]),params:z.array(z.unknown()).max(4).default([])});
-walletRpcRoute.use("*",requireAuth,rateLimit("wallet-rpc",120,60),bodyLimit({maxSize:20000}));
+walletRpcRoute.use("*",requireAuthOrWallet,rateLimit("wallet-rpc",120,60),bodyLimit({maxSize:20000}));
 walletRpcRoute.post("/:network",zValidator("json",request),async c=>{
  const network=c.req.param("network");if(network!=="mainnet"&&network!=="devnet")throw new HTTPException(400,{message:"Unsupported wallet network"});
  const body=c.req.valid("json");

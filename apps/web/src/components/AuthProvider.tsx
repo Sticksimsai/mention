@@ -2,9 +2,10 @@
 
 import { Component, createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { PrivyProvider, usePrivy, useConnectWallet, useLoginWithOAuth } from "@privy-io/react-auth";
-import { toSolanaWalletConnectors, useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction } from "@privy-io/react-auth/solana";
+import { toSolanaWalletConnectors, useCreateWallet, useFundWallet, useExportWallet, useConnectedStandardWallets, useStandardSignTransaction, useStandardSignMessage } from "@privy-io/react-auth/solana";
 import { walletRpcs } from "@/lib/wallet-rpc";
-import { registerTokenGetter } from "@/lib/api";
+import { api, registerTokenGetter } from "@/lib/api";
+import { clearWalletSession, readWalletSession, saveWalletSession, type WalletSession } from "@/lib/wallet-session";
 import { Modal } from "./Modal";
 
 const solanaConnectors = toSolanaWalletConnectors();
@@ -25,6 +26,15 @@ export interface AuthState {
   connectLaunchWallet: () => void;
   signTransaction: (transaction: string, signerAddress?: string) => Promise<string>;
   signDevnetTransaction: (transaction: string) => Promise<string>;
+  /** Address of the active wallet session, when the visitor signed in with a wallet instead of X. */
+  walletSessionAddress: string | null;
+  /** True when the visitor can launch: signed in with X, or holding a wallet session. */
+  canLaunch: boolean;
+  /** Stable key for per-account browser state: the X account id or the session wallet. */
+  accountKey: string | null;
+  /** Proves control of a connected wallet with a free signature and starts a wallet session. */
+  walletSignIn: (address: string) => Promise<void>;
+  endWalletSession: () => void;
 }
 const unavailable = async () => { throw new Error("Wallet services are unavailable. Please try again shortly."); };
 const stub: AuthState = {
@@ -32,6 +42,7 @@ const stub: AuthState = {
   launchWalletAddress: null, walletAddresses: [], selectLaunchWallet: () => {}, connectLaunchWallet: () => {},
   login: () => {}, logout: async () => {}, getAccessToken: async () => null,
   createWallet: unavailable, fundWallet: unavailable, exportWallet: unavailable, signTransaction: unavailable, signDevnetTransaction: unavailable,
+  walletSessionAddress: null, canLaunch: false, accountKey: null, walletSignIn: unavailable, endWalletSession: () => {},
 };
 const AuthCtx = createContext<AuthState>(stub);
 export const useAuth = () => useContext(AuthCtx);
@@ -59,16 +70,49 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const { exportWallet } = useExportWallet();
   const { wallets } = useConnectedStandardWallets();
   const { signTransaction } = useStandardSignTransaction();
+  const { signMessage } = useStandardSignMessage();
+  const [session, setSession] = useState<WalletSession | null>(null);
+  useEffect(() => { setSession(readWalletSession()); }, []);
   const wallet = user?.linkedAccounts.find((a) => a.type === "wallet" && a.chainType === "solana" && a.walletClientType === "privy");
   const walletAddress = wallet?.type === "wallet" ? wallet.address : null;
+  // Keyed by account so a selection never leaks across sign-ins; "wallet" covers wallet-only visitors.
   const [launchSelection, setLaunchSelection] = useState<{userId:string;address:string} | null>(null);
-  const selectLaunchWallet = (address:string) => {
-    if (user) setLaunchSelection({ userId:user.id, address });
-  };
+  const selectionOwner = user?.id ?? "wallet";
+  const selectLaunchWallet = (address:string) => setLaunchSelection({ userId:selectionOwner, address });
   const { connectWallet } = useConnectWallet({ onSuccess: ({wallet}) => selectLaunchWallet(wallet.address) });
   const walletAddresses = [...new Set([...(walletAddress ? [walletAddress] : []), ...wallets.map(w => w.address)])];
-  const launchWalletAddress = user && launchSelection?.userId === user.id ? launchSelection.address : walletAddress;
-  const tokenGetter = useCallback(async () => authenticated ? getAccessToken() : null, [authenticated, getAccessToken]);
+  const walletSessionAddress = !authenticated && session ? session.address : null;
+  const launchWalletAddress = user
+    ? (launchSelection?.userId === user.id ? launchSelection.address : walletAddress)
+    // Wallet-only visitors launch from the wallet that signed in, or one they just connected.
+    : walletSessionAddress ?? (launchSelection?.userId === "wallet" ? launchSelection.address : wallets[0]?.address ?? null);
+  // X sign-in wins; otherwise fall back to the wallet session so launch calls stay authorised.
+  const tokenGetter = useCallback(async () => {
+    if (authenticated) return getAccessToken();
+    const current = readWalletSession();
+    return current ? current.token : null;
+  }, [authenticated, getAccessToken]);
+  const walletSignIn = useCallback(async (address: string) => {
+    const wallet = wallets.find(w => w.address === address);
+    if (!wallet) throw new Error("Connect your wallet first, then verify it.");
+    const challenge = await api<{ address: string; message: string }>("/v1/wallet-auth/challenge", { method: "POST", body: { address }, auth: false });
+    const { signature } = await signMessage({ message: new TextEncoder().encode(challenge.message), wallet });
+    const verified = await api<WalletSession>("/v1/wallet-auth/verify", { method: "POST", body: { address: challenge.address, signature: btoa(String.fromCharCode(...signature)) }, auth: false });
+    saveWalletSession(verified);
+    setSession(verified);
+  }, [wallets, signMessage]);
+  const endWalletSession = useCallback(() => { clearWalletSession(); setSession(null); }, []);
+  // After an X sign-in, communities launched by this browser's wallet session move to the X account.
+  useEffect(() => {
+    if (!authenticated) return;
+    const current = readWalletSession();
+    if (!current) return;
+    let active = true;
+    getAccessToken().then(token => token ? api<{ claimed: number }>("/v1/wallet-auth/claim", { method: "POST", body: { walletToken: current.token }, token }) : null)
+      .then(result => { if (active && result) endWalletSession(); })
+      .catch(() => { /* Retried on the next sign-in; the wallet session stays until it expires. */ });
+    return () => { active = false; };
+  }, [authenticated, getAccessToken, endWalletSession]);
   useEffect(() => { registerTokenGetter(tokenGetter); return () => registerTokenGetter(async () => null); }, [tokenGetter]);
   useEffect(() => { if (authenticated) setOpen(false); }, [authenticated]);
   async function connect() {
@@ -80,7 +124,10 @@ function PrivyBridge({ children }: { children: ReactNode }) {
     ready, authenticated, available: true, userId: user?.id ?? null, walletAddress,
     launchWalletAddress, walletAddresses, selectLaunchWallet,
     connectLaunchWallet: () => connectWallet({walletChainType:"solana-only",description:"Connect your Solana wallet to fund and sign the launch."}),
-    login: () => { setError(""); setOpen(true); }, logout, getAccessToken,
+    walletSessionAddress, canLaunch: authenticated || Boolean(walletSessionAddress),
+    accountKey: user?.id ?? (walletSessionAddress ? `wallet:${walletSessionAddress}` : null),
+    walletSignIn, endWalletSession,
+    login: () => { setError(""); setOpen(true); }, logout: async () => { endWalletSession(); await logout(); }, getAccessToken,
     createWallet: async () => { await createWallet(); },
     fundWallet: async () => {
       if (!walletAddress) throw new Error("Create your wallet first.");
@@ -138,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       externalWallets: { solana: { connectors: solanaConnectors } },
       solana: { rpcs: walletRpcs },
       loginMethods: ["twitter"],
-      appearance: { theme: "#191919", accentColor: "#FFFFFF", logo: "/brand/memes.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on memes." },
+      appearance: { theme: "#17150F", accentColor: "#F2B416", logo: "/brand/memes.webp", landingHeader: "Your people. Your place.", loginMessage: "Your X identity, communities, and wallet. Together on memes." },
       embeddedWallets: { solana: { createOnLogin: "all-users" }, ethereum: { createOnLogin: "off" } },
     }}><PrivyBridge>{children}</PrivyBridge></PrivyProvider>
   </AuthErrorBoundary>;

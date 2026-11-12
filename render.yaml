@@ -32,12 +32,18 @@ services:
         value: https://memes-api-9rwt.onrender.com
       - key: X_REDIRECT_URI
         value: https://memes-api-9rwt.onrender.com/v1/x/callback
+      # Token images and metadata are served from the API; this must be its public URL.
+      - key: PUBLIC_ASSET_ORIGIN
+        value: https://memes-api-9rwt.onrender.com
+      # Launches are funded and signed by the launcher's own wallet.
+      - key: LAUNCH_ENABLED
+        value: "true"
       - key: X_CLIENT_ID
         sync: false
       - key: X_CLIENT_SECRET
         sync: false
-      - key: SOLANA_RPC_URL
-        value: https://api.mainnet-beta.solana.com
+      # SOLANA_RPC_URL is deliberately not managed here: set a private RPC (for example
+      # Helius) in the dashboard. Without it the API uses the rate-limited public endpoint.
       - key: PLATFORM_FEE_WALLET
         sync: false
       - key: PLATFORM_TRADE_FEE_BPS

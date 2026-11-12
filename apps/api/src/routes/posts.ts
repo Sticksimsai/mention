@@ -74,7 +74,7 @@ postsRoute.post("/", rateLimit("post", 10, 60), zValidator("json", createPostSch
   if (!u.role && comm && comm.ownerId !== u.id) {
     const [m] = await db.select().from(communityMembers)
       .where(and(eq(communityMembers.communityId, comm.id), eq(communityMembers.userId, u.id)));
-    if (!m) throw new HTTPException(403, { message: "join the community to post" });
+    if (!m) throw new HTTPException(403, { message: "Join this community to post." });
 
     // per-tribe cooldown
     if (comm.postCooldownSecs > 0) {
@@ -220,7 +220,13 @@ postsRoute.post("/:id/replies", rateLimit("reply", 20, 60), zValidator("json", c
   const parent = await visiblePost(source,id);
   const body = c.req.valid("json");
   const {content,mediaUrl}=body;
-  const [comm]=body.stickerId&&parent.communityId?await db.select().from(communities).where(eq(communities.id,parent.communityId)):[];
+  const [comm]=parent.communityId?await db.select().from(communities).where(eq(communities.id,parent.communityId)):[];
+  // Speaking in a community means joining it first (owner and staff bypass, as for posts).
+  if (comm && !u.role && comm.ownerId !== u.id) {
+    const [m] = await db.select().from(communityMembers)
+      .where(and(eq(communityMembers.communityId, comm.id), eq(communityMembers.userId, u.id)));
+    if (!m) throw new HTTPException(403, { message: "Join this community to reply." });
+  }
   const sticker=comm&&body.stickerId?(await stickerPack(comm)).find(s=>s.id===body.stickerId):null;
   if(body.stickerId&&!sticker)throw new HTTPException(400,{message:"Choose a sticker from this community"});
   let stickerMediaUrl:string|undefined;

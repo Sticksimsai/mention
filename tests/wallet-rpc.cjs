@@ -3,7 +3,7 @@ const r=require('node:module').createRequire(path.resolve('apps/api/package.json
 function load(file,mocks,extra={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:n=>mocks[n]??r(n),Response,AbortSignal,process:{env:{}},console,...extra});return module.exports;}
 const raw='{"jsonrpc":"2.0","id":"1","result":{"context":{"slot":1},"value":9007199254740993}}';let upstream=0,calls=[];
 const {HTTPException}=r('hono/http-exception');
-const route=load('apps/api/src/routes/wallet-rpc.ts',{'../env.js':{env:{SOLANA_RPC_URL:'https://secret-rpc.invalid/?key=private'}},'../auth/middleware.js':{requireAuth:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);await next()},rateLimit:()=>async(c,next)=>next()}},{fetch:async(url,opts)=>{upstream++;calls.push(JSON.parse(opts.body));return new Response(raw)}}).walletRpcRoute;
+const route=load('apps/api/src/routes/wallet-rpc.ts',{'../env.js':{env:{SOLANA_RPC_URL:'https://secret-rpc.invalid/?key=private'}},'../auth/middleware.js':{requireAuthOrWallet:async(c,next)=>{if(!c.req.header('authorization'))throw new HTTPException(401);await next()},rateLimit:()=>async(c,next)=>next()}},{fetch:async(url,opts)=>{upstream++;calls.push(JSON.parse(opts.body));return new Response(raw)}}).walletRpcRoute;
 const body=method=>JSON.stringify({jsonrpc:'2.0',id:'1',method,params:[]});
 const request=(method,auth=true,network='mainnet')=>route.request('/'+network,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer test'}:{})},body:body(method)});
 (async()=>{

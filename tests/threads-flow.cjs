@@ -27,6 +27,10 @@ const uri=`http://test/${post.id}`;const row={p:{},u:{},c:{id:'community'}};
  const attach=async(source,body)=>{results=[[row]];return route.request((source==='x'?xuri:uri)+'/replies',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify(body)});};
  assert.equal((await attach('n',{content:'',mediaUrl:'https://example.com/reaction.gif'})).status,201);assert.equal(saved.at(-1).mediaUrl,'https://example.com/reaction.gif');
  assert.equal((await attach('x',{content:'',mediaUrl:'https://example.com/image.png'})).status,201);assert.equal(saved.at(-1).mediaUrl,'https://example.com/image.png');
+ // Speaking in a community requires joining it first; the owner is always allowed.
+ {const stranger=writes;results=[[row],[{id:'community',ownerId:'someone-else'}],[]];const denied=await submit(true);assert.equal(denied.status,403,'Non-members cannot reply in a community');assert.match((await denied.json()).error,/Join this community/);assert.equal(writes,stranger);
+  results=[[row],[{id:'community',ownerId:'someone-else'}],[{userId:'viewer'}]];assert.equal((await submit(true)).status,201,'Members can reply');
+  results=[[row],[{id:'community',ownerId:'viewer'}]];assert.equal((await submit(true)).status,201,'Owner can reply without a membership row');}
  assert.equal((await attach('n',{content:'  '})).status,400);
  assert.equal((await attach('n',{content:'test',mediaUrl:'javascript:alert(1)'})).status,400);
  const before=writes;results=[[row],[]];assert.equal((await route.request(uri+'/replies',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify({content:'',stickerId:'foreign'})})).status,400);assert.equal(writes,before);
@@ -35,9 +39,9 @@ const uri=`http://test/${post.id}`;const row={p:{},u:{},c:{id:'community'}};
  packRows=[{id:'preset:0',communityId:'community',label:'gm',ticker:'SOL'}];
  const stickerBody={content:'',stickerId:'preset:0',stickerMediaId:'33333333-3333-4333-8333-333333333333'};
  const gif=Buffer.alloc(16);gif.write('GIF89a');gif.writeUInt16LE(500,6);gif.writeUInt16LE(500,8);
- results=[[row],[{id:'community'}],[{id:stickerBody.stickerMediaId,mime:'image/gif',data:gif.toString('base64')}]];
+ results=[[row],[{id:'community'}],[{userId:'viewer'}],[{id:stickerBody.stickerMediaId,mime:'image/gif',data:gif.toString('base64')}]];
  assert.equal((await route.request(uri+'/replies',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify(stickerBody)})).status,201);assert.equal(JSON.parse(saved.at(-1).stickerData).mediaUrl,'https://test/v1/media/'+stickerBody.stickerMediaId);
- results=[[row],[{id:'community'}],[]];const prior=writes;assert.equal((await route.request(uri+'/replies',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify(stickerBody)})).status,400);assert.equal(writes,prior);packRows=[];
+ results=[[row],[{id:'community'}],[{userId:'viewer'}],[]];const prior=writes;assert.equal((await route.request(uri+'/replies',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify(stickerBody)})).status,400);assert.equal(writes,prior);packRows=[];
  const create=body=>route.request('http://test/',{method:'POST',headers:{'content-type':'application/json',authorization:'test'},body:JSON.stringify(body)});
  let n=writes;
  results=[[row]];assert.equal((await create({content:'My take',quotePostId:post.id})).status,201,'Ordinary user can publish a visible quote');

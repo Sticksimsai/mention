@@ -50,16 +50,20 @@ export default function LaunchPage() {
   const [error, setError] = useState("");
   const lock = useRef(false);
   const config = useQuery({ queryKey: ["launch-config-v2"], queryFn: () => api<Config>("/v1/launch/config", { auth: false }) });
-  const recent = useQuery({ queryKey: ["launches", auth.userId], enabled: auth.authenticated, queryFn: () => api<Launch[]>("/v1/launch/recent") });
-  const storageKey = `mentions:launch:${auth.userId}`;
+  const recent = useQuery({ queryKey: ["launches", auth.accountKey], enabled: auth.canLaunch, queryFn: () => api<Launch[]>("/v1/launch/recent") });
+  const storageKey = `mentions:launch:${auth.accountKey}`;
+  // Wallet-only visitors: the connected wallet still has to prove ownership with a free signature.
+  const walletOnly = !auth.authenticated;
+  const walletConnected = !!fundingWallet && auth.walletAddresses.includes(fundingWallet);
+  const verifyAfterConnect = useRef(false);
 
   useEffect(() => {
     let active = true;
     setOp(null); setImage(null); setBanner({url:""}); setError("");
     const id = localStorage.getItem(storageKey);
-    if (id && auth.authenticated) api<Launch>(`/v1/launch/${id}`).then(r => { if (active) setOp(r); }).catch(e => { if (!active) return; if (e instanceof ApiError && e.status === 404) { localStorage.removeItem(storageKey); setOp(null); } else setError("Could not load your previous launch. Check recent launches before starting another."); });
+    if (id && auth.canLaunch) api<Launch>(`/v1/launch/${id}`).then(r => { if (active) setOp(r); }).catch(e => { if (!active) return; if (e instanceof ApiError && e.status === 404) { localStorage.removeItem(storageKey); setOp(null); } else setError("Could not load your previous launch. Check recent launches before starting another."); });
     return () => { active = false; };
-  }, [storageKey, auth.authenticated]);
+  }, [storageKey, auth.canLaunch]);
   useEffect(() => {
     if (!op || !["preparing", "submitted", "confirmed"].includes(op.status)) return;
     let active = true;
@@ -73,6 +77,12 @@ export default function LaunchPage() {
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Launch did not complete"); }
     finally { lock.current = false; setBusy(false); }
   }
+  // Finish the "Connect wallet" click: once the wallet is connected, ask for the sign-in signature.
+  useEffect(() => {
+    if (!verifyAfterConnect.current || !walletOnly || auth.canLaunch || !walletConnected || !fundingWallet) return;
+    verifyAfterConnect.current = false;
+    void run(() => auth.walletSignIn(fundingWallet));
+  }, [walletOnly, auth.canLaunch, walletConnected, fundingWallet]);
   async function saveImage(file: Blob) {
     const saved = await uploadMedia(file);
     setImage(saved);
@@ -81,8 +91,8 @@ export default function LaunchPage() {
 
   function chooseImage(files: FileList | null) {
     if (!files?.length || lock.current) return;
-    if (!auth.authenticated) {
-      setImageError("Sign in before uploading your token image.");
+    if (!auth.canLaunch) {
+      setImageError("Connect your wallet before uploading your token image.");
       return;
     }
     if (files.length !== 1) {
@@ -168,8 +178,8 @@ export default function LaunchPage() {
             <label
               onDragOver={event => {
                 event.preventDefault();
-                event.dataTransfer.dropEffect = busy || !auth.authenticated ? "none" : "copy";
-                setDragging(auth.authenticated && !busy);
+                event.dataTransfer.dropEffect = busy || !auth.canLaunch ? "none" : "copy";
+                setDragging(auth.canLaunch && !busy);
               }}
               onDragLeave={event => {
                 if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
@@ -179,25 +189,34 @@ export default function LaunchPage() {
                 setDragging(false);
                 chooseImage(event.dataTransfer.files);
               }}
-              className={`flex items-center gap-4 rounded-xl border border-dashed p-4 focus-within:ring-2 focus-within:ring-white ${dragging ? "border-white bg-raised" : "hairline bg-surface"} ${busy || !auth.authenticated ? "" : "cursor-pointer"}`}
+              className={`flex items-center gap-4 rounded-xl border border-dashed p-4 focus-within:ring-2 focus-within:ring-volt ${dragging ? "border-volt bg-raised" : "hairline bg-surface"} ${busy || !auth.canLaunch ? "" : "cursor-pointer"}`}
             >
               <img src={image?.url || DEFAULT_IMAGE} alt="" className="h-14 w-14 rounded-lg bg-ink object-cover" />
               <span>
                 <span className="block text-sm font-semibold">Token image</span>
-                <span className="block text-sm" aria-live="polite">{uploadingImage ? "Uploading…" : !auth.authenticated ? "Sign in to upload an image" : dragging ? "Drop to upload" : "Drop an image or GIF, or browse files"}</span>
+                <span className="block text-sm" aria-live="polite">{uploadingImage ? "Uploading…" : !auth.canLaunch ? "Connect your wallet to upload an image" : dragging ? "Drop to upload" : "Drop an image or GIF, or browse files"}</span>
                 <span className="block text-xs text-muted">PNG, JPEG or WebP up to 2 MB · GIF up to 8 MB</span>
               </span>
               <input aria-label="Choose token image or GIF" type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,image/gif"
-                disabled={busy || !auth.authenticated} onChange={event => { chooseImage(event.target.files); event.target.value = ""; }} />
+                disabled={busy || !auth.canLaunch} onChange={event => { chooseImage(event.target.files); event.target.value = ""; }} />
             </label>
             {imageError && <p role="alert" className="mt-2 text-sm">{imageError}</p>}
             {image && <button type="button" disabled={busy} onClick={() => { setImage(null); setImageError(""); }} className="mt-2 text-xs underline">Use default image</button>}
           </div>
-          <details className="text-sm"><summary className="cursor-pointer text-muted">Banner & links</summary><div className="mt-4 space-y-4"><BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.authenticated}/>{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">Leave blank to use your connected X profile.</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to the funding wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
+          <details className="text-sm"><summary className="cursor-pointer text-muted">Banner & links</summary><div className="mt-4 space-y-4"><BannerEditor value={banner.url} onChange={(url,id)=>setBanner({url,id})} disabled={busy||!auth.canLaunch}/>{field("twitterUrl", "X / Twitter profile URL (optional)")}<p className="text-xs text-muted">{auth.authenticated ? "Leave blank to use your connected X profile." : "Leave blank to launch without an X link."}</p><label className="block text-xs font-medium text-muted">Website · locked to your community<input readOnly aria-readonly="true" aria-label="Community website (locked)" value={`${(config.data?.communityWebsiteOrigin || "https://getmentions.xyz").replace(/\/$/, "")}/t/${communitySlugPreview(f.name,f.ticker)}`} className={`${inputClass} cursor-default text-muted`} /><span className="mt-2 block text-xs leading-5">Automatically included in your token metadata. The final unique address is confirmed at review and opens your community after launch.</span></label>{field("telegram", "Telegram URL (optional)")}{selectedMode !== "holders" && <>{field("creatorWallet", "Fee recipient (defaults to the funding wallet)")}<p className="text-xs text-muted">Locked to this launch. Changing community ownership will not change the recipient.</p></>}</div></details>
         </section>
 
         {unavailable && <p role="alert" className="rounded-xl border hairline bg-surface p-4 text-sm text-muted">{unavailable}</p>}
         {config.data && !config.data.enabled && <p className="rounded-xl border hairline bg-surface p-4 text-xs leading-relaxed text-muted">Draft your launch now. Transaction execution is not open yet; your wallet will only be charged after launch access is enabled and you approve.</p>}
+        {walletOnly && auth.canLaunch && <section className="launch-step space-y-3">
+          <p className="text-sm font-semibold">Funding wallet</p>
+          <p className="break-all rounded-xl border hairline bg-surface px-3.5 py-3 font-mono text-xs text-muted">{fundingWallet}</p>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="text-volt">✓ Wallet verified</span>
+            {!walletConnected && <button type="button" disabled={busy} onClick={auth.connectLaunchWallet} className="rounded-lg border hairline px-3 py-2">Reconnect this wallet</button>}
+            <button type="button" disabled={busy} onClick={auth.endWalletSession} className="text-muted underline">Use a different wallet</button>
+          </div>
+        </section>}
         {auth.authenticated && <section className="launch-step space-y-3">
           <label className="block text-sm font-semibold">Funding wallet
             <select className={inputClass} value={fundingWallet ?? ""} onChange={e => auth.selectLaunchWallet(e.target.value)} disabled={busy || !auth.walletAddresses.length}>
@@ -207,7 +226,12 @@ export default function LaunchPage() {
           </label>
           <button type="button" disabled={busy} onClick={auth.connectLaunchWallet} className="rounded-lg border hairline px-3 py-2 text-sm">Connect a Solana wallet</button>
         </section>}
-        {!auth.authenticated ? <button onClick={auth.login} className={`${primary} w-full`}>Sign in with X to continue</button> : !fundingWallet ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your memes wallet</button> : <div className="space-y-3"><button disabled={busy || !auth.walletAddresses.includes(fundingWallet) || !!unavailable || !config.data?.enabled || f.name.trim().length < 2 || !/^[a-z0-9]{1,12}$/i.test(f.ticker.trim())} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button>{fundingWallet === auth.walletAddress && <button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button>}</div>}
+        {!auth.canLaunch ? <div className="space-y-3">
+          {!walletConnected
+            ? <button disabled={busy || !auth.available} onClick={() => { verifyAfterConnect.current = true; auth.connectLaunchWallet(); }} className={`${primary} w-full`}>Connect wallet to launch</button>
+            : <button disabled={busy} onClick={() => run(() => auth.walletSignIn(fundingWallet!))} className={`${primary} w-full`}>{busy ? "Waiting for wallet…" : "Verify wallet to continue"}</button>}
+          <p className="text-center text-xs leading-relaxed text-muted">{walletConnected ? "A free signature proves this wallet is yours. It is not a transaction and costs no SOL." : "No account needed. Your wallet funds and signs the launch."} <button type="button" onClick={auth.login} className="underline hover:text-fg">Or sign in with X</button></p>
+        </div> : !fundingWallet ? <button disabled={busy} onClick={() => run(auth.createWallet)} className={`${primary} w-full`}>Create your memes wallet</button> : <div className="space-y-3"><button disabled={busy || !auth.walletAddresses.includes(fundingWallet) || !!unavailable || !config.data?.enabled || f.name.trim().length < 2 || !/^[a-z0-9]{1,12}$/i.test(f.ticker.trim())} onClick={() => run(prepare)} className={`${primary} w-full`}>{busy ? "Preparing review…" : "Review launch"}</button>{fundingWallet === auth.walletAddress && <button type="button" onClick={() => run(auth.fundWallet)} className="block w-full text-center text-xs text-muted hover:text-fg">Add funds to your wallet</button>}</div>}
       </> : <section className="space-y-4 rounded-2xl border hairline p-5"><h2 className="text-sm font-semibold">Launch status <span className="ml-2 capitalize text-volt">{op.status.replaceAll("_", " ")}</span></h2><p className="break-all text-xs leading-relaxed text-muted">Mint: {op.details.ca}<br />{op.details.mode === "holders" ? "Fee destination: eligible holders via Pump" : `Fee recipient: ${op.details.creatorWallet}`}</p>
         {op.details.website && <div className="rounded-xl bg-surface p-4 text-xs leading-6"><p className="text-muted">Website · locked</p><p className="break-all text-volt">{op.details.website}</p>{op.details.twitterUrl && <><p className="mt-2 text-muted">X / Twitter</p><p className="break-all">{op.details.twitterUrl}</p></>}</div>}
         {op.details.estimatedCostLamports !== undefined && <p className="text-sm">Estimated {op.details.funding === "creator" ? "wallet SOL debit" : "platform cost"}: {(op.details.estimatedCostLamports / 1e9).toFixed(6)} SOL <span className="block mt-1 text-xs text-muted">Includes rent, network costs and a SOL developer buy, if selected. Token-pair buys also spend the pair asset below.</span></p>}
