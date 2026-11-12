@@ -49,7 +49,7 @@ function Intro() {
     if (taps.current.count >= 7) { taps.current.count = 0; discover("goldrush"); }
   }
   return <header className="howto-intro border-b hairline">
-    <button type="button" onClick={tapCoin} className="howto-coin" aria-label="The memes coin">
+    <button type="button" onClick={tapCoin} className="howto-coin" aria-label="The Just Memes coin">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/memes.webp" alt="" width={72} height={72} />
     </button>
@@ -195,10 +195,10 @@ const LINKS = [
 
 const FAQ = [
   { q: "Do I need an account to launch?", a: "No. A Solana wallet is enough. You connect it, sign a free message to prove it is yours, and launch." },
-  { q: "What does a launch cost?", a: "Your wallet pays the network rent and fees for creating the token. The exact amount is shown in the review before you approve. memes adds no launch surcharge." },
+  { q: "What does a launch cost?", a: "Your wallet pays the network rent and fees for creating the token. The exact amount is shown in the review before you approve. Just Memes adds no launch surcharge." },
   { q: "Why do I have to join before I can post?", a: "A community belongs to the people in it. Joining takes one tap after signing in with X, and it is what lets you post and reply there." },
   { q: "I launched with just a wallet. How do I post in my own community?", a: "Sign in with X in the same browser, ideally straight after launching. Your community moves to your X account and you can post in and manage it." },
-  { q: "Will memes post to my X account?", a: "Only if you ask it to. Signing in does not grant posting. You enable it in Settings and then choose it per post." },
+  { q: "Will Just Memes post to my X account?", a: "Only if you ask it to. Signing in does not grant posting. You enable it in Settings and then choose it per post." },
 ];
 
 export function HowTo() {

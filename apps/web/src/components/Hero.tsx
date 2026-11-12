@@ -42,7 +42,7 @@ export function Hero() {
 
   if (hidden) {
     return <div className="flex items-center justify-between gap-3 border-b hairline px-5 py-3 text-xs text-muted">
-      <h1 className="sr-only">memes</h1>
+      <h1 className="sr-only">Just Memes</h1>
       <span>Launch a coin from your wallet. Every coin gets a community.</span>
       <button type="button" onClick={show} className="shrink-0 text-volt hover:underline">How it works</button>
     </div>;
@@ -51,7 +51,7 @@ export function Hero() {
   return <section aria-labelledby="hero-title" className="hero border-b hairline">
     <div className="hero-grid">
       <div className="min-w-0">
-        <p className="hero-eyebrow">How memes works</p>
+        <p className="hero-eyebrow">How Just Memes works</p>
         <h1 id="hero-title" className="hero-title">Every coin gets a <span className="text-volt">community</span>.</h1>
         <p className="hero-sub">Launch a coin straight from your wallet. It opens with its own feed, where holders join, post and bring it to life.</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">

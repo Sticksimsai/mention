@@ -48,7 +48,7 @@ export function SearchBox() {
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           aria-label="Search communities, tickers, and people"
-          placeholder="Search memes"
+          placeholder="Search Just Memes"
           className="min-w-0 w-full bg-transparent text-[13px] outline-none placeholder:text-muted"
         />
       </div>

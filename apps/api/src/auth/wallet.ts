@@ -32,7 +32,7 @@ export function challengeMessage(address: string, nonce: string, issuedAt: strin
     `${host} wants you to sign in with your Solana wallet:`,
     address,
     "",
-    "Sign in to launch on memes. This does not send a transaction or cost SOL.",
+    "Sign in to launch on Just Memes. This does not send a transaction or cost SOL.",
     "",
     `Nonce: ${nonce}`,
     `Issued At: ${issuedAt}`,

@@ -1,4 +1,4 @@
-# Render Blueprint — deploys the full memes stack in one go.
+# Render Blueprint — deploys the full Just Memes stack in one go.
 # Render → New → Blueprint → pick this repo. You'll be prompted for the
 # Privy keys (sync: false vars); everything else wires itself.
 #

@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "memes",
+  title: "Just Memes",
   icons: { icon: [{ url: "/brand/favicon.svg?v=5", type: "image/svg+xml" }], shortcut: "/brand/favicon.svg?v=5" },
   description: "Post on the public feed and launch a community token on Solana with Pump.fun.",
 };
