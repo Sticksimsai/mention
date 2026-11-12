@@ -2,10 +2,12 @@
 import { Shell } from "@/components/Shell";
 import { Composer } from "@/components/Composer";
 import { Feed } from "@/components/Feed";
+import { Hero } from "@/components/Hero";
 
 export default function Home() {
   return <Shell>
-    <header className="border-b hairline px-5 py-5"><h1 className="font-display text-base">Feed</h1></header>
+    <Hero />
+    <header className="border-b hairline px-5 py-5"><h2 className="font-display text-base">Feed</h2></header>
     <Composer />
     <Feed />
   </Shell>;

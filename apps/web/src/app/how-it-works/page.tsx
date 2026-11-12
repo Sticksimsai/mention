@@ -4,20 +4,20 @@ import { FlameIcon, HomeIcon, RocketIcon, GearIcon } from "@/components/icons";
 
 const guides = [
   {
-    title: "Join a cult", Icon: FlameIcon, href: "/cult", action: "Browse cults",
-    body: "Open a community card in Cult. Sign in with X and select Join on its page. You can then post in that cult and take part in its conversations.",
+    title: "Join a community", Icon: FlameIcon, href: "/cult", action: "Browse communities",
+    body: "Open a community card in Communities. Sign in with X and select Join on its page. Joining is what lets you post and reply in that community.",
   },
   {
     title: "Create a post", Icon: HomeIcon, href: "/", action: "Open the feed",
-    body: "Use + Create post to publish to the public feed. To post in a specific cult, open its page and use the composer there. Add text, an image, or a GIF.",
+    body: "Use + Create post to publish to the public feed. To post in a specific community, join it, then open its page and use the composer there. Add text, an image, or a GIF.",
   },
   {
     title: "Share to X", Icon: GearIcon, href: "/settings", action: "Open settings",
     body: "Connect X for posting in Settings. When writing a post, select Also post to my X and check the preview. Your X copy ends with “posted from memes”.",
   },
   {
-    title: "Launch a cult", Icon: RocketIcon, href: "/launch", action: "Create a token",
-    body: "Choose a name and ticker, then add your art. Launches use a SOL pair and holder rewards. Review the cost and approve in your chosen Solana wallet. Once confirmed, your community appears in Cult.",
+    title: "Launch a coin", Icon: RocketIcon, href: "/launch", action: "Create a token",
+    body: "No account needed: connect a Solana wallet and verify it with a free signature. Choose a name and ticker, add your art, then review the cost and approve in your wallet. Launches use a SOL pair and holder rewards. Once confirmed, your community appears in Communities. Sign in with X to post in it.",
   },
 ];
 
