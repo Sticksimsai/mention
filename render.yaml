@@ -27,11 +27,11 @@ services:
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
       - key: WEB_ORIGIN
-        value: https://memes-web.onrender.com
+        value: https://memes-web-9rwt.onrender.com
       - key: API_PUBLIC_URL
-        value: https://memes-api.onrender.com
+        value: https://memes-api-9rwt.onrender.com
       - key: X_REDIRECT_URI
-        value: https://memes-api.onrender.com/v1/x/callback
+        value: https://memes-api-9rwt.onrender.com/v1/x/callback
       - key: X_CLIENT_ID
         sync: false
       - key: X_CLIENT_SECRET
@@ -79,7 +79,7 @@ services:
     dockerContext: .
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://memes-api.onrender.com
+        value: https://memes-api-9rwt.onrender.com
       - key: NEXT_PUBLIC_PRIVY_APP_ID
         sync: false
 
