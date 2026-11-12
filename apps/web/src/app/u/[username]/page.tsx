@@ -61,7 +61,7 @@ export default function ProfilePage() {
         <img src={p.bannerUrl} alt="" className="h-full w-full object-cover" />
       ) : (
         <>
-          <img src="/brand/onlycults.webp" alt="" aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-[130%] w-auto -translate-y-1/2 object-contain opacity-25 sm:right-8" />
+          <img src="/brand/memes.webp" alt="" aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-[130%] w-auto -translate-y-1/2 object-contain opacity-25 sm:right-8" />
           <p className="absolute bottom-4 right-5 text-[10px] text-white/80">where conversations become communities.</p>
         </>
       )}
@@ -83,7 +83,7 @@ export default function ProfilePage() {
     </section>
     <section className="grid grid-cols-3 gap-2 px-5 pb-6 sm:px-6" aria-label="Profile stats">
       <Stat label="Communities joined" value={p.tribes} />
-      <Stat label="onlycults posts" value={p.postCount} />
+      <Stat label="memes posts" value={p.postCount} />
       <Stat label="Communities created" value={p.ownedTribes.length} />
     </section>
     {own && <div className="px-5 pb-5 lg:hidden"><button onClick={() => setTab("wallet")} className="w-full rounded-xl border hairline bg-surface px-4 py-3 text-left text-sm font-medium">My wallet <span className="float-right text-volt">Add funds ↗</span></button></div>}

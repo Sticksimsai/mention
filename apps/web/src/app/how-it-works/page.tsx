@@ -13,7 +13,7 @@ const guides = [
   },
   {
     title: "Share to X", Icon: GearIcon, href: "/settings", action: "Open settings",
-    body: "Connect X for posting in Settings. When writing a post, select Also post to my X and check the preview. Your X copy ends with “posted from onlycults”.",
+    body: "Connect X for posting in Settings. When writing a post, select Also post to my X and check the preview. Your X copy ends with “posted from memes”.",
   },
   {
     title: "Launch a cult", Icon: RocketIcon, href: "/launch", action: "Create a token",
