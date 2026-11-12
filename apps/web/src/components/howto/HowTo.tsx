@@ -125,7 +125,7 @@ function ExampleCommunity() {
           </div>
         </div>
         <button type="button" onClick={() => setJoined(value => !value)} aria-pressed={joined}
-          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${joined ? "border hairline text-fg" : "bg-volt text-ink hover:bg-volt-deep"}`}>{joined ? "Joined" : "Join"}</button>
+          className={`btn btn-sm ${joined ? "btn-secondary" : "btn-primary"}`}>{joined ? "Joined" : "Join"}</button>
       </div>
       <ol className="howto-progress" aria-label="Your progress in this example">
         <li className={joined ? "is-done" : "is-next"}><span aria-hidden="true">{joined ? "✓" : "1"}</span>Join the community</li>
@@ -137,7 +137,7 @@ function ExampleCommunity() {
           placeholder={joined ? "Say something to $BLOB…" : "Join $BLOB to post"} />
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-muted">{joined ? "On a real community you would also be signed in with X." : "Posting is for members. Join first."}</p>
-          <button type="submit" disabled={!joined || !draft.trim()} className="rounded-full bg-volt px-5 py-2 text-sm font-semibold text-ink transition hover:bg-volt-deep disabled:opacity-40">Post</button>
+          <button type="submit" disabled={!joined || !draft.trim()} className="btn btn-primary btn-sm">Post</button>
         </div>
       </form>
       <ul className="divide-y divide-line border-t hairline">

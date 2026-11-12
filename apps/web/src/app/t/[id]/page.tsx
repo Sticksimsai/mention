@@ -80,11 +80,7 @@ export default function TribePage() {
           <button
             onClick={() => (authenticated ? joinLeave.mutate(!isMember) : login())}
             disabled={joinLeave.isPending}
-            className={`mt-3 rounded-full px-5 py-2 text-sm font-semibold ${
-              isMember
-                ? "border hairline text-fg hover:border-down hover:text-down"
-                : "bg-volt text-ink hover:bg-volt-deep"
-            }`}
+            className={`btn btn-sm mt-3 ${isMember ? "btn-secondary" : "btn-primary"}`}
           >
             {isMember ? "Joined" : "Join"}
           </button>
@@ -127,7 +123,7 @@ export default function TribePage() {
         <>
           {(isMember || me?.role || me?.id===tribe.owner.id) ? <Composer communityId={tribe.id} /> : <div className="flex flex-wrap items-center justify-between gap-3 border-b hairline px-5 py-4">
             <p className="text-sm text-muted">{authenticated ? "Join this community to post and reply." : "Sign in with X and join to post and reply."}</p>
-            <button type="button" disabled={joinLeave.isPending} onClick={() => (authenticated ? joinLeave.mutate(true) : login())} className="rounded-full bg-volt px-5 py-2 text-sm font-semibold text-ink hover:bg-volt-deep disabled:opacity-50">{authenticated ? "Join to post" : "Sign in with X"}</button>
+            <button type="button" disabled={joinLeave.isPending} onClick={() => (authenticated ? joinLeave.mutate(true) : login())} className="btn btn-primary btn-sm">{authenticated ? "Join to post" : "Sign in with X"}</button>
           </div>}
           <Feed communityId={tribe.id} />
         </>

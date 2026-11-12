@@ -6,7 +6,7 @@
    Cocogoose Pro Thin — running text (trial files: license via zetafonts.com). */
 @font-face {
   font-family: "StairsNSlabs";
-  src: url("/fonts/stairsnslabs.ttf?v=4") format("truetype");
+  src: url("/fonts/stairsnslabs.ttf?v=5") format("truetype");
   font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
@@ -434,3 +434,45 @@ h3.howto-step-title[class] { font-size: .8125rem; }
   .howto-coin img, .howto-lore-coin, .howto-lore-blob, .howto-post { animation: none; }
   .howto-link:hover { transform: none; }
 }
+
+/* Buttons. One system for the whole site: a solid "pressable" face that sinks on press.
+   Use .btn with one of -primary / -secondary / -ghost, plus -sm or -block as needed. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border: 1px solid transparent; border-radius: 12px; font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; transition: transform .08s ease, box-shadow .08s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
+.btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; opacity: .45; }
+.btn-primary { background: theme('colors.volt'); color: theme('colors.ink'); box-shadow: 0 3px 0 #8A5E04; }
+.btn-primary:hover:not(:disabled) { background: #FFC62E; }
+.btn-secondary { background: theme('colors.raised'); border-color: theme('colors.line'); color: theme('colors.fg'); box-shadow: 0 3px 0 #070604; }
+.btn-secondary:hover:not(:disabled) { border-color: rgb(242 180 22 / .65); color: theme('colors.volt'); }
+.btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #070604; }
+.btn-primary:active:not(:disabled) { box-shadow: 0 1px 0 #8A5E04; }
+.btn-ghost { min-height: 40px; color: theme('colors.muted'); }
+.btn-ghost:hover:not(:disabled) { background: theme('colors.surface'); color: theme('colors.fg'); }
+.btn-sm { min-height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px; }
+.btn-block { width: 100%; }
+.btn-round { width: 46px; min-height: 46px; padding: 0; border-radius: 14px; font-size: 22px; }
+
+/* Feed: composer prompt, state panels and post actions. */
+.feed-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid theme('colors.line'); }
+.feed-live { display: inline-flex; align-items: center; gap: 7px; color: theme('colors.muted'); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.feed-live i { width: 7px; height: 7px; border-radius: 50%; background: theme('colors.up'); }
+.feed-prompt { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid theme('colors.line'); }
+.feed-prompt-avatar { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; overflow: hidden; border: 1px solid theme('colors.line'); border-radius: 50%; background: theme('colors.surface'); }
+.feed-prompt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.feed-prompt-avatar img.is-sprite { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.feed-prompt-field { flex: 1; min-width: 0; min-height: 44px; padding: 0 16px; overflow: hidden; border: 1px solid theme('colors.line'); border-radius: 12px; background: theme('colors.surface'); color: theme('colors.muted'); font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; transition: border-color .15s ease, color .15s ease; }
+.feed-prompt-field:hover { border-color: rgb(242 180 22 / .55); color: theme('colors.fg'); }
+.feed-state { display: flex; flex-direction: column; align-items: center; margin: 28px 20px; padding: 34px 24px; border: 1px dashed theme('colors.line'); border-radius: 18px; background: theme('colors.surface'); text-align: center; }
+.feed-state img { width: 64px; height: 64px; image-rendering: pixelated; }
+.feed-state.is-error img { opacity: .55; filter: grayscale(1); }
+.feed-state-title { margin-top: 14px; font-family: var(--heading-font); font-size: .75rem; line-height: 1.7; letter-spacing: .02em; -webkit-font-smoothing: none; }
+.feed-state-body { max-width: 38ch; margin: 8px 0 18px; color: theme('colors.muted'); font-size: 13px; line-height: 1.65; }
+.feed-skeleton > div { position: relative; overflow: hidden; }
+.feed-skeleton > div::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgb(242 180 22 / .06) 50%, transparent 70%); transform: translateX(-100%); animation: feed-shimmer 1.6s ease-in-out infinite; }
+@keyframes feed-shimmer { to { transform: translateX(100%); } }
+.post-action { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; margin-left: -8px; padding: 0 10px; border-radius: 999px; font-variant-numeric: tabular-nums; transition: background-color .15s ease, color .15s ease; }
+.post-action:hover:not(:disabled) { background: rgb(242 180 22 / .10); color: theme('colors.volt'); }
+.post-action.is-repost:hover:not(:disabled) { background: rgb(61 214 140 / .10); color: theme('colors.up'); }
+.post-action:active:not(:disabled) svg { transform: scale(.82); }
+.post-action svg { transition: transform .1s ease; }
+@media (min-width: 640px) { .feed-header, .feed-prompt { padding-left: 24px; padding-right: 24px; } }
+@media (prefers-reduced-motion: reduce) { .feed-skeleton > div::after { animation: none; } .btn { transition: none; } }

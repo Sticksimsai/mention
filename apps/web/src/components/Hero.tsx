@@ -55,8 +55,8 @@ export function Hero() {
         <h1 id="hero-title" className="hero-title">Every coin gets a <span className="text-volt">community</span>.</h1>
         <p className="hero-sub">Launch a coin straight from your wallet. It opens with its own feed, where holders join, post and bring it to life.</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Link href="/launch" className="rounded-full bg-volt px-6 py-2.5 text-sm font-semibold text-ink transition hover:bg-volt-deep">Launch a coin</Link>
-          <Link href="/cult" className="rounded-full border hairline px-6 py-2.5 text-sm font-semibold text-fg transition hover:border-volt/60">Explore communities</Link>
+          <Link href="/launch" className="btn btn-primary">Launch a coin</Link>
+          <Link href="/cult" className="btn btn-secondary">Explore communities</Link>
         </div>
       </div>
       <div className="hero-media">

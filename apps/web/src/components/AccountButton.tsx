@@ -8,7 +8,7 @@ export function AccountButton({ compact = false }: { compact?: boolean }) {
   if (authenticated && !me) return <div className="rounded-xl border hairline p-3 text-xs text-muted" role="status">
     {error ? <><p>Could not load your profile.</p><button onClick={() => retry()} className="mt-2 text-volt">Retry</button><button onClick={logout} className="ml-4">Sign out</button></> : "Loading your X profile…"}
   </div>;
-  if (!authenticated || !me) return <button onClick={login} className="min-h-11 w-full rounded-xl border hairline bg-surface px-4 py-3 text-sm font-semibold hover:border-volt/50 hover:text-volt">Sign in with 𝕏</button>;
+  if (!authenticated || !me) return <button onClick={login} className="btn btn-secondary btn-block">Sign in with 𝕏</button>;
   return <div className="rounded-xl border hairline bg-surface p-2">
     <Link href={`/u/${encodeURIComponent(me.username)}`} aria-label={`Open ${me.displayName}'s profile`} className="flex min-w-0 items-center gap-2 rounded-lg p-1 hover:bg-raised">
       {me.pfpUrl ? (

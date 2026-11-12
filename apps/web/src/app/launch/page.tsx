@@ -31,7 +31,7 @@ function units(value: string | undefined, decimals = 6) {
   return decimals ? `${s.slice(0, -decimals)}.${s.slice(-decimals)}`.replace(/\.?0+$/, "") : s;
 }
 const inputClass = "mt-2 w-full rounded-xl border hairline bg-surface px-3.5 py-3 text-sm text-fg outline-none focus:border-volt/60";
-const primary = "rounded-xl bg-volt px-5 py-3 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-40";
+const primary = "btn btn-primary";
 
 export default function LaunchPage() {
   const auth = useAuth();

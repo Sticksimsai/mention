@@ -7,7 +7,7 @@ import { Hero } from "@/components/Hero";
 export default function Home() {
   return <Shell>
     <Hero />
-    <header className="border-b hairline px-5 py-5"><h2 className="font-display text-base">Feed</h2></header>
+    <header className="feed-header"><h2 className="font-display text-base">Feed</h2><span className="feed-live"><i className="pulse-dot" aria-hidden="true" />Newest first</span></header>
     <Composer />
     <Feed />
   </Shell>;

@@ -10,18 +10,28 @@ import {XVerifiedBadge} from './XVerifiedBadge';
 type ComposerPlacement = "center" | "sidebar" | "mobile";
 
 export function Composer({communityId, placement = "center"}: {communityId?: string; placement?: ComposerPlacement}) {
-  const {authenticated,login} = useMe();
+  const {authenticated,login,me} = useMe();
   const [open,setOpen] = useState(false);
+  const start = () => authenticated ? setOpen(true) : login();
+  const modal = open && <ComposeModal communityId={communityId} close={() => setOpen(false)} />;
+  // On a feed the composer reads as the first row of the conversation, not a lone button.
+  if (placement === "center") return <div className="feed-prompt">
+    <span className="feed-prompt-avatar" aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {me?.pfpUrl ? <img src={me.pfpUrl} alt="" /> : <img src="/brand/howto/blob-cream-still.webp" alt="" className="is-sprite" />}
+    </span>
+    <button type="button" onClick={start} className="feed-prompt-field">{authenticated ? (communityId ? "Say something to this community…" : "What is happening?") : "Sign in with X to post"}</button>
+    <button type="button" aria-label="Create post" onClick={start} className="btn btn-primary btn-sm shrink-0">Post</button>
+    {modal}
+  </div>;
   const compact = placement === "mobile";
-  const wrapper = placement === "center" ? "flex justify-center border-b hairline px-5 py-5" : placement === "sidebar" ? "mt-4" : "";
-  const size = compact ? "h-11 w-11 text-xl" : placement === "sidebar" ? "min-h-11 w-full px-4 text-sm" : "min-h-11 px-8 text-sm";
-  return <div className={wrapper}>
-    <button type="button" aria-label="Create post" onClick={() => authenticated ? setOpen(true) : login()}
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-volt font-semibold text-ink hover:bg-volt-deep ${size}`}>
-      {placement !== "center" && <span aria-hidden="true">+</span>}
+  return <div className={placement === "sidebar" ? "mt-4" : ""}>
+    <button type="button" aria-label="Create post" onClick={start}
+      className={compact ? "btn btn-primary btn-round" : "btn btn-primary btn-block"}>
+      <span aria-hidden="true">+</span>
       {!compact && "Create post"}
     </button>
-    {open && <ComposeModal communityId={communityId} close={() => setOpen(false)} />}
+    {modal}
   </div>;
 }
 function ComposeModal({communityId,close}:{communityId?:string;close:()=>void}){

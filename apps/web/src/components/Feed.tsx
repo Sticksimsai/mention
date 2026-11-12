@@ -44,21 +44,29 @@ export function Feed({ communityId, author, scope }: {
   const items = allItems.filter((p,i)=>allItems.findIndex(other=>other.id===p.id)===i);
 
   if (feed.isLoading) return <FeedSkeleton />;
-  if (feed.isError) return <div className="px-6 py-12 text-center"><p className="text-sm text-muted">Could not load posts.</p><button onClick={() => feed.refetch()} className="mt-3 text-sm text-volt">Try again</button></div>;
+  if (feed.isError) return <div className="feed-state is-error" role="alert">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src="/brand/howto/blob-cream-still.webp" alt="" />
+    <p className="feed-state-title">The feed is not loading</p>
+    <p className="feed-state-body">We could not reach the server. Nothing is lost. Try again in a moment.</p>
+    <button onClick={() => feed.refetch()} disabled={feed.isFetching} className="btn btn-secondary btn-sm">{feed.isFetching ? "Trying…" : "Try again"}</button>
+  </div>;
   if (items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center text-muted">
-        <p className="mb-2 text-base font-semibold text-fg">
+      <div className="feed-state">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/howto/blob-gold.webp" alt="" />
+        <p className="feed-state-title">
           {scope === "joined" ? "Your communities are quiet" : "Nothing here yet"}
         </p>
-        <p className="text-sm leading-6">
+        <p className="feed-state-body">
           {scope === "joined"
             ? "Posts from communities you join appear here."
             : "Public posts and community updates appear here."}
         </p>
         {!communityId && !author && (
-          <Link href="/launch" className="mt-6 rounded-xl border hairline bg-surface px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-volt/40 hover:text-volt">
-            Launch a token
+          <Link href="/launch" className="btn btn-primary btn-sm">
+            Launch a coin
           </Link>
         )}
       </div>
@@ -72,7 +80,7 @@ export function Feed({ communityId, author, scope }: {
         <button
           onClick={() => feed.fetchNextPage()}
           disabled={feed.isFetchingNextPage}
-          className="w-full border-t hairline py-4 text-sm text-volt hover:bg-surface disabled:opacity-50"
+          className="btn btn-ghost btn-block rounded-none border-t border-line text-volt"
         >
           {feed.isFetchingNextPage ? "Loading…" : "Show more"}
         </button>
@@ -139,12 +147,12 @@ export function PostCard({ post }: { post: PostView }) {
           {post.sticker&&<CommunitySticker sticker={post.sticker}/>}
           {post.quotePostId&&<QuotedPost post={post.quotedPost}/>}
           {act.error && <p role="alert" className="mt-2 text-xs text-down">{act.error.message}</p>}
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
             <button
               disabled={act.isPending}
               onClick={() => engage(post.likedByMe, "like", "unlike")}
               aria-label={`Like post (${post.likes})`}
-              className={`inline-flex min-h-8 items-center gap-1.5 hover:text-volt ${post.likedByMe ? "text-volt" : ""}`}
+              className={`post-action ${post.likedByMe ? "text-volt" : ""}`}
             >
               <PostIcon kind="like" /> {post.likes}
             </button>
@@ -153,11 +161,11 @@ export function PostCard({ post }: { post: PostView }) {
               onClick={() => authenticated?setMenu(!menu):login()}
               aria-expanded={menu}
               aria-label={`Repost (${post.reposts})`}
-              className={`inline-flex min-h-8 items-center gap-1.5 hover:text-up ${post.repostedByMe ? "text-up" : ""}`}
+              className={`post-action is-repost ${post.repostedByMe ? "text-up" : ""}`}
             >
               <PostIcon kind="repost" /> {post.reposts}
             </button>
-            <button onClick={()=>authenticated?setInteraction("reply"):login()} aria-label={`Reply (${post.replies})`} className="inline-flex min-h-8 items-center gap-1.5 hover:text-volt"><PostIcon kind="reply" /> {post.replies}</button>
+            <button onClick={()=>authenticated?setInteraction("reply"):login()} aria-label={`Reply (${post.replies})`} className="post-action"><PostIcon kind="reply" /> {post.replies}</button>
             <Link href={`/post/${encodeURIComponent(post.id)}`} className="text-[11px] hover:text-volt">View thread</Link>
             {me?.role && (
               <button
@@ -181,7 +189,7 @@ function PostIcon({kind}:{kind:"like"|"repost"|"reply"}) {
 
 function FeedSkeleton() {
   return (
-    <div>
+    <div className="feed-skeleton" aria-busy="true" aria-label="Loading posts">
       {[...Array(5)].map((_, i) => (
         <div key={i} className="flex gap-3 border-b hairline px-5 py-4">
           <div className="h-10 w-10 rounded-full bg-surface" />
