@@ -11,8 +11,10 @@ export const env = {
   WEB_ORIGIN: process.env.WEB_ORIGIN ?? "http://localhost:3000",
   API_PUBLIC_URL: process.env.API_PUBLIC_URL ?? "http://localhost:3001",
 
-  PRIVY_APP_ID: req("PRIVY_APP_ID"),
-  PRIVY_APP_SECRET: req("PRIVY_APP_SECRET"),
+  // Optional so the site stays browsable before Privy is set up. Without them,
+  // X sign-in is refused (see auth/privy.ts); reading and wallet launches still work.
+  PRIVY_APP_ID: process.env.PRIVY_APP_ID ?? "",
+  PRIVY_APP_SECRET: process.env.PRIVY_APP_SECRET ?? "",
 
   X_CLIENT_ID: process.env.X_CLIENT_ID ?? "",
   X_CLIENT_SECRET: process.env.X_CLIENT_SECRET ?? "",

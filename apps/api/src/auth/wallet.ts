@@ -14,9 +14,14 @@ const SESSION_SECONDS = 12 * 60 * 60;
 const CHALLENGE_SECONDS = 5 * 60;
 
 // Derived so no extra secret has to be configured; rotating either source key ends wallet sessions.
-const sessionKey = createHash("sha256")
-  .update(`memes-wallet-session-v1:${env.TOKEN_ENCRYPTION_KEY || env.PRIVY_APP_SECRET}`)
-  .digest();
+const sessionSecret = env.TOKEN_ENCRYPTION_KEY || env.PRIVY_APP_SECRET;
+const sessionKey = sessionSecret
+  ? createHash("sha256").update(`memes-wallet-session-v1:${sessionSecret}`).digest()
+  : null;
+function key(): Buffer {
+  if (!sessionKey) throw new Error("Wallet sign-in needs TOKEN_ENCRYPTION_KEY to be set.");
+  return sessionKey;
+}
 
 /** Returns the canonical base58 address, or throws for anything that is not a 32-byte key. */
 export function walletAddress(value: string): string {
@@ -72,13 +77,13 @@ export async function issueWalletSession(address: string): Promise<{ token: stri
     .setSubject(address)
     .setIssuedAt()
     .setExpirationTime(expiresAt)
-    .sign(sessionKey);
+    .sign(key());
   return { token, expiresAt: expiresAt * 1000 };
 }
 
 /** Returns the wallet address for a valid session token; throws otherwise. */
 export async function verifyWalletSession(token: string): Promise<string> {
-  const { payload } = await jwtVerify(token, sessionKey, { issuer: WALLET_ISSUER, algorithms: ["HS256"] });
+  const { payload } = await jwtVerify(token, key(), { issuer: WALLET_ISSUER, algorithms: ["HS256"] });
   if (!payload.sub) throw new Error("no subject");
   return walletAddress(payload.sub);
 }

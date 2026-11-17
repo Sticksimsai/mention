@@ -6,7 +6,7 @@ import { db } from "../lib/db.js";
 import { redis } from "../lib/redis.js";
 import { users, staffRoles, bannedUsers, eq } from "@mention/db";
 import { decodeProtectedHeader } from "jose";
-import { verifyPrivyToken } from "./privy.js";
+import { privyConfigured, verifyPrivyToken } from "./privy.js";
 import { verifyWalletSession } from "./wallet.js";
 
 export interface AuthedUser {
@@ -32,6 +32,7 @@ export async function requireAuth(c: Context, next: Next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) throw new HTTPException(401, { message: "missing bearer token" });
 
+  if (!privyConfigured) throw new HTTPException(503, { message: "X sign-in is not available yet." });
   let identity;
   try {
     identity = await verifyPrivyToken(token);

@@ -27,6 +27,7 @@ import { battlesRoute } from "./routes/battles.js";
 
 import {readinessRoute} from "./routes/readiness.js";
 import { walletAuthRoute } from "./routes/wallet-auth.js";
+import { privyConfigured } from "./auth/privy.js";
 import {marketExecutionRoute} from "./routes/market-execution.js";
 import {processDevnetMarkets} from "./lib/market-worker.js";
 const app = new Hono();
@@ -60,7 +61,8 @@ app.get("/health", async (c) => {
   try { checks.redis = (await redis.ping()) === "PONG"; } catch {}
   try { await db.select().from(siteAnnouncements).limit(1); checks.db = true; } catch {}
   const ok = checks.redis && checks.db;
-  return c.json({ ok, checks }, ok ? 200 : 503);
+  // Sign-in is reported, not required: the site serves read-only traffic without it.
+  return c.json({ ok, checks, signIn: privyConfigured }, ok ? 200 : 503);
 });
 
 app.get('/health/worker',async c=>{const heartbeat=await redis.get('ops:worker-heartbeat').catch(()=>null);const ok=Boolean(heartbeat&&Date.now()-Date.parse(heartbeat)<90000);return c.json({ok},ok?200:503);});

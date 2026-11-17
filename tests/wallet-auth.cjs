@@ -20,7 +20,7 @@ const db={
  insert:()=>({values:v=>({onConflictDoNothing:()=>({returning:async()=>{if(rows.some(u=>u.username===v.username||u.privyUserId===v.privyUserId))return[];inserts++;const row={id:'user-'+rows.length,pfpUrl:'',...v};rows.push(row);return[row];}})})}),
 };
 let privyCalls=0;
-const middleware=load('apps/api/src/auth/middleware.ts',{'../lib/db.js':{db},'../lib/redis.js':{redis},'@mention/db':{...tables,eq:(column,value)=>{if(column==='privyUserId')lookup=value;return[column,value];}},'./privy.js':{verifyPrivyToken:async()=>{privyCalls++;throw Error('not a Privy token')}},'./wallet.js':wallet});
+const middleware=load('apps/api/src/auth/middleware.ts',{'../lib/db.js':{db},'../lib/redis.js':{redis},'@mention/db':{...tables,eq:(column,value)=>{if(column==='privyUserId')lookup=value;return[column,value];}},'./privy.js':{privyConfigured:true,verifyPrivyToken:async()=>{privyCalls++;throw Error('not a Privy token')}},'./wallet.js':wallet});
 
 (async()=>{
  const alice=signer(),mallory=signer();
@@ -70,6 +70,15 @@ const middleware=load('apps/api/src/auth/middleware.ts',{'../lib/db.js':{db},'..
   limited.get('/x',async(c,next)=>{c.set('user',{id:'x'});await next()},middleware.walletIpRateLimit('uploads',2,60),c=>c.text('ok'));
   assert.equal((await limited.request('/w')).status,200);assert.equal((await limited.request('/w')).status,200);assert.equal((await limited.request('/w')).status,429);
   assert.equal((await limited.request('/x')).status,200,'X accounts skip the wallet limit');assert.equal(counter,3);redis.incr=async()=>1;}
+ // Without Privy configured, X-only routes answer 503 (not a crash); wallet sessions keep working.
+ {const noPrivy=load('apps/api/src/auth/middleware.ts',{'../lib/db.js':{db},'../lib/redis.js':{redis},'@mention/db':{...tables,eq:(column,value)=>{if(column==='privyUserId')lookup=value;return[column,value];}},'./privy.js':{privyConfigured:false,verifyPrivyToken:async()=>{throw Error('must not be called')}},'./wallet.js':wallet});
+  const off=new Hono();off.onError((e,c)=>c.json({error:e.message},e.status??500));
+  off.get('/post',noPrivy.requireAuth,c=>c.text('ok'));off.get('/launch',noPrivy.requireAuthOrWallet,c=>c.text('ok'));
+  const refused=await off.request('/post',{headers:{authorization:'Bearer some.privy.token'}});assert.equal(refused.status,503);assert.match((await refused.json()).error,/not available yet/);
+  assert.equal((await off.request('/launch',{headers:{authorization:'Bearer '+session.token}})).status,200,'Wallet launches work without Privy');}
+ // Wallet sessions refuse to sign with a key derived from an empty secret.
+ {const blank=load('apps/api/src/auth/wallet.ts',{'../env.js':{env:{TOKEN_ENCRYPTION_KEY:'',PRIVY_APP_SECRET:'',WEB_ORIGIN:'https://memes.test'}},'../lib/redis.js':{redis}});
+  await assert.rejects(blank.issueWalletSession(alice.address),/TOKEN_ENCRYPTION_KEY/);await assert.rejects(blank.verifyWalletSession(session.token),/TOKEN_ENCRYPTION_KEY/);}
  // The launch route must only let a wallet session fund from its own address.
  const launchSource=fs.readFileSync('apps/api/src/routes/launch.ts','utf8');
  assert(launchSource.includes('launchRoute.use("*",requireAuthOrWallet)'));assert(launchSource.includes('user.wallet&&body.fundingWallet!==user.wallet'));

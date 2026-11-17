@@ -5,9 +5,12 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { env } from "../env.js";
 import { redis } from "../lib/redis.js";
 
-const JWKS = createRemoteJWKSet(
-  new URL(`https://auth.privy.io/api/v1/apps/${env.PRIVY_APP_ID}/jwks.json`),
-);
+export const privyConfigured = Boolean(env.PRIVY_APP_ID && env.PRIVY_APP_SECRET);
+
+// Created only when Privy is configured; a JWKS URL for an empty app id would never verify anything.
+const JWKS = privyConfigured
+  ? createRemoteJWKSet(new URL(`https://auth.privy.io/api/v1/apps/${env.PRIVY_APP_ID}/jwks.json`))
+  : null;
 
 export interface PrivyIdentity {
   privyUserId: string;   // did:privy:...
@@ -18,6 +21,7 @@ export interface PrivyIdentity {
 }
 
 export async function verifyPrivyToken(token: string): Promise<PrivyIdentity> {
+  if (!JWKS) throw new Error("Privy is not configured");
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: "privy.io",
     audience: env.PRIVY_APP_ID,
